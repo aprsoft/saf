@@ -1,0 +1,13 @@
+MIGRACIONES ORDENADAS — REVISIÓN DE DEPENDENCIAS
+
+Se conservan los contenidos originales y se renombran fechas para que categorías, unidades y catálogo existan antes de sus tablas dependientes.
+
+ATENCIÓN: NO SE GARANTIZA QUE php artisan migrate FUNCIONE TODAVÍA.
+BLOQUEOS DETECTADOS EN EL ZIP ORIGINAL:
+1. details.service_id tiene FK a services, pero no existe migración de services en el ZIP.
+2. customer_meter.meter_id tiene FK a meters, pero no existe migración de meters en el ZIP. El archivo con ' copy.php' fue separado en revisar_no_ejecutar para que no se ejecute por accidente.
+3. Dos migraciones creaban product_services. Se apartó la antigua en revisar_no_ejecutar y se conservó el nuevo diseño con categorías/unidades. Hay que revisar compatibilidad con código y datos existentes.
+4. sectors originalmente se creaba antes que localities; se movió después, aunque locality_id no declara FK.
+5. Si ya ejecutaste migraciones en una base, renombrarlas no actualiza la tabla migrations: no ejecutes migrate:fresh en producción.
+
+Revisar dependencias faltantes antes de migrar. Ejecutar php artisan migrate:status y php artisan migrate --pretend en una base de prueba.

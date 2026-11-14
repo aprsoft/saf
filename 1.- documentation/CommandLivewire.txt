@@ -1,0 +1,5 @@
+php artisan make:livewire User/CreateUser --class
+
+Este comando genera dos archivos:
+- Componente PHP: app/Livewire/User/CreateUser.php
+- Vista Blade: resources/views/livewire/create-user.blade.php
