@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             //TaxeSeeder::class,
             //ServiceSeeder::class,            
             CustomerSeeder::class,
+            FerreteriaSeeder::class,
             //TypedocumentSeeder::class,
             CompanySeeder::class,
             AdminRolePermissionSeeder::class,

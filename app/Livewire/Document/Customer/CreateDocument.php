@@ -27,18 +27,38 @@ class CreateDocument extends Component
         $busqueda = trim($this->busquedaServicio);
 
         return ProductService::query()
-            ->select(['id', 'name', 'valor', 'tipo_servicio'])
-            ->where('estado_servicio', 'VIGENTE')
+            ->select([
+                'id',
+                'codigo',
+                'nombre',
+                'tipo',
+                'sales_unit_id',
+            ])
+            ->with([
+                'prices' => function (Builder $query): void {
+                    $query->whereHas(
+                        'priceList',
+                        function (Builder $q): void {
+                            $q->where('nombre', 'Venta público')
+                            ->where('tipo', 'VENTA')
+                            ->where('activo', true);
+                        }
+                    )->with('unit');
+                },
+            ])
+            ->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])
+            ->where('activo', true)
             ->when($busqueda !== '', function (Builder $query) use ($busqueda): void {
                 $query->where(function (Builder $q) use ($busqueda): void {
-                    $q->where('name', 'like', '%' . $busqueda . '%');
+                    $q->where('nombre', 'like', "%{$busqueda}%")
+                    ->orWhere('codigo', 'like', "%{$busqueda}%");
 
                     if (ctype_digit($busqueda)) {
                         $q->orWhere('id', (int) $busqueda);
                     }
                 });
             })
-            ->orderBy('name')
+            ->orderBy('nombre')
             ->limit(40)
             ->get();
     }

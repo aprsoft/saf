@@ -12,7 +12,7 @@ return new class extends Migration {
             $table->unsignedInteger('nroLinDet')->nullable();
             $table->unsignedInteger('IndExe')->nullable();
             $table->unsignedBigInteger('document_id');
-            $table->unsignedBigInteger('service_id')->nullable();
+            $table->unsignedBigInteger('product_service_id')->nullable();
             $table->unsignedBigInteger('stretche_id')->nullable();
             //------------------------------------------------
             $table->unsignedBigInteger('detailstate_id')->nullable();
@@ -43,7 +43,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->foreign('document_id')->references('id')->on('documents');
-            $table->foreign('service_id')->references('id')->on('services');
+            $table->foreign('product_service_id')->references('id')->on('product_services');
           
            
         });

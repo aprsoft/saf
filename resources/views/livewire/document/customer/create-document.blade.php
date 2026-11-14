@@ -275,54 +275,54 @@
                         </thead>
 
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                           
                             @forelse ($this->servicios as $servicio)
+                                @php
+                                    $precio = $servicio->prices
+                                        ->firstWhere('unit_id', $servicio->sales_unit_id);
+
+                                    $valor = $precio?->precio;
+                                @endphp
+
                                 <tr wire:key="servicio-{{ $servicio->id }}">
                                     <td class="px-3 py-2">
-                                        {{ $servicio->id }}
+                                        {{ $servicio->codigo }}
                                     </td>
 
                                     <td class="px-3 py-2">
-                                        {{ $servicio->name }}
+                                        {{ $servicio->nombre }}
                                     </td>
 
-                                    <td class="px-3 py-2 text-right whitespace-nowrap">
-                                        {{ $servicio->valor === null
+                                    <td class="px-3 py-2 text-right">
+                                        {{ $valor === null
                                             ? '—'
-                                            : '$' . number_format($servicio->valor, 0, ',', '.') }}
+                                            : '$' . number_format($valor, 0, ',', '.') }}
                                     </td>
 
                                     <td class="px-3 py-2 text-center">
-                                        @if ($servicio->valor !== null)
+                                        @if ($valor !== null)
                                             <button
                                                 type="button"
                                                 x-on:click="abrirModal({{
                                                     \Illuminate\Support\Js::from([
                                                         'id' => $servicio->id,
-                                                        'nombre' => $servicio->name,
-                                                        'precio' => $servicio->valor,
+                                                        'nombre' => $servicio->nombre,
+                                                        'precio' => (float) $valor,
                                                     ])
                                                 }})"
-                                                class="rounded-md bg-blue-600
-                                                       px-2.5 py-1 text-xs
-                                                       font-medium text-white
-                                                       hover:bg-blue-700"
+                                                class="rounded-md bg-blue-600 px-2.5 py-1 text-xs text-white"
                                             >
                                                 Agregar
                                             </button>
                                         @else
-                                            <span class="text-xs text-gray-400">
-                                                Sin valor
-                                            </span>
+                                            <span>Sin precio</span>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td
-                                        colspan="4"
-                                        class="px-3 py-6 text-center text-gray-500"
-                                    >
-                                        No se encontraron servicios.
+                                    <td colspan="4" class="px-3 py-6 text-center">
+                                        No se encontraron productos o servicios.
                                     </td>
                                 </tr>
                             @endforelse
