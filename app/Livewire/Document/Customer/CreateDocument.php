@@ -134,6 +134,7 @@ class CreateDocument extends Component
 
     public function updatedNombreReferencia(): void
     {
+        $this->resetValidation('nombreReferencia');
         $this->sincronizarCabecera();
     }
 
