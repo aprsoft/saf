@@ -110,22 +110,19 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
-        // Específicas antes de las rutas con parámetros opcionales.
-        // Se mantiene index() hasta confirmar que existe create() en el controlador.
+
+        Route::get('customer/', 'index')->name('customer.index');
         Route::get('customer/create', 'create')->name('customer.create');
 
-        Route::get('customer/{customer?}', 'index')->name('customer.index');
-        Route::get('supplier/{supplier?}', 'index')->name('supplier.index');
-        Route::get('meter/{meter?}', 'index')->name('meter.index');
-        Route::get('contract/{contract}', 'index')->name('contract.index');
+        // Route::get('customer/{customer?}', 'index')->name('customer.index');
+        // Route::get('supplier/{supplier?}', 'index')->name('supplier.index');
 
-        Route::get('payment/customer/{customer?}', 'index')->name('payment.customer.index');
-        Route::get('payment/supplier/{supplier?}', 'index')->name('payment.supplier.index');
-        Route::get('payment/meter/{meter?}', 'index')->name('payment.meter.index');
-        Route::get('payment/contract/{contract}', 'index')->name('payment.contract.index');
+        // Route::get('payment/customer/{customer?}', 'index')->name('payment.customer.index');
+        // Route::get('payment/supplier/{supplier?}', 'index')->name('payment.supplier.index');
+        // Route::get('payment/meter/{meter?}', 'index')->name('payment.meter.index');
+        // Route::get('payment/contract/{contract}', 'index')->name('payment.contract.index');
 
-        // Debe estar después de las rutas específicas.
-        // {document} coincide con el argumento Document $document del controlador.
+       
         Route::get('{document}', 'show')->name('show');
     });
 

@@ -33,13 +33,17 @@ class CreateDocument extends Component
     public function tipoDocumentos(): array
     {
         if (Company::firstOrFail()->punto_venta === 'BASICO') {
-            return [['id' => 2, 'name' => 'Nota de Venta']];
+            return [
+                ['id' => 2, 'name' => 'Nota de Venta'],
+                ['id' => 19, 'name' => 'Cotizacion']
+                ];
         }
 
         return [
             ['id' => 15, 'name' => 'Factura'],
             ['id' => 17, 'name' => 'Boleta'],
             ['id' => 18, 'name' => 'Guia de Despacho'],
+            ['id' => 19, 'name' => 'Cotizacion']
         ];
     }
 

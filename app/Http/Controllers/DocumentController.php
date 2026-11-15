@@ -32,7 +32,6 @@ class DocumentController extends Controller
             'entity'   => $entity,
             'customer' => $customer,
             'supplier' => $supplier,
-            'meter'    => $meter,
             'title'    => 'test'
         ]); 
     }

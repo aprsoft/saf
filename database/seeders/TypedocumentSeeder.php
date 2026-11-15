@@ -31,6 +31,8 @@ class TypedocumentSeeder extends Seeder
             ['id' => 16, 'name' => 'FACTURA EXENTA', 'transacciontype' => 'INGRESO',      'tipo' => 'TRIBUTARIO',     'codigo' => 34,   'abrev' => 'FA(E)','created_at' => now(), 'updated_at' => now()],
             ['id' => 17, 'name' => 'BOLETA',         'transacciontype' => 'INGRESO',      'tipo' => 'TRIBUTARIO',     'codigo' => 39,   'abrev' => 'BO',  'created_at' => now(), 'updated_at' => now()],
             ['id' => 18, 'name' => 'GUIA DE DESPACHO','transacciontype' => 'NO APLICA',   'tipo' => 'TRIBUTARIO',     'codigo' => 52,   'abrev' => 'GD',  'created_at' => now(), 'updated_at' => now()],
+            ['id' => 19, 'name' => 'COTIZACION'      ,'transacciontype' => 'NO APLICA',   'tipo' => null,             'codigo' => null,  'abrev' => 'CTZ',  'created_at' => now(), 'updated_at' => now()],
+
         ]);
     }
 }
