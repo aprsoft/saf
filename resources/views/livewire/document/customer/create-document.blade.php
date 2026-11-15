@@ -276,21 +276,21 @@
 
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                            
-                            @forelse ($this->servicios as $servicio)
+                            @forelse ($this->productosServicios as $productoServicio)
                                 @php
-                                    $precio = $servicio->prices
-                                        ->firstWhere('unit_id', $servicio->sales_unit_id);
+                                    $precio = $productoServicio->prices
+                                        ->firstWhere('unit_id', $productoServicio->sales_unit_id);
 
                                     $valor = $precio?->precio;
                                 @endphp
 
-                                <tr wire:key="servicio-{{ $servicio->id }}">
+                                <tr wire:key="productoServicio-{{ $productoServicio->id }}">
                                     <td class="px-3 py-2">
-                                        {{ $servicio->codigo }}
+                                        {{ $productoServicio->codigo }}
                                     </td>
 
                                     <td class="px-3 py-2">
-                                        {{ $servicio->nombre }}
+                                        {{ $productoServicio->nombre }}
                                     </td>
 
                                     <td class="px-3 py-2 text-right">
@@ -305,8 +305,8 @@
                                                 type="button"
                                                 x-on:click="abrirModal({{
                                                     \Illuminate\Support\Js::from([
-                                                        'id' => $servicio->id,
-                                                        'nombre' => $servicio->nombre,
+                                                        'id' => $productoServicio->id,
+                                                        'nombre' => $productoServicio->nombre,
                                                         'precio' => (float) $valor,
                                                     ])
                                                 }})"
@@ -518,6 +518,11 @@
                                bg-white px-3 py-2 text-sm
                                dark:border-gray-600 dark:bg-gray-900"
                     >
+                    @foreach ($this->tipoDocumentos as $tipoDocumento)
+                        <option value="{{ $tipoDocumento->id }}" >
+                            {{ $tipoDocumento->name }}
+                        </option>
+                    @endforeach
                         <option value="nota_venta">Nota de venta</option>
                         <option value="33">Factura electrónica</option>
                         <option value="34">Factura exenta</option>

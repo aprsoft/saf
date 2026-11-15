@@ -4,6 +4,7 @@ namespace App\Livewire\Document\Customer;
 
 use App\Models\Customer;
 use App\Models\ProductService;
+use App\Models\Typedocument;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
@@ -22,7 +23,13 @@ class CreateDocument extends Component
     public ?int $clienteId = null;
 
     #[Computed]
-    public function servicios(): Collection
+    public function tipoDocumentos(): Collection
+    {
+        return Typedocument::query()->where('tipo','TRIBUTARIO')->select('name');
+    }
+
+    #[Computed]
+    public function productosServicios(): Collection
     {
         $busqueda = trim($this->busquedaServicio);
 
@@ -35,15 +42,12 @@ class CreateDocument extends Component
                 'sales_unit_id',
             ])
             ->with([
-                'prices' => function (Builder $query): void {
-                    $query->whereHas(
-                        'priceList',
-                        function (Builder $q): void {
-                            $q->where('nombre', 'Venta público')
-                            ->where('tipo', 'VENTA')
-                            ->where('activo', true);
-                        }
-                    )->with('unit');
+                'prices' => function ($query): void {
+                    $query->whereHas('priceList', function (Builder $q): void {
+                        $q->where('nombre', 'Venta público')
+                        ->where('tipo', 'VENTA')
+                        ->where('activo', true);
+                    });
                 },
             ])
             ->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])

@@ -1,15 +1,15 @@
 <?php
 
+use App\Http\Controllers\CashReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ErrorController;
-use App\Http\Controllers\MeterController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\Tenant\Admin\ContractController;
-use App\Http\Controllers\Tenant\Admin\PaymentController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
 use App\Models\ErrorLog;
 use App\Models\User;
@@ -84,36 +84,8 @@ Route::middleware('auth')->group(function () {
         Route::get('{customer}/edit', 'edit')->name('edit');
         Route::delete('{customer}', 'destroy')->name('destroy');
     });
+   
 
-    /*
-    |----------------------------------------------------------------------
-    | Medidores
-    |----------------------------------------------------------------------
-    */
-    Route::prefix('meters')->name('meters.')->controller(MeterController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('create', 'create')->name('create');
-        Route::post('/', 'store')->name('store');
-        Route::get('{meter}', 'show')->name('show');
-        Route::get('{meter}/edit', 'edit')->name('edit');
-        Route::put('{meter}', 'update')->name('update');
-        Route::delete('{meter}', 'destroy')->name('destroy');
-    });
-
-    /*
-    |----------------------------------------------------------------------
-    | Contratos
-    |----------------------------------------------------------------------
-    */
-    Route::prefix('contracts')->name('contracts.')->controller(ContractController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('create', 'create')->name('create');
-        Route::post('/', 'store')->name('store');
-        Route::get('{contract}', 'show')->name('show');
-        Route::get('{contract}/edit', 'edit')->name('edit');
-        Route::put('{contract}', 'update')->name('update');
-        Route::delete('{contract}', 'destroy')->name('destroy');
-    });
 
     /*
     |----------------------------------------------------------------------
@@ -155,6 +127,23 @@ Route::middleware('auth')->group(function () {
         // Debe estar después de las rutas específicas.
         // {document} coincide con el argumento Document $document del controlador.
         Route::get('{document}', 'show')->name('show');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Documentos Impagos
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
+        Route::get('/', 'index')->name('index');       
+    });
+/*
+    |----------------------------------------------------------------------
+    | Reportes de caja
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('CashReport')->name('cashReports.')->controller(CashReportController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
     });
 
     /*

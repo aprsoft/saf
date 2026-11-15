@@ -40,24 +40,7 @@ class MenuHelper
                     ],
                 ],
             ], 
-            [
-                'icon' => 'file',
-                'name' => 'Contratos',
-                'subItems' => [
-                    [
-                        'name' => 'Listado',
-                        'path' => route('contracts.index', absolute: false),
-                        'permission' => 'contracts.index',
-                        'pro' => false
-                    ],
-                    [
-                        'name' => 'Crear Contrato',
-                        'path' => route('contracts.create', absolute: false),
-                        'permission' => 'contracts.create',
-                        'pro' => false
-                    ],
-                ],
-            ],
+           
             [
                 'icon' => 'file',
                 'name' => 'Documentos',
@@ -78,14 +61,20 @@ class MenuHelper
             ],   
             [
                 'icon' => 'file',
-                'name' => 'medidores',
+                'name' => 'Caja',
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('meters.index', absolute: false),
-                        'permission' => 'meters.index',
+                        'path' => route('unpaids.index', absolute: false),
+                        'permission' => 'unpaids.index',
                         'pro' => false
-                    ],                   
+                    ],  
+                    [
+                        'name' => 'Reporte de Caja',
+                        'path' => route('cashReports.show', absolute: false),
+                        'permission' => 'cashReports.show',
+                        'pro' => false
+                    ],                    
                 ],
             ],      
            
