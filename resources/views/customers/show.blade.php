@@ -1,17 +1,18 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight"> 
-            Datos Comerciales Cliente : {{$customer->fullName}}          
-        </h2>
-    </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">                   
-                <livewire:customers.customer-show
-                    :customer="$customer"                        
-                />         
-            </div>
+@extends('layouts.app')
+
+@section('content')
+    <div class="space-y-6">
+
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">
+            Datos Comerciales Cliente: {{ $customer->fullName }}
+        </h2>
+
+        <div class="rounded-lg bg-white shadow-sm dark:bg-gray-800">
+            <livewire:customers.customer-show
+                :customer="$customer"
+            />
         </div>
+
     </div>
-</x-app-layout>
+@endsection
