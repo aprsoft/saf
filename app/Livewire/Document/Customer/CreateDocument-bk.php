@@ -1,0 +1,157 @@
+<?php
+
+namespace App\Livewire\Document\Customer;
+
+use App\Models\Company;
+use App\Models\Customer;
+use App\Models\ProductService;
+use App\Models\Typedocument;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
+use Livewire\Component;
+
+class CreateDocument extends Component
+{
+    public bool $clienteGenerico = true;
+
+    public string $busquedaServicio = '';
+
+    public string $busquedaCliente = '';
+
+    #[Locked]
+    public ?int $clienteId = null;
+
+    #[Computed]
+    public function tipoDocumentos(): array
+    {
+        $puntoVenta = Company::firstOrFail()->punto_venta;
+
+        if ($puntoVenta === 'BASICO') {
+            return [
+                ['id' => 2, 'name' => 'Nota de Venta'],
+            ];
+        }
+
+        return [
+            ['id' => 15, 'name' => 'Factura'],
+            ['id' => 17, 'name' => 'Boleta'],
+            ['id' => 18, 'name' => 'Guia de Despacho'],
+        ];
+    }
+
+    #[Computed]
+    public function productosServicios(): Collection
+    {
+        $busqueda = trim($this->busquedaServicio);
+
+        return ProductService::query()
+            ->select([
+                'id',
+                'codigo',
+                'nombre',
+                'tipo',
+                'sales_unit_id',
+            ])
+            ->with([
+                'prices' => function ($query): void {
+                    $query->whereHas('priceList', function (Builder $q): void {
+                        $q->where('nombre', 'Venta público')
+                        ->where('tipo', 'VENTA')
+                        ->where('activo', true);
+                    });
+                },
+            ])
+            ->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])
+            ->where('activo', true)
+            ->when($busqueda !== '', function (Builder $query) use ($busqueda): void {
+                $query->where(function (Builder $q) use ($busqueda): void {
+                    $q->where('nombre', 'like', "%{$busqueda}%")
+                    ->orWhere('codigo', 'like', "%{$busqueda}%");
+
+                    if (ctype_digit($busqueda)) {
+                        $q->orWhere('id', (int) $busqueda);
+                    }
+                });
+            })
+            ->orderBy('nombre')
+            ->limit(40)
+            ->get();
+    }
+
+    #[Computed]
+    public function clientes(): Collection
+    {
+        $busqueda = trim($this->busquedaCliente);
+
+        if ($this->clienteGenerico || mb_strlen($busqueda) < 2) {
+            return new Collection();
+        }
+
+        return Customer::query()
+            ->select([
+                'id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno',
+                'condicion_cliente', 'giro', 'direccion_cliente', 'comuna','email_cliente','telefono_fijo','telefono_movil',
+            ])
+            ->where(function (Builder $query) use ($busqueda): void {
+                $query->where('rut', 'like', '%' . $busqueda . '%')
+                   ->orWhereRaw(
+                    "CONCAT_WS(
+                        ' ',
+                        customers.nombres,
+                        customers.apellido_paterno,
+                        customers.apellido_materno
+                    ) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')",
+                    [$busqueda]
+                );
+            })
+            ->orderBy('nombres')
+            ->limit(10)
+            ->get();
+    }
+
+    #[Computed]
+    public function clienteSeleccionado(): ?Customer
+    {
+        if ($this->clienteGenerico || $this->clienteId === null) {
+            return null;
+        }
+
+        return Customer::query()
+            ->select([
+                'id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno',
+                'condicion_cliente', 'giro', 'direccion_cliente', 'comuna','email_cliente','telefono_fijo','telefono_movil',
+            ])
+            ->find($this->clienteId);
+    }
+
+    public function seleccionarCliente(int $id): void
+    {
+        if ($this->clienteGenerico) {
+            return;
+        }
+
+        $cliente = Customer::query()->findOrFail($id);
+        $this->clienteId = $cliente->id;
+        $this->busquedaCliente = '';
+    }
+
+    public function limpiarCliente(): void
+    {
+        $this->clienteId = null;
+        $this->busquedaCliente = '';
+    }
+
+    public function updatedClienteGenerico(): void
+    {
+        if ($this->clienteGenerico) {
+            $this->limpiarCliente();
+        }
+    }
+
+    public function render()
+    { 
+        return view('livewire.document.customer.create-document');
+    }
+}
