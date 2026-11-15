@@ -12,23 +12,14 @@ return new class extends Migration {
             $table->unsignedInteger('nroLinDet')->nullable();
             $table->unsignedInteger('IndExe')->nullable();
             $table->unsignedBigInteger('document_id');
-            $table->unsignedBigInteger('product_service_id')->nullable();
-            $table->unsignedBigInteger('stretche_id')->nullable();
-            //------------------------------------------------
-            $table->unsignedBigInteger('detailstate_id')->nullable();
-            $table->integer('cantidad')->nullable();
-            $table->integer('valor')->nullable();
-            $table->integer('neto')->nullable();
-            $table->integer('iva')->nullable();
-            $table->integer('total')->nullable();
-            //-------------------------------------------------
+            $table->unsignedBigInteger('product_service_id')->nullable();         
             $table->unsignedInteger('DscItem')->nullable();
             $table->unsignedInteger('UnmdItem')->nullable();
             $table->unsignedInteger('DescuentoPct')->nullable();
             $table->unsignedInteger('DescuentoMonto')->nullable();
             $table->unsignedInteger('RecargoPct')->nullable();
             $table->unsignedInteger('RecargoMonto')->nullable();
-            $table->unsignedInteger('QtyItem')->nullable();
+            $table->float('QtyItem')->nullable();
             $table->unsignedInteger('PrcExeItem')->nullable();
             $table->unsignedInteger('PrcNetoItem')->nullable();
             $table->unsignedInteger('PrcItem')->nullable();

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Document\Customer;
 
+use App\Models\Company;
 use App\Models\Customer;
 use App\Models\ProductService;
 use App\Models\Typedocument;
@@ -23,9 +24,21 @@ class CreateDocument extends Component
     public ?int $clienteId = null;
 
     #[Computed]
-    public function tipoDocumentos(): Collection
+    public function tipoDocumentos(): array
     {
-        return Typedocument::query()->where('tipo','TRIBUTARIO')->select('name');
+        $puntoVenta = Company::firstOrFail()->punto_venta;
+
+        if ($puntoVenta === 'BASICO') {
+            return [
+                ['id' => 2, 'name' => 'Nota de Venta'],
+            ];
+        }
+
+        return [
+            ['id' => 15, 'name' => 'Factura'],
+            ['id' => 17, 'name' => 'Boleta'],
+            ['id' => 18, 'name' => 'Guia de Despacho'],
+        ];
     }
 
     #[Computed]
@@ -138,7 +151,7 @@ class CreateDocument extends Component
     }
 
     public function render()
-    {
+    { 
         return view('livewire.document.customer.create-document');
     }
 }

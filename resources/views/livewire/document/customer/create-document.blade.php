@@ -519,16 +519,11 @@
                                dark:border-gray-600 dark:bg-gray-900"
                     >
                     @foreach ($this->tipoDocumentos as $tipoDocumento)
-                        <option value="{{ $tipoDocumento->id }}" >
-                            {{ $tipoDocumento->name }}
+                        <option value="{{ $tipoDocumento['id'] }}">
+                            {{ $tipoDocumento['name'] }}
                         </option>
                     @endforeach
-                        <option value="nota_venta">Nota de venta</option>
-                        <option value="33">Factura electrónica</option>
-                        <option value="34">Factura exenta</option>
-                        <option value="39">Boleta electrónica</option>
-                        <option value="41">Boleta exenta</option>
-                        <option value="61">Nota de crédito</option>
+                                    
                     </select>
 
                     <label class="mb-1 mt-3 block text-sm font-medium">

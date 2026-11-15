@@ -23,7 +23,8 @@ return new class extends Migration
             $table->string('url_document_received');
             $table->string('url_document');
             $table->string('codigo_sii_sucursal'); 
-            $table->string('comuna_origen');       
+            $table->string('comuna_origen');    
+            $table->enum('punto_venta',['BASICO','AVANZADO'])->default('BASICO');   
             $table->string('contacto')->nullable();         
            
         });
