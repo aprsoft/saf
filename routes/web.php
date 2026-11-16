@@ -1,14 +1,14 @@
 <?php
 
-use App\Http\Controllers\CashReportController;
-use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\Reports\CashReportController;
+use App\Http\Controllers\Customers\CustomerController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\ErrorController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Payments\PaymentController;
 use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
 use App\Models\ErrorLog;
