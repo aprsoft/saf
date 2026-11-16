@@ -4,6 +4,6 @@
         {{-- <x-common.page-breadcrumb :pageTitle="$title" /> --}}
 
     <div class="space-y-6">
-        <livewire:document.show-document :document="$document" />
+        <livewire:documents.show-document :document="$document" />
     </div>
 @endsection
