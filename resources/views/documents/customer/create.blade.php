@@ -2,6 +2,6 @@
 
 @section('content')
 
-      <livewire:document.customer.create-document/>
+      <livewire:documents.customers.create-document/>
 
 @endsection
