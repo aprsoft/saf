@@ -105,17 +105,17 @@
     </header>
     <div class="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(340px,1fr)]">
         <main class="min-w-0 space-y-3">
-            @include('livewire.document.customer.partials.catalogo')
-            @include('livewire.document.customer.partials.detalle')
+            @include('livewire.documents.customers.partials.catalogo')
+            @include('livewire.documents.customers.partials.detalle')
         </main>
         <aside class="min-w-0 space-y-3">
-            @include('livewire.document.customer.partials.documento')
-            @include('livewire.document.customer.partials.cliente')
-            @include('livewire.document.customer.partials.resumen')
-            @include('livewire.document.customer.partials.acciones')
+            @include('livewire.documents.customers.partials.documento')
+            @include('livewire.documents.customers.partials.cliente')
+            @include('livewire.documents.customers.partials.resumen')
+            @include('livewire.documents.customers.partials.acciones')
         </aside>
     </div>
-    @include('livewire.document.customer.partials.modals.producto')
-    @include('livewire.document.customer.partials.modals.recuperar-nota')
-    @include('livewire.document.customer.partials.modals.cancelar-nota')
+    @include('livewire.documents.customers.partials.modals.producto')
+    @include('livewire.documents.customers.partials.modals.recuperar-nota')
+    @include('livewire.documents.customers.partials.modals.cancelar-nota')
 </div>
