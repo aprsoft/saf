@@ -163,8 +163,13 @@ class CreateDocument extends Component
     private function cabecera(): array
     {
         return [
-            'customer_id' => $this->clienteGenerico ? null : $this->clienteId,
-            'nombre_referencia' => $this->clienteGenerico ? trim($this->nombreReferencia) ?: null : null,
+            'customer_id' => $this->clienteGenerico
+                ? $this->obtenerClienteGenerico()->id
+                : $this->clienteId,
+
+            'nombre_referencia' => $this->clienteGenerico
+                ? (trim($this->nombreReferencia) ?: null)
+                : null,
         ];
     }
 
@@ -190,6 +195,14 @@ class CreateDocument extends Component
             'monto_total' => 0,
             'valor_pagar' => 0,
         ]));
+    }
+
+    private function obtenerClienteGenerico(): Customer
+    {
+        return Customer::firstOrCreate(
+            ['rut' => '66666666-6'],
+            ['nombres' => 'cliente generico']
+        );
     }
 
     /** El precio se obtiene del catálogo del servidor; nunca se acepta el precio enviado por el navegador. */
@@ -323,9 +336,16 @@ class CreateDocument extends Component
         });
 
         $this->documentoId = $documento->id;
-        $this->clienteGenerico = $documento->customer_id === null;
-        $this->clienteId = $documento->customer_id;
+
+        $this->clienteGenerico = $documento->customer_id === null
+            || $documento->customer?->rut === '66666666-6';
+
+        $this->clienteId = $this->clienteGenerico
+            ? null
+            : $documento->customer_id;
+
         $this->nombreReferencia = $documento->nombre_referencia ?? '';
+        
         $this->mostrarRecuperar = false;
         return [
             'documentoId' => $documento->id,
