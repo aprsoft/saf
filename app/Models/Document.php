@@ -39,7 +39,7 @@ class Document extends Model
 
     public function getIvaAttribute(): int
     {
-        return round($this->details()->servicios()->whereNull('IndExe')->sum(DB::raw('MontoItem - (MontoItem / 1.19)')));
+        return round($this->details()->whereNull('IndExe')->sum(DB::raw('MontoItem - (MontoItem / 1.19)')));
     }
 
     public function getTotalAttribute(): int

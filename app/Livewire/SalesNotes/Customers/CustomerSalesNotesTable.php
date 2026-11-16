@@ -1,9 +1,8 @@
 <?php
 
-namespace App\Livewire\Document;
+namespace App\Livewire\SalesNotes\Customers;
 
 use App\Models\Document;
-
 use Illuminate\Database\Eloquent\Builder;
 use PowerComponents\LivewirePowerGrid\Button;
 use PowerComponents\LivewirePowerGrid\Column;
@@ -69,15 +68,12 @@ final class CustomerSalesNotesTable extends PowerGridComponent
         return array_filter([
             Column::make('ID', 'id')
                 ->sortable()
-                ->hidden(isHidden: true, isForceHidden: false)
                 ->searchable(),
             Column::make('RUT', 'rut')
                 ->sortable()
-                ->hidden(isHidden: true, isForceHidden: false)
                 ->searchableRaw('customers.rut LIKE ?'),
             Column::make('Razón Social', 'razon_social')
                 ->sortable()
-                ->hidden(isHidden: $this->boolEntidad, isForceHidden: false)
                 ->searchableRaw("
                     CONCAT_WS(
                         ' ',
@@ -93,7 +89,6 @@ final class CustomerSalesNotesTable extends PowerGridComponent
            
             Column::make('Total', 'total_format'),
             Column::action('Acciones')
-                ->hidden(isHidden: $this->isHiddenActions, isForceHidden: false),
         ]);
     }
 

@@ -17,11 +17,11 @@ use Livewire\Component;
 
 class CreateDocument extends Component
 {
-    public bool $clienteGenerico = true;
+    public bool   $clienteGenerico = true;
     public string $busquedaServicio = '';
     public string $busquedaCliente = '';
     public string $nombreReferencia = '';
-    public bool $mostrarRecuperar = false;
+    public bool   $mostrarRecuperar = false;
 
     #[Locked]
     public ?int $clienteId = null;
@@ -34,7 +34,7 @@ class CreateDocument extends Component
     {
         if (Company::firstOrFail()->punto_venta === 'BASICO') {
             return [
-                ['id' => 2, 'name' => 'Nota de Venta'],
+                ['id' => 2,  'name' => 'Nota de Venta'],
                 ['id' => 19, 'name' => 'Cotizacion']
                 ];
         }
