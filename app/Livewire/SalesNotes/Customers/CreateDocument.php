@@ -94,17 +94,20 @@ class CreateDocument extends Component
             ->orderBy('nombres')->limit(10)->get();
     }
 
-    #[Computed]
+   #[Computed]
     public function clienteSeleccionado(): ?Customer
     {
-        if ($this->clienteGenerico || $this->clienteId === null) {
+        if ($this->clienteGenerico) {
+            return Customer::query()
+                ->where('rut', '66666666-6')
+                ->first();
+        }
+
+        if ($this->clienteId === null) {
             return null;
         }
 
         return Customer::query()
-            ->select(['id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno',
-                'condicion_cliente', 'giro', 'direccion_cliente', 'comuna',
-                'email_cliente', 'telefono_fijo', 'telefono_movil'])
             ->find($this->clienteId);
     }
 
@@ -345,7 +348,7 @@ class CreateDocument extends Component
             : $documento->customer_id;
 
         $this->nombreReferencia = $documento->nombre_referencia ?? '';
-        
+
         $this->mostrarRecuperar = false;
         return [
             'documentoId' => $documento->id,
