@@ -5,6 +5,6 @@
     <x-common.page-breadcrumb pageTitle="Editar usuario" />
 
     <div class="space-y-6">
-        <livewire:user.edit-user :user="$user" />
+        <livewire:users.edit-user :user="$user" />
     </div>
 @endsection
