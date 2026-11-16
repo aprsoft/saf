@@ -230,7 +230,7 @@
                     {{-- TABLA DETALLE --}}
                     {{-- ========================================= --}}
                     <div class="mt-12">
-                        <livewire:detail.detail-table :document-id="$document->id" />
+                        <livewire:details.detail-table :document-id="$document->id" />
                     </div>
 
                 </div>
