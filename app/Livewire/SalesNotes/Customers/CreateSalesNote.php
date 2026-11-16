@@ -15,7 +15,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-class CreateDocument extends Component
+class CreateSalesNote extends Component
 {
     public bool   $clienteGenerico = true;
     public string $busquedaServicio = '';
@@ -415,6 +415,6 @@ class CreateDocument extends Component
 
     public function render()
     {
-        return view('livewire.sales-notes.customers.create-document');
+        return view('livewire.sales-notes.customer.create-sales-note');
     }
 }

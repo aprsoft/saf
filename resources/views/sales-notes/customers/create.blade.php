@@ -2,6 +2,6 @@
 
 @section('content')
 
-      <livewire:sales-notes.customers.create-document/>
+      <livewire:sales-notes.customers.create-sales-note/>
 
 @endsection

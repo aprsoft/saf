@@ -136,7 +136,8 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
         Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
-        Route::get('/', 'index')->name('index');       
+        Route::get('/', 'index')->name('index');      
+        Route::get('/customer/create', 'create')->name('customer.create');    
     });
 
     /*
