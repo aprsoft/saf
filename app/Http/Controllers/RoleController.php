@@ -13,7 +13,7 @@ class RoleController
     {
         Gate::authorize('viewAny', Role::class);
 
-        return view('role.index', [
+        return view('roles.index', [
             'title' => 'Roles',
         ]);
     }
@@ -22,7 +22,7 @@ class RoleController
     {
         Gate::authorize('create', Role::class);
 
-        return view('role.create', [
+        return view('roles.create', [
             'title' => 'Crear Rol',
         ]);
     }
@@ -40,7 +40,7 @@ class RoleController
 
         Gate::authorize('view', $role);
 
-        return view('role.show', [
+        return view('roles.show', [
             'title' => 'Ver Rol',
             'role' => $role,
         ]);
@@ -54,7 +54,7 @@ class RoleController
 
         Gate::authorize('update', $role);
 
-        return view('role.edit', [
+        return view('roles.edit', [
             'title' => 'Editar Rol',
             'role' => $role,
         ]);
