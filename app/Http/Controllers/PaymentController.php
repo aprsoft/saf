@@ -22,12 +22,12 @@ class PaymentController extends Controller
             : match ($route->getName()) {
                 'payments.customers.index' => 'customers',
                 'payments.suppliers.index' => 'suppliers',
-                'payments.customer.index'  => 'customer',
-                'payments.supplier.index'  => 'supplier',
+                'payments.customers.index'  => 'customer',
+                'payments.suppliers.index'  => 'supplier',
                 default                    => 'all',
             };
 
-        return view('payments.customer.index', [
+        return view('payments.customers.index', [
             'entity'   => $entity,
             
         ]); 
