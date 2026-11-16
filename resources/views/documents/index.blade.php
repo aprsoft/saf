@@ -76,32 +76,32 @@
                 <div class="p-6 text-gray-900 dark:text-gray-100">
 
                     @if (isset($customer))
-                        <livewire:document.customer.customer-documents-table
+                        <livewire:documents.customers.customer-documents-table
                             :customer="$customer"
                         />
                     @elseif ($entity === 'customers')
-                        <livewire:document.documents-table
+                        <livewire:documents.documents-table
                             :entity="$entity"
                         />
                     @elseif (isset($supplier))
-                        <livewire:document.documents-table
+                        <livewire:documents.documents-table
                             :supplier="$supplier"
                         />
                     @elseif ($entity === 'suppliers')
-                        <livewire:document.documents-table
+                        <livewire:documents.documents-table
                             :entity="$entity"
                         />
                     @elseif (isset($customer) && isset($meter))
-                        <livewire:document.documents-table
+                        <livewire:documents.documents-table
                             :customer="$customer"
                             :meter="$meter"
                         />
                     @elseif (isset($meter))
-                        <livewire:document.documents-table
+                        <livewire:documents.documents-table
                             :meter="$meter"
                         />
                     @elseif ($entity === 'overdue')
-                        <livewire:document.overdue-documents-table/>
+                        <livewire:documents.overdue-documents-table/>
                     @endif
 
                 </div>
