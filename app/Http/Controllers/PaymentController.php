@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Tenant\Admin;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
@@ -11,9 +11,26 @@ use Illuminate\Http\Request;
 class PaymentController extends Controller
 {
     
-    public function index()
+    public function index(Request $request)
     {
-        return view('payments.index');
+        $route      = $request->route();
+        $hasParams  = ! empty($route->parameters());
+
+
+        $entity = $hasParams
+            ? null
+            : match ($route->getName()) {
+                'payments.customers.index' => 'customers',
+                'payments.suppliers.index' => 'suppliers',
+                'payments.customer.index'  => 'customer',
+                'payments.supplier.index'  => 'supplier',
+                default                    => 'all',
+            };
+
+        return view('payments.customer.index', [
+            'entity'   => $entity,
+            
+        ]); 
     }
 
 

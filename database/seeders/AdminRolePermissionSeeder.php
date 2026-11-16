@@ -79,6 +79,27 @@ class AdminRolePermissionSeeder extends Seeder
             'cashReports.index',
             'cashReports.show',
             'cashReports.export',
+
+             // Pagos cliente
+            'payments.customer.index',
+            'payments.customer.show',
+            'payments.customer.create',
+            'payments.customer.edit',
+            'payments.customer.destroy',
+
+             // Pagos  proveedore
+            'payments.supplier.index',
+            'payments.supplier.show',
+            'payments.supplier.create',
+            'payments.supplier.edit',
+            'payments.supplier.destroy',
+
+             // Pagos clientes
+            'payments.customers.index',
+
+             // Pagos proveedores
+            'payments.suppliers.index',
+        
         ];
 
         foreach (array_unique(array_merge(

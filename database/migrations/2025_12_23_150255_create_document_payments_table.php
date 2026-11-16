@@ -11,7 +11,6 @@ return new class extends Migration {
             $table->id();
             $table->unsignedBigInteger('document_id');
             $table->unsignedBigInteger('payment_id');
-            $table->unsignedBigInteger('documentpaymentstate_id')->nullable();
             $table->enum('estado_abono', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
             $table->integer('abono')->nullable();
             $table->timestamps();

@@ -13,7 +13,7 @@ class Document extends Model
     {
         if($this->customer_id){
         
-            return round($this->details()->servicios()->whereNotNull('IndExe')->sum(DB::raw('PrcExeItem*QtyItem')));
+            return round($this->details()->whereNotNull('IndExe')->sum(DB::raw('PrcExeItem*QtyItem')));
         }
         if($this->supplier_id){
             return round($this->details()->sum('valor_exento'));
@@ -28,7 +28,7 @@ class Document extends Model
     {
         if($this->customer_id){
             
-            return round($this->details()->servicios()->whereNull('IndExe')->sum(DB::raw('PrcNetoItem*QtyItem')));
+            return round($this->details()->whereNull('IndExe')->sum(DB::raw('PrcNetoItem*QtyItem')));
         }
          if($this->supplier_id){
             return round($this->details()->sum(DB::raw('PrcNetoItem*QtyItem')));
@@ -67,7 +67,7 @@ class Document extends Model
                     $this->parent->folio
                 );
             }
-            return 'Medidor N° '.$this->meter?->numero_medidor .' - '. ($this->reading?->mes_cobro ?? 'SERVICIO');
+            
         }
 
         if ($this->supplier) {
@@ -121,12 +121,7 @@ class Document extends Model
     public function typedocument() 
     {
         return $this->belongsTo(Typedocument::class);
-    }
-
-    // public function company() 
-    // {
-    //     return $this->belongsTo(Company::class);
-    // }
+    }   
 
 
     public function payment() {

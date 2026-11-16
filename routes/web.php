@@ -94,15 +94,18 @@ Route::middleware('auth')->group(function () {
     */
     Route::prefix('payments')->name('payments.')->controller(PaymentController::class)->group(function () {
         Route::get('/', 'index')->name('index');
-        Route::get('index-create', 'indexCreate')->name('index.create');
-        Route::get('create/customer/{customer}', 'create')->name('create.customer');
-        Route::get('create/meter/{meter}', 'create')->name('create.meter');
-        Route::post('/', 'store')->name('store');
-        Route::get('{payment}', 'show')->name('show');
-        Route::get('{payment}/edit', 'edit')->name('edit');
-        Route::put('{payment}', 'update')->name('update');
-        Route::delete('{payment}', 'destroy')->name('destroy');
-    });
+        Route::get('customers', 'index')->name('customers.index');
+
+
+    //     Route::get('index-create', 'indexCreate')->name('index.create');
+    //     Route::get('create/customer/{customer}', 'create')->name('create.customer');
+    //     Route::get('create/meter/{meter}', 'create')->name('create.meter');
+    //     Route::post('/', 'store')->name('store');
+    //     Route::get('{payment}', 'show')->name('show');
+    //     Route::get('{payment}/edit', 'edit')->name('edit');
+    //     Route::put('{payment}', 'update')->name('update');
+    //     Route::delete('{payment}', 'destroy')->name('destroy');
+     });
 
     /*
     |----------------------------------------------------------------------
@@ -111,7 +114,7 @@ Route::middleware('auth')->group(function () {
     */
     Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
 
-        Route::get('customer/', 'index')->name('customer.index');
+        Route::get('customer', 'index')->name('customer.index');
         Route::get('customer/create', 'create')->name('customer.create');
 
         // Route::get('customer/{customer?}', 'index')->name('customer.index');
@@ -134,7 +137,8 @@ Route::middleware('auth')->group(function () {
         Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
         Route::get('/', 'index')->name('index');       
     });
-/*
+
+    /*
     |----------------------------------------------------------------------
     | Reportes de caja
     |----------------------------------------------------------------------
@@ -158,10 +162,11 @@ Route::middleware('auth')->group(function () {
     | Registro de errores - ErrorLogPolicy
     |----------------------------------------------------------------------
     */
-    Route::prefix('errors')->name('errors.')->controller(ErrorController::class)->group(function () {
+        Route::prefix('errors')->name('errors.')->controller(ErrorController::class)->group(function () {
         Route::get('/', 'index')->middleware('can:viewAny,'.ErrorLog::class)->name('index');
         Route::get('{id}', 'show')->middleware('can:errors.show')->name('show');
     });
+    
 });
 
 /*

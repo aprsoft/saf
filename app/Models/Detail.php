@@ -23,10 +23,7 @@ class Detail extends Model
         return $query->where('estado_detalle', 'VIGENTE');
     }
 
-    public function scopeServicios($query)
-    {
-        return $query->whereNotIn('service_id', [9, 11]);
-    }
+   
 
 } 
   

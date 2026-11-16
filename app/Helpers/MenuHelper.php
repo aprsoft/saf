@@ -19,6 +19,7 @@ class MenuHelper
     
     }
 
+
     public static function getManagementItems(): array
     {
         return [
@@ -43,16 +44,16 @@ class MenuHelper
            
             [
                 'icon' => 'file',
-                'name' => 'Documentos',
+                'name' => 'Ventas',
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('documents.customer.index', absolute: false),
-                        'permission' => 'documents.customer.index',
+                        'path' => route('payments.customers.index', absolute: false),
+                        'permission' => 'payments.customers.index',
                         'pro' => false
                     ],
                     [
-                        'name' => 'Crear Documento',
+                        'name' => 'Meson de Ventas',
                         'path' => route('documents.customer.create', absolute: false),
                         'permission' => 'documents.customer.create',
                         'pro' => false
@@ -76,7 +77,20 @@ class MenuHelper
                         'pro' => false
                     ],                    
                 ],
-            ],      
+            ], 
+            [
+                'icon' => 'file',
+                'name' => 'Despacho',
+                'subItems' => [
+                    [
+                        'name' => 'Listado',
+                        'path' => route('unpaids.index', absolute: false),
+                        'permission' => 'unpaids.index',
+                        'pro' => false
+                    ],  
+                                      
+                ],
+            ],     
            
         ];
     }
@@ -178,7 +192,7 @@ class MenuHelper
             [
                 'title' => 'Menu',
                 'items' => self::getMainNavItems(),
-            ],
+            ],         
             [
                 'title' => 'Gestion',
                 'items' => self::getManagementItems(),

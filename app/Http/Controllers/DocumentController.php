@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Document;
-use App\Models\Meter;
 use App\Models\Supplier;
 use App\Services\Dte\Get\DteGetManager;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
@@ -13,7 +12,7 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    public function index(Request $request, ?Supplier $supplier = null, ?Customer $customer = null, ?Meter $meter = null) 
+    public function index(Request $request, ?Supplier $supplier = null, ?Customer $customer = null) 
     {
         $route      = $request->route();
         $hasParams  = ! empty($route->parameters());

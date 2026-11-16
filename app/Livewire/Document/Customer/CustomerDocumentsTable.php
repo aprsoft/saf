@@ -53,7 +53,6 @@ final class CustomerDocumentsTable extends PowerGridComponent
         return Document::query()
             ->join('customers', 'customers.id', '=', 'documents.customer_id')
             ->join('typedocuments', 'typedocuments.id', '=', 'documents.typedocument_id')
-            ->join('readings', 'readings.id', '=', 'documents.reading_id')
             ->where('documents.customer_id', $this->customer->id)
             ->when($this->condition, function ($query) {
                 $query->where('documents.condicion_documento', $this->condition);

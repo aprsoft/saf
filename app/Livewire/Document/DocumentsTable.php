@@ -3,7 +3,6 @@
 namespace App\Livewire\Document;
 
 use App\Models\Document;
-use App\Models\Meter;
 use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\User;
@@ -25,7 +24,6 @@ final class DocumentsTable extends PowerGridComponent
 {
     public string $tableName = 'documentsTable';    
     
-    public ?Meter     $meter           = null;
     public ?Customer  $customer        = null;
     public ?Supplier  $supplier        = null;
     public ?array     $condicion       = null;
@@ -51,9 +49,6 @@ final class DocumentsTable extends PowerGridComponent
             Route::currentRouteName() === 'payments.create.customer'
         ) {
             $this->showCheckBox();
-            $this->isHiddenActions = true;  // Esconde la razón social cuando estás en la plataforma de pago.
-            $this->boolType        = true;  // Esconde el tipo de documento.
-            $this->boolPayment     = false; // Esconde el comprobante de pago si está en la plataforma de pago.
         }
 
         if (
@@ -77,62 +72,9 @@ final class DocumentsTable extends PowerGridComponent
 
     public function datasource(): Builder
     {
-        return Document::query()
+        return Document::query()->orderByDesc('created_at');
 
-            /* ==========================
-             |  JOINS
-             |==========================*/
-            ->leftJoin('customers', 'customers.id','documents.customer_id')
-            ->leftJoin('suppliers', 'suppliers.id','documents.supplier_id')
-            ->leftJoin('meters', 'meters.id','documents.meter_id')
-            ->leftJoin('document_payment', 'document_payment.document_id','documents.id')
-            ->leftJoin('payments','payments.id','document_payment.payment_id')
-            ->join('typedocuments', 'typedocuments.id','documents.typedocument_id')
-            ->leftJoin('readings', 'readings.id','documents.reading_id')
-            ->vigente()
-            ->orderBy('id','desc')
-
-            /* ==========================
-             |  CONDICIONES
-             |==========================*/
-            ->when(is_array($this->condicion) && count($this->condicion),
-                fn (Builder $q) =>$q->whereIn('documents.condicion_documento', $this->condicion)
-            )
-            ->when($this->meter,
-                fn (Builder $q) =>$q->where('documents.meter_id', $this->meter->id)
-            )
-            ->when($this->customer,
-                fn (Builder $q) =>$q->where('documents.customer_id', $this->customer->id)
-            )
-            ->when($this->supplier,
-                fn (Builder $q) =>$q->where('documents.supplier_id', $this->supplier->id)
-            )
-            ->when($this->customer && $this->meter,
-                fn (Builder $q) =>$q->where('documents.customer_id', $this->customer->id)
-                    ->where('documents.meter_id', $this->meter->id)
-            )
-            ->when($this->entity === 'customers',
-                fn (Builder $q) =>$q->whereNotNull('documents.customer_id')->whereNull('documents.supplier_id')
-            )
-            ->when($this->entity === 'suppliers',
-                fn (Builder $q) =>$q->whereNotNull('documents.supplier_id')
-            )
-            ->when($this->entity === 'contracts',
-                fn (Builder $q) =>$q->whereNotNull('documents.customer_id')->whereNotNull('documents.meter_id')
-            )
-            ->when($this->customer && $this->entity === 'overdue',
-                fn (Builder $q) =>$q->where('documents.customer_id', $this->customer->id)
-                    ->where('documents.customer_id', $this->customer->id)
-            )
-    
-            
-
-            /* ==========================
-             |  SELECT PLANO
-             |==========================*/
-            ->select([
-                'documents.*','meters.numero_medidor','readings.lectura'
-            ]);
+      
     }
 
     public function fields(): PowerGridFields
@@ -161,11 +103,9 @@ final class DocumentsTable extends PowerGridComponent
                 ->searchable(),
             Column::make('RUT', 'rut')
                 ->sortable()
-                ->hidden(isHidden: true, isForceHidden: false)
                 ->searchableRaw('customers.rut LIKE ?'),
             Column::make('Razón Social', 'razon_social')
                 ->sortable()
-                ->hidden(isHidden: $this->boolEntidad, isForceHidden: false)
                 ->searchableRaw("
                     CONCAT_WS(
                         ' ',
@@ -174,17 +114,12 @@ final class DocumentsTable extends PowerGridComponent
                         COALESCE(customers.apellido_materno, suppliers.apellido_materno)
                     ) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')
                 "),             
-            Column::make('Tipo', 'tipo')
-                ->sortable()
-                ->hidden(isHidden: $this->boolType, isForceHidden: false)
-                ->searchableRaw("typedocuments.name LIKE ?"),          
             Column::make('Condición', 'condicion_documento')
                 ->sortable()
                 ->searchable(),           
             Column::make('Fecha', 'fecha')
                 ->sortable()
                 ->searchable(),
-            Column::make('Detalle', 'detalle'),
             Column::make('Folio', 'folio')
                 ->sortable()
                 ->searchableRaw("documents.folio LIKE ?"),
