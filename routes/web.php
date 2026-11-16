@@ -135,7 +135,7 @@ Route::middleware('auth')->group(function () {
     | Notas de venta
     |----------------------------------------------------------------------
     */
-        Route::prefix('sales-notes')->name('sales-notes')->controller(SalesNoteController::class)->group(function () {
+        Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
         Route::get('/', 'index')->name('index');       
     });
 
@@ -146,7 +146,7 @@ Route::middleware('auth')->group(function () {
     */
         Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
         Route::get('/', 'index')->name('index');       
-    });
+        });
 
     /*
     |----------------------------------------------------------------------
