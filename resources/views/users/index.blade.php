@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:user.user-table/> 
+        <livewire:users.user-table/> 
     
     </div>
 @endsection
