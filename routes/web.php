@@ -5,10 +5,11 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ErrorController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\SalesNoteController;
 use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
 use App\Models\ErrorLog;
@@ -127,6 +128,15 @@ Route::middleware('auth')->group(function () {
 
        
         Route::get('{document}', 'show')->name('show');
+    });
+
+     /*
+    |----------------------------------------------------------------------
+    | Notas de venta
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('sales-notes')->name('sales-notes')->controller(SalesNoteController::class)->group(function () {
+        Route::get('/', 'index')->name('index');       
     });
 
     /*

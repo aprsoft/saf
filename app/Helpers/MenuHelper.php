@@ -66,8 +66,8 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('unpaids.index', absolute: false),
-                        'permission' => 'unpaids.index',
+                        'path' => route('sales-note.index', absolute: false),
+                        'permission' => 'sales-note.index',
                         'pro' => false
                     ],  
                     [
