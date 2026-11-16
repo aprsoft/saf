@@ -13,7 +13,7 @@ class PermissionController
     {
         Gate::authorize('viewAny', Permission::class);
 
-        return view('permission.index', [
+        return view('permissions.index', [
             'title' => 'Permisos',
         ]);
     }
@@ -22,7 +22,7 @@ class PermissionController
     {
         Gate::authorize('create', Permission::class);
 
-        return view('permission.create', [
+        return view('permissions.create', [
             'title' => 'Crear Permiso',
         ]);
     }
@@ -45,7 +45,7 @@ class PermissionController
 
         Gate::authorize('view', $permission);
 
-        return view('permission.show', [
+        return view('permissions.show', [
             'title' => 'Ver Permiso',
             'permission' => $permission,
         ]);
@@ -59,7 +59,7 @@ class PermissionController
 
         Gate::authorize('update', $permission);
 
-        return view('permission.edit', [
+        return view('permissions.edit', [
             'title' => 'Editar Permiso',
             'permission' => $permission,
         ]);
