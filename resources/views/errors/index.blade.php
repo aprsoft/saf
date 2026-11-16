@@ -19,7 +19,7 @@
                 </p>
             </div>
 
-            <livewire:errorLog.error-log-table />
+            <livewire:error-logs.error-log-table />
 
         </div>
 
