@@ -21,9 +21,9 @@ class DocumentController extends Controller
         $entity = $hasParams
             ? null
             : match ($route->getName()) {
-                'documents.customer.index'   => 'customers',
+                'documents.customers.index'   => 'customers',
                 'documents.supplier.index'   => 'suppliers',
-                'documents.customer.overdue' => 'overdue',
+                'documents.customers.overdue' => 'overdue',
                 default                      => 'all',
             };
 
@@ -42,7 +42,7 @@ class DocumentController extends Controller
 
     public function create()
     {
-        return view('documents.customer.create');
+        return view('documents.customers.create');
     }  
 
 }
