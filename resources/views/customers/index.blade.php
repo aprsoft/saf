@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:customer.customer-table
+        <livewire:customers.customer-table
             :routeName="$routeName"
         />
     
