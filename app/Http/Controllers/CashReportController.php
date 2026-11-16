@@ -8,6 +8,6 @@ class CashReportController extends Controller
 {
     public function show()
     {
-        return view('cashReports.show');
+        return view('cash-reports.show');
     }
 }
