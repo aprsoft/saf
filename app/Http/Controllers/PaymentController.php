@@ -17,16 +17,11 @@ class PaymentController extends Controller
             ? null
             : match ($route->getName()) {
                 'payments.customers.index' => 'customers',
-                'payments.suppliers.index' => 'suppliers',
-                'payments.customers.index'  => 'customer',
-                'payments.suppliers.index'  => 'supplier',
+                'payments.suppliers.index' => 'suppliers',            
                 default                    => 'all',
             };
 
-        return view('payments.customers.index', [
-            'entity'   => $entity,
-            
-        ]); 
+        return view('payments.'.$entity.'.index'); 
     }
 
 

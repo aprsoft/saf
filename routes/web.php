@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CashController;
 use App\Http\Controllers\CashReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesNoteController;
+use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
 use App\Models\ErrorLog;
@@ -78,13 +80,22 @@ Route::middleware('auth')->group(function () {
     | Clientes
     |----------------------------------------------------------------------
     */
-    Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('create', 'create')->name('create');
-        Route::get('{customer}', 'show')->name('show');
-        Route::get('{customer}/edit', 'edit')->name('edit');
-        Route::delete('{customer}', 'destroy')->name('destroy');
-    });
+        Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('create', 'create')->name('create');
+            Route::get('{customer}', 'show')->name('show');            
+        });
+
+    /*
+    |----------------------------------------------------------------------
+    | Proveedores
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('create', 'create')->name('create');
+            Route::get('{supplier}', 'show')->name('show');         
+        });
    
 
 
@@ -94,18 +105,10 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::prefix('payments')->name('payments.')->controller(PaymentController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
+        
         Route::get('customers', 'index')->name('customers.index');
+        Route::get('suppliers', 'index')->name('suppliers.index');
 
-
-    //     Route::get('index-create', 'indexCreate')->name('index.create');
-    //     Route::get('create/customer/{customer}', 'create')->name('create.customer');
-    //     Route::get('create/meter/{meter}', 'create')->name('create.meter');
-    //     Route::post('/', 'store')->name('store');
-    //     Route::get('{payment}', 'show')->name('show');
-    //     Route::get('{payment}/edit', 'edit')->name('edit');
-    //     Route::put('{payment}', 'update')->name('update');
-    //     Route::delete('{payment}', 'destroy')->name('destroy');
      });
 
     /*
@@ -116,29 +119,47 @@ Route::middleware('auth')->group(function () {
     Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
 
         Route::get('customer', 'index')->name('customer.index');
-        Route::get('customer/create', 'create')->name('customer.create');
-
-        // Route::get('customer/{customer?}', 'index')->name('customer.index');
-        // Route::get('supplier/{supplier?}', 'index')->name('supplier.index');
-
-        // Route::get('payment/customer/{customer?}', 'index')->name('payment.customer.index');
-        // Route::get('payment/supplier/{supplier?}', 'index')->name('payment.supplier.index');
-        // Route::get('payment/meter/{meter?}', 'index')->name('payment.meter.index');
-        // Route::get('payment/contract/{contract}', 'index')->name('payment.contract.index');
-
-       
+        Route::get('customer/create', 'create')->name('customer.create');       
         Route::get('{document}', 'show')->name('show');
     });
 
-     /*
+
+    /*
+    |----------------------------------------------------------------------
+    | Documentos Tributarios Electronicos
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('dtes')->name('dtes.')->controller(DocumentController::class)->group(function () {
+
+            Route::get('customer', 'index')->name('customers.index');
+            Route::get('supplier', 'index')->name('suppliers.index');
+            Route::get('customer/create', 'create')->name('customer.create');
+            Route::get('supplier/create', 'create')->name('supplier.create');
+            Route::get('customer/{document}', 'show')->name('customer.show');
+            Route::get('supplier/{document}', 'show')->name('supplier.show');      
+        
+        });
+
+    /*
     |----------------------------------------------------------------------
     | Notas de venta
     |----------------------------------------------------------------------
     */
         Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
-        Route::get('/', 'index')->name('index');      
-        Route::get('/customer/create', 'create')->name('customer.create');    
-    });
+
+            Route::get('/', 'index')->name('index');      
+            Route::get('/customer/create', 'create')->name('customer.create');    
+        });
+
+    /*
+    |----------------------------------------------------------------------
+    | Caja
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('cashs')->name('cashs.')->controller(CashController::class)->group(function () {
+
+            Route::get('/customer', 'index')->name('customer.index');    
+        });
 
     /*
     |----------------------------------------------------------------------

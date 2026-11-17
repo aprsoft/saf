@@ -14,9 +14,9 @@ use PowerComponents\LivewirePowerGrid\Facades\Rule;
 use PowerComponents\LivewirePowerGrid\PowerGridComponent;
 use PowerComponents\LivewirePowerGrid\PowerGridFields;
 
-final class PaymentTable extends PowerGridComponent
+final class CustomerPaymentsTable extends PowerGridComponent
 {
-    public string $tableName = 'paymentTable';
+    public string $tableName = 'customerPaymentsTable';
 
     public function setUp(): array
     {

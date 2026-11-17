@@ -40,7 +40,25 @@ class MenuHelper
                         'pro' => false
                     ],
                 ],
-            ], 
+            ],
+            [
+                'icon' => 'users',
+                'name' => 'Proveedores',
+                'subItems' => [
+                    [
+                        'name' => 'Listado',
+                        'path' => route('suppliers.index', absolute: false),
+                        'permission' => 'suppliers.index',
+                        'pro' => false
+                    ],
+                    [
+                        'name' => 'Crear Cliente',
+                        'path' => route('suppliers.create', absolute: false),
+                        'permission' => 'suppliers.create',
+                        'pro' => false
+                    ],
+                ],
+            ],  
            
             [
                 'icon' => 'file',
@@ -48,8 +66,8 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('payments.customers.index', absolute: false),
-                        'permission' => 'payments.customers.index',
+                        'path' => route('dtes.customers.index', absolute: false),
+                        'permission' => 'dtes.customers.index',
                         'pro' => false
                     ],
                     [
@@ -66,10 +84,16 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('sales-notes.index', absolute: false),
-                        'permission' => 'sales-notes.index',
+                        'path' => route('cashs.customer.index', absolute: false),
+                        'permission' => 'cashs.customer.index',
                         'pro' => false
-                    ],  
+                    ], 
+                    [
+                        'name' => 'Pagos',
+                        'path' => route('payments.customers.index', absolute: false),
+                        'permission' => 'payments.customers.index',
+                        'pro' => false
+                    ],   
                     [
                         'name' => 'Reporte de Caja',
                         'path' => route('cashReports.show', absolute: false),
@@ -90,7 +114,20 @@ class MenuHelper
                     ],  
                                       
                 ],
-            ],     
+            ], 
+            [
+                'icon' => 'file',
+                'name' => 'Bodega',
+                'subItems' => [
+                    [
+                        'name' => 'Listado',
+                        'path' => route('unpaids.index', absolute: false),
+                        'permission' => 'unpaids.index',
+                        'pro' => false
+                    ],  
+                                      
+                ],
+            ],         
            
         ];
     }

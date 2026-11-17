@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:payments.customers.payment-table/>
+        <livewire:payments.customers.customer-payments-table/>
    
     </div>
 @endsection
