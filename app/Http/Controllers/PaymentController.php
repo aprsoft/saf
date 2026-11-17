@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -22,6 +23,13 @@ class PaymentController extends Controller
             };
 
         return view('payments.'.$entity.'.index'); 
+    }
+
+     
+    public function create(Document $document)
+    {
+        
+        return view('payments.customer.create',compact('document')); 
     }
 
 
