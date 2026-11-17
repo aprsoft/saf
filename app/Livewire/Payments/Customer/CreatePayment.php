@@ -254,6 +254,11 @@ final class CreatePayment extends Component
         $this->mostrarConfirmacion = false;
     }
 
+    public function emitirDte()
+    {
+       dd('comprobando');
+    }
+
     public function render(): View
     {
         return view('livewire.payments.customer.create-payment');
