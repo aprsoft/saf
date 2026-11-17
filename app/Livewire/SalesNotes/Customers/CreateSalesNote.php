@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class CreateSalesNote extends Component
@@ -380,6 +381,20 @@ class CreateSalesNote extends Component
         });
         $this->limpiarFormulario();
         return true;
+    }
+
+    #[On('confirm-send-sales-note-to-cash')]
+    public function confirmarEnvioACaja(int $id): void
+    {
+        abort_unless(
+            $this->documentoId !== null
+            && $this->documentoId === $id,
+            409
+        );
+
+        $this->enviarACaja();
+
+        $this->dispatch('sales-note-sent-to-cash');
     }
 
     public function enviarACaja(): bool
