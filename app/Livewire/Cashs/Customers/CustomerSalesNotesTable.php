@@ -96,13 +96,32 @@ final class CustomerSalesNotesTable extends PowerGridComponent
         ]);
     }
 
+    #[\Livewire\Attributes\On('edit')]
+    public function edit($rowId): void
+    {
+        $this->js('alert(' . $rowId . ')');
+    }
+
     public function actions($row): array
     {
         return [
-            Button::add('show')
+            Button::add('payment')
                 ->icon('default-cash')               
                 ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
-                ->route('customers.show', ['customer' => $row->id]), 
+                ->route('payments.customer.create', ['document' => $row->id]), 
+
+             Button::add('show')
+                ->icon('default-eye')               
+                ->class('px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center')
+                ->route('payments.customer.create', ['document' => $row->id]), 
+
+            Button::add('edit')
+                ->slot('Edit: '.$row->id)
+                ->id()
+                ->icon('default-restore')               
+                ->class('px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center justify-center')
+                >dispatch('edit', ['rowId' => $row->id]),
+        
         ];
     }
 

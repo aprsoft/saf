@@ -108,6 +108,8 @@ Route::middleware('auth')->group(function () {
         
         Route::get('customers', 'index')->name('customers.index');
         Route::get('suppliers', 'index')->name('suppliers.index');
+        Route::get('customer/create', 'create')->name('customer.create');
+        Route::get('supplier/create', 'create')->name('supplier.create');
 
      });
 
@@ -148,7 +150,9 @@ Route::middleware('auth')->group(function () {
         Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
 
             Route::get('/', 'index')->name('index');      
-            Route::get('/customer/create', 'create')->name('customer.create');    
+            Route::get('/customer/create', 'create')->name('customer.create');   
+            Route::get('/customer/{document}', 'show')->name('customer.show');    
+ 
         });
 
     /*
