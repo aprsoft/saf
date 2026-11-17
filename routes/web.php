@@ -161,7 +161,7 @@ Route::middleware('auth')->group(function () {
     */
         Route::prefix('sales-counters')->name('sales-counters.')->controller(SalesCounterController::class)->group(function () {
 
-            Route::get('/', 'create')->name('create');      
+            Route::get('/', 'show')->name('show');      
              
  
         });
