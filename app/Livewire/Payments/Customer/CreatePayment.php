@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Attributes\On;
 
 final class CreatePayment extends Component
 {
@@ -252,6 +253,41 @@ final class CreatePayment extends Component
     public function cerrarRevision(): void
     {
         $this->mostrarConfirmacion = false;
+    }
+
+    public function solicitarEmitirDte(): void
+    {
+        abort_unless($this->mostrarConfirmacion, 409);
+
+        // Validar nuevamente antes de solicitar confirmación.
+        $this->revisar();
+
+        $this->dispatch('open-confirm-modal',
+            id: $this->documentoId,
+            name: 'Nota de venta N.º '.$this->documentoId,
+            confirmEvent: 'confirm-payment-emit-dte',
+            title: 'Confirmar cobro y emisión',
+            message: '¿Está seguro de cobrar y emitir este documento tributario?',
+            warning: 'Verifique el cliente, el documento y el importe.',
+            confirmLabel: 'Cobrar y emitir'
+        );
+    }
+
+    #[On('confirm-payment-emit-dte')]
+    public function confirmarEmitirDte(int $id): void
+    {
+        abort_unless(
+            $this->mostrarConfirmacion
+            && $id === $this->documentoId,
+            409
+        );
+
+        // Revalidar antes de ejecutar.
+        $this->revisar();
+
+        $this->mostrarConfirmacion = false;
+
+        $this->emitirDte();
     }
 
     public function emitirDte()

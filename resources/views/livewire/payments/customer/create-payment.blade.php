@@ -233,8 +233,14 @@
                 <div class="mt-4 grid grid-cols-2 gap-2">
                     <button type="button" wire:click="cerrarRevision"
                             class="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600">Volver a caja</button>
-                    <button type="button" disabled
-                            class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white opacity-40">
+                    <button
+                        type="button"
+                        wire:click="emitirDte"
+                        wire:loading.attr="disabled"
+                        wire:target="solicitarEmitirDte,confirmarEmitirDte"
+                        class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white
+                            hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
                         Cobrar y emitir
                     </button>
                 </div>
