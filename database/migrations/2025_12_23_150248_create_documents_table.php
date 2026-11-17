@@ -14,6 +14,11 @@ return new class extends Migration {
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->unsignedBigInteger('supplier_id')->nullable();
             $table->unsignedBigInteger('employee_id')->nullable();
+            $table->unsignedBigInteger('typedocument_id')->nullable(); 
+            $table->enum('estado_documento', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
+            $table->enum('condicion_documento', ['PAGADO','PENDIENTE','MOROSO','CONVENIO','ABONO|MOROSO','CONDONADO',
+                'ANULADO','ELIMINADO','APLICADA','NO APLICADA','POR DEFINIR','RECHAZADO','CONTADO','CREDITO','SIN COSTO','INCOBRABLE','FINALIZADO','EN PROCESO'])->nullable();                    
+ 
 
             //-------------------------------------------------------------
 
@@ -27,24 +32,20 @@ return new class extends Migration {
             $table->string('RUTSolicita', 191)->nullable(); 
             
             //-------------------------------------------------------------
-
-            $table->string('nombre_referencia')->nullable();
-            $table->unsignedBigInteger('applicationstate_id')->nullable();
-            $table->string('nota', 191)->nullable();
-            $table->unsignedBigInteger('previoustypedocument_id')->nullable();
-            $table->date('fecha_pago')->nullable();
-            $table->longText('Referencia')->nullable();
-            $table->unsignedBigInteger('typedocument_id')->nullable();            
+            
+                      
             $table->unsignedInteger('folio')->nullable();
-            $table->enum('estado_documento', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
-            $table->enum('condicion_documento', ['PAGADO','PENDIENTE','MOROSO','CONVENIO','ABONO|MOROSO','CONDONADO',
-                'ANULADO','ELIMINADO','APLICADA','NO APLICADA','POR DEFINIR','RECHAZADO','CONTADO','CREDITO','SIN COSTO','INCOBRABLE','FINALIZADO','EN PROCESO'])->nullable();                    
-            $table->date('fecha')->nullable();   
+            $table->date('fecha')->nullable();
+            $table->date('fecha_vencimiento')->nullable();     
             $table->string('numero_orden', 191)->nullable();
             $table->binary('timbre')->nullable();
             $table->date('fecha_resolucion')->nullable();
             $table->integer('numero_resolucion')->nullable();
+            $table->string('nombre_referencia')->nullable();
+            $table->longText('Observaciones')->nullable();
+            $table->longText('Referencia')->nullable();
             $table->timestamps();
+
             $table->foreign('parent_id')->references('id')->on('documents');            
             $table->foreign('typedocument_id')->references('id')->on('typedocuments');
             
