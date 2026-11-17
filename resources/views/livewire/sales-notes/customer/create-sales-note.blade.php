@@ -96,6 +96,14 @@
                 finally { this.cargando = false; }
             },
         }" x-init="ajustarAltura()" x-on:resize.window="ajustarAltura()"
+        x-on:confirm-send-sales-note-to-cash.window="
+            if (
+                documentoId &&
+                Number($event.detail.id) === Number(documentoId)
+            ) {
+                ejecutarAccion('enviarACaja');
+            }
+        "
      class="flex flex-col gap-3 xl:min-h-[70vh] text-gray-900 dark:text-gray-100">
     <header class="flex flex-wrap items-center justify-between gap-3">
         <div><h1 class="text-xl font-bold">Crear documento</h1>
