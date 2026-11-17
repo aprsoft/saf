@@ -8,9 +8,19 @@ use App\Livewire\SalesCounters\SalesDocumentEditor;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
 
 final class CreateQuotation extends SalesDocumentEditor
 {
+    #[Locked]
+    public ?int $ultimaCotizacionGuardada = null;
+
+    public function guardarItem(): void
+    {
+        parent::guardarItem();
+        $this->ultimaCotizacionGuardada = null;
+    }
+
     protected function tipoDocumento(): int
     {
         return DocumentItemService::COTIZACION;
@@ -47,7 +57,10 @@ final class CreateQuotation extends SalesDocumentEditor
 
     public function guardarCotizacion(): void
     {
+        abort_unless($this->documentoId !== null, 409);
+        $id = $this->documentoId;
         $this->cambiarEstado('PENDIENTE');
+        $this->ultimaCotizacionGuardada = $id;
         $this->mensaje = 'Cotización guardada.';
     }
 
@@ -78,6 +91,7 @@ final class CreateQuotation extends SalesDocumentEditor
         abort_unless($this->documentoId === $id, 409);
         $this->ventas()->eliminarCotizacion($id, (int) auth()->id());
         $this->limpiarFormulario();
+        $this->ultimaCotizacionGuardada = null;
         $this->mensaje = 'Cotización anulada y eliminada.';
     }
 

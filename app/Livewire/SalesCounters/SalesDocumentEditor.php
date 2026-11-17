@@ -280,7 +280,7 @@ abstract class SalesDocumentEditor extends Component
             $detalleId
         );
         unset($this->documento, $this->totales);
-        $this->mensaje = 'Ítem eliminado.';
+        $this->mensaje = '';
     }
 
     public function solicitarEliminarItem(int $detalleId): void

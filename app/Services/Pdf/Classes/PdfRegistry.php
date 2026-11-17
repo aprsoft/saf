@@ -14,6 +14,7 @@ final class PdfRegistry
         return match ($type) {
             'user.profile' => app(UserProfilePdf::class),
             'document.dte' => app(DocumentDtePdf::class),
+            'document.quotation' => app(QuotationPdf::class),
             default => abort(404),
         };
     }
