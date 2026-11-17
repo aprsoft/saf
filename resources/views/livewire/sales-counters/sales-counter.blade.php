@@ -20,8 +20,8 @@
     @endif
 
     @if ($tipoActual === 2)
-        <livewire:sales-counter.notes.create-sales-note :key="'counter-note-editor'" />
+        <livewire:sales-counters.notes.create-sales-note :key="'counter-note-editor'" />
     @elseif ($tipoActual === 19)
-        <livewire:sales-counter.quotations.create-quotation :key="'counter-quotation-editor'" />
+        <livewire:sales-counters.quotations.create-quotation :key="'counter-quotation-editor'" />
     @endif
 </div>
