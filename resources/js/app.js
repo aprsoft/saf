@@ -1,4 +1,5 @@
 import './bootstrap';
+import salesNotePos from './components/sales-note-pos.js';
 
 // 1. Importar y exponer Livewire PRIMERO
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm.js';
@@ -10,6 +11,9 @@ window.Alpine = Alpine;
 
 // 2. Iniciar Livewire (esto también inicia Alpine automáticamente)
 Alpine.data('permissionSelector', permissionSelector);
+Alpine.data('permissionSelector', permissionSelector);
+Alpine.data('salesNotePos', salesNotePos);
+
 Livewire.start();
 
 
