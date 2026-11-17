@@ -444,6 +444,58 @@ class CreateSalesNote extends Component
         ];
     }
 
+
+    public function guardarCotizacion(): bool
+    {
+        $this->requiereNotaVenta();
+
+        DB::transaction(function (): void {
+
+            // Recuperar el documento y bloquearlo durante la operación.
+            $cotizacion = $this->documentoEditable(true);
+
+            // Impedir guardar una nota de venta como cotización.
+            abort_unless(
+                (int) $cotizacion->typedocument_id === 19,
+                409,
+                'El documento no corresponde a una cotización.'
+            );
+
+            // La cotización debe tener productos.
+            if (! $cotizacion->details()->exists()) {
+                throw ValidationException::withMessages([
+                    'nota' => 'La cotización no tiene productos.',
+                ]);
+            }
+
+            // Si no es cliente genérico, debe existir uno seleccionado.
+            if (! $this->clienteGenerico && ! $this->clienteId) {
+                throw ValidationException::withMessages([
+                    'clienteId' => 'Seleccione un cliente.',
+                ]);
+            }
+
+            // Comprobar que tenga fecha de vencimiento.
+            if (! $cotizacion->fecha_vencimiento) {
+                throw ValidationException::withMessages([
+                    'nota' => 'La cotización no tiene fecha de vencimiento.',
+                ]);
+            }
+
+            // Guardar sin alterar fecha, productos ni vigencia.
+            $cotizacion->update(array_merge(
+                $this->cabecera(),
+                ['condicion_documento' => 'PENDIENTE']
+            ));
+        });
+
+        // Limpiar el estado Livewire únicamente después del guardado.
+        $this->limpiarFormulario();
+
+        return true;
+    }
+
+
     public function dejarEnEspera(): bool
     {
         DB::transaction(function (): void {

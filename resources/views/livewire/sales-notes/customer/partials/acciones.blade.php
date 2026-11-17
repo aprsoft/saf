@@ -75,16 +75,22 @@
         x-cloak
         class="grid grid-cols-2 gap-2"
     >
-        <button
-            type="button"
-            disabled
-            title="Pendiente de implementación"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm
-                   font-medium disabled:cursor-not-allowed
-                   disabled:opacity-50 dark:border-gray-600"
-        >
-            Guardar cotización
-        </button>
+        
+    <button
+        type="button"
+        x-on:click="ejecutarAccion('guardarCotizacion')"
+        x-bind:disabled="cargando || !documentoId || !detalle.length"
+        class="rounded-lg border border-gray-300
+            px-3 py-2 text-sm font-medium
+            hover:bg-gray-50
+            disabled:cursor-not-allowed
+            disabled:opacity-40
+            dark:border-gray-600
+            dark:hover:bg-gray-700"
+    >
+        Guardar cotización
+    </button>
+
 
         <button
             type="button"
