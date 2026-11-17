@@ -202,6 +202,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/', 'index')->middleware('can:viewAny,'.ErrorLog::class)->name('index');
         Route::get('{id}', 'show')->middleware('can:errors.show')->name('show');
     });
+
+    // Una sola ruta y una sola vista maestra para notas de venta y cotizaciones.
+        Route::middleware('auth')->view('sales-counter-v2', 'sales-counter-v2.index')
+            ->name('sales-counter-v2.index');
+
     
 });
 
