@@ -18,6 +18,8 @@ final class CreateQuotation extends SalesDocumentEditor
     #[Locked]
     public ?int $emailCotizacionId = null;
 
+    public int $emailFormVersion = 0;
+
     public function guardarItem(): void
     {
         parent::guardarItem();
@@ -103,17 +105,9 @@ final class CreateQuotation extends SalesDocumentEditor
     {
         $id = $this->cotizacionParaSalida();
 
-        // Desmontar el componente anterior para volver a abrir su formulario,
-        // incluso si se envía varias veces la misma cotización.
-        $this->emailCotizacionId = null;
-        $this->dispatch('sales-counter-quotation-email-ready', id: $id);
-    }
-
-    #[On('sales-counter-quotation-email-ready')]
-    public function abrirCorreoCotizacion(int $id): void
-    {
-        abort_unless($this->ultimaCotizacionGuardada === $id, 409);
         $this->emailCotizacionId = $id;
+        // Una nueva clave abre el formulario aun si se repite el mismo envío.
+        $this->emailFormVersion++;
     }
 
     public function solicitarAnularCotizacion(): void

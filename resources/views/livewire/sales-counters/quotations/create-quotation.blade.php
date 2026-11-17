@@ -22,7 +22,7 @@
             :record-id="$emailCotizacionId"
             :email-only="true"
             :open-on-mount="true"
-            :key="'cotizacion-correo-'.$emailCotizacionId"
+            :key="'cotizacion-correo-'.$emailCotizacionId.'-'.$emailFormVersion"
         />
     @endif
 </div>
