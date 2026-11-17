@@ -24,7 +24,7 @@ test('la página de pagos muestra el componente de la nota enviada a caja', func
     $this->actingAs($usuario)
         ->get(route('payments.customer.create', ['document' => $nota->id]))
         ->assertOk()
-        ->assertSee('pagar');
+        ->assertSee('Cobrar venta');
 });
 
 test('no abre caja con un documento inexistente', function (): void {
