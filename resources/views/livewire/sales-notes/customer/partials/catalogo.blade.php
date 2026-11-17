@@ -19,11 +19,46 @@
                     <td class="p-2">{{ $productoServicio->nombre }}</td>
                     <td class="p-2 text-right">{{ $valor === null ? 'Sin precio' : '$'.number_format((float) $valor, 0, ',', '.') }}</td>
                     <td class="p-2 text-center">
-                        @if ($valor !== null)
-                            <button type="button" x-bind:disabled="cargando"
-                                    x-on:click="abrirModal({{ \Illuminate\Support\Js::from(['id' => $productoServicio->id, 'nombre' => $productoServicio->nombre, 'precio' => (float) $valor]) }})"
-                                    class="rounded-md bg-blue-600 px-3 py-1 text-xs text-white disabled:opacity-40">Agregar</button>
-                        @endif
+                        
+                    @if ($valor !== null)
+                        <button
+                            type="button"
+                            x-bind:disabled="cargando"
+                            x-on:click="abrirModal({{ \Illuminate\Support\Js::from([
+                                'id' => $productoServicio->id,
+                                'nombre' => $productoServicio->nombre,
+                                'precio' => (float) $valor
+                            ]) }})"
+                            class="inline-flex min-w-24 items-center
+                                justify-center gap-1.5 rounded-lg
+                                bg-blue-600 px-3 py-2
+                                text-xs font-semibold text-white
+                                transition-colors
+                                hover:bg-blue-700
+                                focus:outline-none focus:ring-2
+                                focus:ring-blue-500 focus:ring-offset-2
+                                disabled:cursor-not-allowed
+                                disabled:opacity-40"
+                        >
+                            <svg
+                                class="size-4"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M12 5v14m-7-7h14"
+                                />
+                            </svg>
+
+                            <span>Agregar</span>
+                        </button>
+                    @endif
+
                     </td>
                 </tr>
             @empty

@@ -10,15 +10,14 @@ return new class extends Migration {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('parent_id')->nullable();
-            $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('customer_id')->nullable();
             $table->unsignedBigInteger('supplier_id')->nullable();
             $table->unsignedBigInteger('employee_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('typedocument_id')->nullable(); 
             $table->enum('estado_documento', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
             $table->enum('condicion_documento', ['PAGADO','PENDIENTE','MOROSO','CONVENIO','ABONO|MOROSO','CONDONADO',
-                'ANULADO','ELIMINADO','APLICADA','NO APLICADA','POR DEFINIR','RECHAZADO','CONTADO','CREDITO','SIN COSTO','INCOBRABLE','FINALIZADO','EN PROCESO'])->nullable();                    
- 
+                'ANULADO','ELIMINADO','APLICADA','NO APLICADA','POR DEFINIR','RECHAZADO','CONTADO','CREDITO','SIN COSTO','INCOBRABLE','FINALIZADO','EN PROCESO'])->nullable();  
 
             //-------------------------------------------------------------
 
@@ -31,8 +30,7 @@ return new class extends Migration {
             $table->integer('CdgSIISucur')->nullable();          
             $table->string('RUTSolicita', 191)->nullable(); 
             
-            //-------------------------------------------------------------
-            
+            //-------------------------------------------------------------            
                       
             $table->unsignedInteger('folio')->nullable();
             $table->date('fecha')->nullable();
@@ -45,6 +43,9 @@ return new class extends Migration {
             $table->longText('Observaciones')->nullable();
             $table->longText('Referencia')->nullable();
             $table->timestamps();
+
+            //-------------------------------------------------------------            
+
 
             $table->foreign('parent_id')->references('id')->on('documents');            
             $table->foreign('typedocument_id')->references('id')->on('typedocuments');

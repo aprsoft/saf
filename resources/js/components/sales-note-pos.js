@@ -8,6 +8,7 @@ export default function salesNotePos({ tipoDocumento = '2' } = {}) {
     return {
         // Estado del documento y sus productos
         tipoDocumento: String(tipoDocumento),
+        diasValidez: '15',
         documentoId: null,
         detalle: [],
 
@@ -147,6 +148,8 @@ export default function salesNotePos({ tipoDocumento = '2' } = {}) {
                     cantidad,
                     descuentoTipo: this.descuentoTipo,
                     descuentoValor: descuento,
+                    tipoDocumento: Number(this.tipoDocumento),
+                    diasValidez: Number(this.diasValidez),
                 };
 
                 const detalleId = this.editando === null

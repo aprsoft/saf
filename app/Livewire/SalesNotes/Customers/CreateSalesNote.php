@@ -164,6 +164,30 @@ class CreateSalesNote extends Component
         return $documento;
     }
 
+
+    private function documentoEditable(bool $bloquear = false): Document
+    {
+        $query = Document::query()
+            ->whereKey($this->documentoId)
+            ->whereIn('typedocument_id', [2, 19])
+            ->where('user_id', auth()->id())
+            ->where('estado_documento', 'VIGENTE')
+            ->where('condicion_documento', 'EN PROCESO');
+
+        $documento = $bloquear
+            ? $query->lockForUpdate()->first()
+            : $query->first();
+
+        abort_unless(
+            $documento,
+            409,
+            'El documento no está disponible para edición.'
+        );
+
+        return $documento;
+    }
+
+
     private function cabecera(): array
     {
         return [
@@ -182,24 +206,42 @@ class CreateSalesNote extends Component
         if ($this->documentoId === null) {
             return;
         }
-        $this->notaEditable()->update($this->cabecera());
+    $this->documentoEditable()->update($this->cabecera());    }
+
+    
+    private function crearDocumento(
+        int $tipoDocumento,
+        int $diasValidez
+    ): Document {
+        abort_unless(in_array($tipoDocumento, [2, 19], true), 422);
+
+        $fecha = $tipoDocumento === 19
+            ? today('America/Santiago')
+            : today();
+
+        return Document::query()->create(
+            array_merge($this->cabecera(), [
+                'user_id' => auth()->id(),
+                'typedocument_id' => $tipoDocumento,
+                'fecha' => $fecha->toDateString(),
+
+                'fecha_vencimiento' => $tipoDocumento === 19
+                    ? $fecha->copy()
+                        ->addDays($diasValidez)
+                        ->toDateString()
+                    : null,
+
+                'estado_documento' => 'VIGENTE',
+                'condicion_documento' => 'EN PROCESO',
+                'monto_exento' => 0,
+                'monto_neto' => 0,
+                'monto_iva' => 0,
+                'monto_total' => 0,
+                'valor_pagar' => 0,
+            ])
+        );
     }
 
-    private function crearNota(): Document
-    {
-        return Document::query()->create(array_merge($this->cabecera(), [
-            'user_id' => auth()->id(),
-            'typedocument_id' => 2,
-            'fecha' => today(),
-            'estado_documento' => 'VIGENTE',
-            'condicion_documento' => 'EN PROCESO',
-            'monto_exento' => 0,
-            'monto_neto' => 0,
-            'monto_iva' => 0,
-            'monto_total' => 0,
-            'valor_pagar' => 0,
-        ]));
-    }
 
     private function obtenerClienteGenerico(): Customer
     {
@@ -218,10 +260,26 @@ class CreateSalesNote extends Component
             'cantidad' => ['required', 'numeric', 'gt:0', 'max:999999'],
             'descuentoTipo' => ['required', 'in:porcentaje,monto'],
             'descuentoValor' => ['required', 'numeric', 'min:0'],
+            'tipoDocumento' => ['required', 'integer', 'in:2,19'],
+            'diasValidez' => ['required', 'integer', 'in:7,15,30,60'],
         ])->validate();
 
         $resultado = DB::transaction(function () use ($validado, $detalleId): array {
-            $documento = $this->documentoId ? $this->notaEditable(true) : $this->crearNota();
+            
+        $documento = $this->documentoId
+            ? $this->documentoEditable(true)
+            : $this->crearDocumento(
+                (int) $validado['tipoDocumento'],
+                (int) $validado['diasValidez']
+            );
+
+        abort_unless(
+            (int) $documento->typedocument_id ===
+                (int) $validado['tipoDocumento'],
+            409,
+            'No se puede cambiar el tipo de un documento existente.'
+        );
+
             $producto = ProductService::query()->whereKey($validado['id'])
                 ->where('activo', true)->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])
                 ->with(['prices.priceList'])->firstOrFail();
@@ -235,6 +293,27 @@ class CreateSalesNote extends Component
 
             $cantidad = (float) $validado['cantidad'];
             $precioUnitario = (float) $precio->precio;
+
+            $detalle = $detalleId
+                ? $documento->details()
+                    ->whereKey($detalleId)
+                    ->lockForUpdate()
+                    ->firstOrFail()
+                : new Detail(['document_id' => $documento->id]);
+
+            if ($detalleId !== null
+                && (int) $documento->typedocument_id === 19
+            ) {
+                abort_unless(
+                    (int) $detalle->product_service_id ===
+                        (int) $producto->id,
+                    409,
+                    'No se puede sustituir el producto cotizado.'
+                );
+
+                $precioUnitario = (float) $detalle->PrcItem;
+            }
+
             $bruto = round($precioUnitario * $cantidad);
             $descuento = $validado['descuentoTipo'] === 'porcentaje'
                 ? round($bruto * (float) $validado['descuentoValor'] / 100)
@@ -304,7 +383,7 @@ class CreateSalesNote extends Component
     public function eliminarItem(int $detalleId): void
     {
         DB::transaction(function () use ($detalleId): void {
-            $documento = $this->notaEditable(true);
+            $documento = $this->documentoEditable(true);
             $documento->details()->whereKey($detalleId)->firstOrFail()->delete();
             $this->actualizarTotales($documento);
         });
