@@ -1,8 +1,8 @@
 <div class="space-y-4 text-gray-900 dark:text-gray-100">
     <header class="flex flex-wrap items-end justify-between gap-3">
         <div>
-            <h1 class="text-xl font-semibold">Mesón de ventas</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Gestión de notas de venta y cotizaciones</p>
+            {{-- <h1 class="text-xl font-semibold">Mesón de ventas</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Gestión de notas de venta y cotizaciones</p> --}}
         </div>
 
         <div class="w-full max-w-xs">
