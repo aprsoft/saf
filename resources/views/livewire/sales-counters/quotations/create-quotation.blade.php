@@ -15,4 +15,14 @@
 
     @include('livewire.sales-counters.partials.modal-producto')
     @include('livewire.sales-counters.partials.modal-recuperar')
+
+    @if ($emailCotizacionId !== null)
+        <livewire:pdf.pdf-actions
+            type="document.quotation"
+            :record-id="$emailCotizacionId"
+            :email-only="true"
+            :open-on-mount="true"
+            :key="'cotizacion-correo-'.$emailCotizacionId"
+        />
+    @endif
 </div>

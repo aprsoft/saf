@@ -24,19 +24,25 @@
                     class="rounded-lg border px-3 py-2 disabled:opacity-40">Recuperar</button>
             <button type="button" wire:click="solicitarGuardarCotizacion" @disabled($documentoId === null)
                     class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Guardar cotización</button>
-            @php($imprimibleId = $documentoId ?? $ultimaCotizacionGuardada)
-            @if ($imprimibleId)
-                <a href="{{ route('pdf.show', ['type' => 'document.quotation', 'record' => $imprimibleId]) }}"
-                   target="_blank" rel="noopener noreferrer"
-                   class="col-span-2 inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-800 hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700">
-                    Imprimir cotización
-                </a>
-            @else
-                <button type="button" disabled
-                        class="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-400 opacity-50">
-                    Imprimir cotización
-                </button>
-            @endif
+            @php($puedeEmitir = $documentoId !== null || $ultimaCotizacionGuardada !== null)
+            <button type="button"
+                    @disabled(! $puedeEmitir)
+                    x-on:click="
+                        const ventana = window.open('about:blank', '_blank');
+                        $wire.guardarEImprimir()
+                            .then(url => { if (ventana) { ventana.location.href = url; } else { window.location.href = url; } })
+                            .catch(() => { if (ventana) ventana.close(); });
+                    "
+                    class="col-span-2 rounded-lg border border-gray-300 px-3 py-2 font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700">
+                Imprimir cotización
+            </button>
+            <button type="button" wire:click="guardarYPrepararCorreo"
+                    wire:loading.attr="disabled"
+                    wire:target="guardarYPrepararCorreo"
+                    @disabled(! $puedeEmitir)
+                    class="col-span-2 rounded-lg border border-blue-400 px-3 py-2 font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-40 dark:text-blue-300">
+                Enviar por correo
+            </button>
             <button type="button" wire:click="solicitarAnularCotizacion"
                     @disabled($documentoId === null)
                     class="col-span-2 rounded-lg border border-red-400 px-3 py-2 text-red-600 disabled:opacity-40">Anular cotización</button>
