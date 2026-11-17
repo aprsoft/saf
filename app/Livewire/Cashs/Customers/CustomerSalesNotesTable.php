@@ -17,18 +17,13 @@ use PowerComponents\LivewirePowerGrid\PowerGridFields;
 
 final class CustomerSalesNotesTable extends PowerGridComponent
 {
-    public string $tableName = 'customerSalesNotesTable';    
-    
-   
-
-
+    public string $tableName = 'customerSalesNotesTable';  
 
     public function setUp(): array
     {
         $header = PowerGrid::header()
             ->showSearchInput()
             ->showToggleColumns();
-
    
         $this->showCheckBox();      
 
@@ -51,8 +46,7 @@ final class CustomerSalesNotesTable extends PowerGridComponent
             ->where('typedocument_id',2)
             ->where('estado_documento','VIGENTE')
             ->where('condicion_documento','FINALIZADO')
-            ->orderBy('id','desc');
-            
+            ->orderBy('id','desc');            
 
     }
 
@@ -98,13 +92,13 @@ final class CustomerSalesNotesTable extends PowerGridComponent
     }
 
     #[On('restore-sales-note-pos')]
-    public function edit(int $rowId): void
+    public function edit(int $id): void
     {
         $salesNote = Document::query()
             ->where('typedocument_id', 2)
             ->where('estado_documento', 'VIGENTE')
             ->where('condicion_documento', 'FINALIZADO')
-            ->findOrFail($rowId);
+            ->findOrFail($id);
 
         $salesNote->update([
             'condicion_documento' => 'EN PROCESO',
