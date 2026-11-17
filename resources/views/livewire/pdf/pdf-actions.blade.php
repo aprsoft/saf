@@ -1,6 +1,7 @@
 
-<section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+<section class="{{ $emailOnly ? '' : 'rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900' }}">
 
+    @unless ($emailOnly)
     <div class="mb-4">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
             Documentación PDF
@@ -45,6 +46,7 @@
         @endif
 
     </div>
+    @endunless
 
     @if ($notice)
         <p role="status" class="mt-4 text-sm text-green-700 dark:text-green-300">
@@ -74,16 +76,13 @@
                         Enviar documento por correo
                     </h4>
 
-                    <label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
-
-                        <input
-                            type="checkbox"
-                            wire:model.live="newRecipient"
-                            class="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        >
-
-                        Nuevo destinatario
-                    </label>
+                    @if ($hasDefaultRecipient)
+                        <label class="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <input type="checkbox" wire:model.live="newRecipient"
+                                   class="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            Nuevo destinatario
+                        </label>
+                    @endif
 
                 </div>
 
@@ -118,6 +117,12 @@
                         Revisa el destinatario antes de confirmar.
                         El PDF puede contener información personal.
                     </p>
+                    @if ($type === 'document.quotation')
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Si el cliente registrado no tiene correo, se guardará el ingresado en su ficha.
+                            Para cliente genérico, el correo se utilizará solo para este envío.
+                        </p>
+                    @endif
 
                     @if ($type === 'document.dte')
                         <p class="text-xs font-semibold text-amber-700">
