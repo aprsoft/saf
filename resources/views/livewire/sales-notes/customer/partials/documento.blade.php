@@ -59,14 +59,14 @@
                 id="pos-fecha-emision"
                 type="text"
                 readonly
-                value="{{ $fechaEmision->format('d/m/Y') }}"
+                x-bind:value="fechaEmisionDocumento || '{{ $fechaEmision->format('d/m/Y') }}'"
                 class="w-full rounded-lg border border-gray-300
                        bg-gray-50 px-3 py-2 text-sm
                        dark:border-gray-600 dark:bg-gray-900"
             >
         </div>
 
-        <div x-show="tipoDocumento === '19'" x-cloak>
+        <div x-show="tipoDocumento === '19' && documentoId === null" x-cloak>
             <label
                 for="pos-validez"
                 class="mb-1 block text-sm font-medium"
@@ -91,21 +91,41 @@
     </div>
 
     {{-- Vencimiento estimado de la cotización --}}
+    
     <div
         x-show="tipoDocumento === '19'"
         x-cloak
-        class="mt-3 flex flex-wrap items-center justify-between
-               gap-2 rounded-lg bg-blue-50 px-3 py-2
-               text-sm text-blue-700
-               dark:bg-blue-950 dark:text-blue-200"
+        class="mt-3 rounded-lg bg-blue-50 px-3 py-2
+            text-sm text-blue-700
+            dark:bg-blue-950 dark:text-blue-200"
     >
+    <div class="flex flex-wrap justify-between gap-2">
         <span>
-            Válida hasta (estimada):
-            <strong x-text="fechasVencimiento[diasValidez]"></strong>
+            <span
+                x-text="fechaVencimientoDocumento
+                    ? 'Válida hasta:'
+                    : 'Válida hasta (estimada):'"
+            ></span>
+
+            <strong
+                x-text="fechaVencimientoDocumento
+                    || fechasVencimiento[diasValidez]"
+            ></strong>
         </span>
 
         <span class="text-xs">
             Renovación manual
         </span>
     </div>
+
+    <p
+        x-show="cotizacionVencida"
+        x-cloak
+        class="mt-2 font-semibold text-red-600"
+    >
+        Cotización vencida. Debe renovar su vigencia
+        manualmente antes de volver a enviarla.
+    </p>
+</div>
+
 </section>

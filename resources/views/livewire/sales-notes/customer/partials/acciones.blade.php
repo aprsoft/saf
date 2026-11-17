@@ -92,16 +92,25 @@
     </button>
 
 
+        
         <button
             type="button"
-            disabled
-            title="Pendiente de implementación"
-            class="rounded-lg border border-gray-300 px-3 py-2 text-sm
-                   font-medium disabled:cursor-not-allowed
-                   disabled:opacity-50 dark:border-gray-600"
+            x-on:click="
+                documentoId
+                    ? errorPersistencia = 'Guarde primero la cotización actual.'
+                    : $wire.abrirRecuperarCotizaciones()
+            "
+            x-bind:disabled="cargando || documentoId !== null"
+            class="rounded-lg border border-gray-300
+                px-3 py-2 text-sm font-medium
+                hover:bg-gray-50
+                disabled:cursor-not-allowed
+                disabled:opacity-40
+                dark:border-gray-600"
         >
             Recuperar
         </button>
+
 
         <button
             type="button"

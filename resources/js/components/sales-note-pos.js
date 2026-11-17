@@ -12,6 +12,10 @@ export default function salesNotePos({ tipoDocumento = '2' } = {}) {
         documentoId: null,
         detalle: [],
 
+        fechaEmisionDocumento: null,
+        fechaVencimientoDocumento: null,
+        cotizacionVencida: false,
+
         // Estado de las ventanas del mesón
         modalAbierto: false,
         modalCancelarAbierto: false,
@@ -207,6 +211,10 @@ export default function salesNotePos({ tipoDocumento = '2' } = {}) {
             this.documentoId = null;
             this.cerrarModal();
             this.modalCancelarAbierto = false;
+            this.fechaEmisionDocumento = null;
+            this.fechaVencimientoDocumento = null;
+            this.cotizacionVencida = false;
+            this.diasValidez = '15';
         },
 
         async ejecutarAccion(accion) {
@@ -254,6 +262,10 @@ export default function salesNotePos({ tipoDocumento = '2' } = {}) {
 
                 this.detalle = nota.detalle;
                 this.documentoId = nota.documentoId;
+                this.tipoDocumento = String(nota.tipoDocumento);
+                this.fechaEmisionDocumento = nota.fechaEmision;
+                this.fechaVencimientoDocumento = nota.fechaVencimiento;
+                this.cotizacionVencida = nota.cotizacionVencida === true;
             } catch (error) {
                 this.errorPersistencia = error?.message ||
                     'No se pudo recuperar la nota.';

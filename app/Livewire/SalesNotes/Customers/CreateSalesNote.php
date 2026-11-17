@@ -23,6 +23,8 @@ class CreateSalesNote extends Component
     public string $busquedaCliente = '';
     public string $nombreReferencia = '';
     public bool   $mostrarRecuperar = false;
+    #[Locked]
+    public int $tipoRecuperacion = 2;
 
     #[Locked]
     public ?int $clienteId = null;
@@ -399,50 +401,149 @@ class CreateSalesNote extends Component
             ->with('customer')->latest('updated_at')->limit(100)->get();
     }
 
-    public function abrirRecuperar(): void
+    #[Computed]
+    public function cotizacionesRecuperables(): Collection
     {
-        $this->mostrarRecuperar = true;
-        unset($this->notasRecuperables);
+        return Document::query()
+            ->where('typedocument_id', 19)
+            ->where('user_id', auth()->id())
+            ->where('estado_documento', 'VIGENTE')
+            ->whereIn('condicion_documento', [
+                'PENDIENTE',
+                'EN PROCESO',
+            ])
+            ->with('customer')
+            ->latest('updated_at')
+            ->limit(100)
+            ->get();
     }
 
+
+        
+    
     public function recuperar(int $documentoId): array
     {
         $this->requiereNotaVenta();
-        $documento = DB::transaction(function () use ($documentoId): Document {
-            $nota = Document::query()->whereKey($documentoId)
-                ->where('typedocument_id', 2)->where('user_id', auth()->id())
-                ->where('estado_documento', 'VIGENTE')
-                ->whereIn('condicion_documento', ['PENDIENTE', 'EN PROCESO'])
-                ->lockForUpdate()->firstOrFail();
-            $nota->update(['condicion_documento' => 'EN PROCESO']);
-            return $nota->load(['details.productService']);
-        });
+
+        abort_unless(
+            $this->mostrarRecuperar
+            && $this->documentoId === null,
+            409,
+            'Termine primero el documento actual.'
+        );
+
+        $tipo = $this->tipoRecuperacion;
+
+        abort_unless(in_array($tipo, [2, 19], true), 422);
+
+        $documento = DB::transaction(
+            function () use ($documentoId, $tipo): Document {
+
+                $documento = Document::query()
+                    ->whereKey($documentoId)
+                    ->where('typedocument_id', $tipo)
+                    ->where('user_id', auth()->id())
+                    ->where('estado_documento', 'VIGENTE')
+                    ->whereIn('condicion_documento', [
+                        'PENDIENTE',
+                        'EN PROCESO',
+                    ])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $documento->update([
+                    'condicion_documento' => 'EN PROCESO',
+                ]);
+
+                return $documento->load([
+                    'customer',
+                    'details.productService',
+                ]);
+            }
+        );
 
         $this->documentoId = $documento->id;
 
-        $this->clienteGenerico = $documento->customer_id === null
+        $this->clienteGenerico =
+            $documento->customer_id === null
             || $documento->customer?->rut === '66666666-6';
 
         $this->clienteId = $this->clienteGenerico
             ? null
             : $documento->customer_id;
 
-        $this->nombreReferencia = $documento->nombre_referencia ?? '';
+        $this->nombreReferencia =
+            $documento->nombre_referencia ?? '';
 
         $this->mostrarRecuperar = false;
+
+        $vencimiento = $documento->fecha_vencimiento
+            ? \Carbon\Carbon::parse(
+                $documento->fecha_vencimiento,
+                'America/Santiago'
+            )
+            : null;
+
         return [
             'documentoId' => $documento->id,
-            'detalle' => $documento->details->map(fn ($d) => [
-                'id' => $d->product_service_id,
-                'detalleId' => $d->id,
-                'nombre' => $d->productService?->nombre ?? $d->detalle ?? 'Producto',
-                'precio' => (float) $d->PrcItem,
-                'cantidad' => (float) $d->QtyItem,
-                'descuentoTipo' => $d->DescuentoPct !== null ? 'porcentaje' : 'monto',
-                'descuentoValor' => $d->DescuentoPct !== null ? (float) $d->DescuentoPct : (float) $d->DescuentoMonto,
-            ])->values()->all(),
+
+            'tipoDocumento' => (int) $documento->typedocument_id,
+
+            'fechaEmision' => $documento->fecha
+                ? \Carbon\Carbon::parse(
+                    $documento->fecha,
+                    'America/Santiago'
+                )->format('d/m/Y')
+                : null,
+
+            'fechaVencimiento' => $vencimiento?->format('d/m/Y'),
+
+            'cotizacionVencida' =>
+                $tipo === 19
+                && (
+                    $vencimiento === null
+                    || $vencimiento->startOfDay()->lt(
+                        today('America/Santiago')
+                    )
+                ),
+
+            'detalle' => $documento->details
+                ->map(fn ($d) => [
+                    'id' => $d->product_service_id,
+                    'detalleId' => $d->id,
+                    'nombre' =>
+                        $d->productService?->nombre
+                        ?? $d->detalle
+                        ?? 'Producto',
+                    'precio' => (float) $d->PrcItem,
+                    'cantidad' => (float) $d->QtyItem,
+                    'descuentoTipo' =>
+                        $d->DescuentoPct !== null
+                            ? 'porcentaje'
+                            : 'monto',
+                    'descuentoValor' =>
+                        $d->DescuentoPct !== null
+                            ? (float) $d->DescuentoPct
+                            : (float) $d->DescuentoMonto,
+                ])
+                ->values()
+                ->all(),
         ];
     }
+
+
+    public function abrirRecuperarCotizaciones(): void
+    {
+        $this->requiereNotaVenta();
+
+        abort_if($this->documentoId !== null, 409);
+
+        $this->tipoRecuperacion = 19;
+        $this->mostrarRecuperar = true;
+
+        unset($this->cotizacionesRecuperables);
+    }
+
 
 
     public function guardarCotizacion(): bool
