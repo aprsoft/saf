@@ -125,3 +125,58 @@ test('la nota genérica no puede enviarse a caja sin referencia', function (): v
 
     expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO');
 });
+
+
+test('el correo de cliente registrado sin email se guarda una sola vez', function (): void {
+    $user = \App\Models\User::factory()->create();
+    $customer = \App\Models\Customer::query()->create([
+        'rut' => '12345678-5',
+        'nombres' => 'Cliente registrado',
+        'email_cliente' => null,
+    ]);
+    $cotizacion = documentoDePrueba(DocumentItemService::COTIZACION, $user->id);
+    $cotizacion->update([
+        'customer_id' => $customer->id,
+        'condicion_documento' => 'PENDIENTE',
+    ]);
+
+    $pdf = app(\App\Services\Pdf\Classes\QuotationPdf::class);
+
+    expect($pdf->defaultRecipient($cotizacion->id))->toBeNull();
+    expect($pdf->rememberRecipientIfMissing($cotizacion->id, $user, 'cliente@example.com'))->toBeTrue();
+    expect($customer->fresh()->email_cliente)->toBe('cliente@example.com');
+    expect($pdf->defaultRecipient($cotizacion->id))->toBe('cliente@example.com');
+
+    // Un destinatario ocasional no debe reemplazar un correo ya registrado.
+    expect($pdf->rememberRecipientIfMissing($cotizacion->id, $user, 'otro@example.com'))->toBeFalse();
+    expect($customer->fresh()->email_cliente)->toBe('cliente@example.com');
+});
+
+test('el correo de cotización genérica se usa sin persistirlo', function (): void {
+    $user = \App\Models\User::factory()->create();
+    $cotizacion = documentoDePrueba(DocumentItemService::COTIZACION, $user->id);
+    $cotizacion->update([
+        'customer_id' => null,
+        'nombre_referencia' => 'Visitante',
+        'condicion_documento' => 'PENDIENTE',
+    ]);
+
+    $pdf = app(\App\Services\Pdf\Classes\QuotationPdf::class);
+
+    expect($pdf->defaultRecipient($cotizacion->id))->toBeNull();
+    expect($pdf->rememberRecipientIfMissing($cotizacion->id, $user, 'visitante@example.com'))->toBeFalse();
+    expect($cotizacion->fresh()->customer_id)->toBeNull();
+});
+
+test('una cotización en proceso no puede enviarse como PDF por correo', function (): void {
+    $user = \App\Models\User::factory()->create();
+    $cotizacion = documentoDePrueba(DocumentItemService::COTIZACION, $user->id);
+
+    try {
+        app(\App\Services\Pdf\Classes\QuotationPdf::class)
+            ->authorize($user, $cotizacion->id, 'email');
+        $this->fail('No se permite enviar cotizaciones sin guardar');
+    } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        expect($e->getStatusCode())->toBe(409);
+    }
+});
