@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\SalesCounter\Notes;
+namespace App\Livewire\SalesCounters\Notes;
 
 use App\Livewire\SalesCounter\SalesDocumentEditor;
 use App\Services\Sales\DocumentItemService;

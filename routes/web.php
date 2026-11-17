@@ -148,11 +148,21 @@ Route::middleware('auth')->group(function () {
     | Notas de venta
     |----------------------------------------------------------------------
     */
-        Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
+        // Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
 
-            Route::get('/', 'index')->name('index');      
-            Route::get('/customer/create', 'create')->name('customer.create');   
-            Route::get('/customer/{document}', 'show')->name('customer.show');    
+        //     Route::get('/', 'index')->name('create');      
+ 
+        // });
+
+        /*
+    |----------------------------------------------------------------------
+    | Meson de Ventas
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('sales-counters')->name('sales-counters.')->controller(SalesCounterController::class)->group(function () {
+
+            Route::get('/', 'create')->name('create');      
+             
  
         });
 
@@ -204,10 +214,7 @@ Route::middleware('auth')->group(function () {
         Route::get('{id}', 'show')->middleware('can:errors.show')->name('show');
     });
 
-    // Mesón v2: Controller -> Blade -> Livewire.
-    Route::get('sales-counter-v2', [SalesCounterController::class, 'index'])
-        ->name('sales-counter-v2.index');
-
+  
     
 });
 

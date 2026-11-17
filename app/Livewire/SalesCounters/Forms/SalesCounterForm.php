@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\SalesCounter\Forms;
+namespace App\Livewire\SalesCounters\Forms;
 
 use Livewire\Form;
 

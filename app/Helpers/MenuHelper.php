@@ -72,8 +72,8 @@ class MenuHelper
                     ],
                     [
                         'name' => 'Meson de Ventas',
-                        'path' => route('sales-notes.customer.create', absolute: false),
-                        'permission' => 'sales-notes.customer.create',
+                        'path' => route('sales-counters.create', absolute: false),
+                        'permission' => 'sales-counters.create',
                         'pro' => false
                     ],
                 ],

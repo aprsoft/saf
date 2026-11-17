@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\SalesCounter;
+namespace App\Livewire\SalesCounters;
 
 use App\Models\Company;
 use Illuminate\Contracts\View\View;
