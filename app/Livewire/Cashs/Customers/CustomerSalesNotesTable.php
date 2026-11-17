@@ -25,8 +25,6 @@ final class CustomerSalesNotesTable extends PowerGridComponent
             ->showSearchInput()
             ->showToggleColumns();
    
-        $this->showCheckBox();      
-
 
         return [
             $header,
@@ -46,8 +44,7 @@ final class CustomerSalesNotesTable extends PowerGridComponent
             ->where('typedocument_id',2)
             ->where('estado_documento','VIGENTE')
             ->where('condicion_documento','FINALIZADO')
-            ->orderBy('id','desc');            
-
+            ->orderBy('id','desc');   
     }
 
     public function fields(): PowerGridFields
@@ -84,8 +81,7 @@ final class CustomerSalesNotesTable extends PowerGridComponent
                     
             Column::make('Fecha', 'fecha')
                 ->sortable()
-                ->searchable(),
-           
+                ->searchable(),           
             Column::make('Total', 'total_format'),
             Column::action('Acciones')
         ]);

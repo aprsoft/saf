@@ -118,12 +118,12 @@ Route::middleware('auth')->group(function () {
     | Documentos
     |----------------------------------------------------------------------
     */
-    Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
+        Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
 
-        Route::get('customer', 'index')->name('customer.index');
-        Route::get('customer/create', 'create')->name('customer.create');       
-        Route::get('{document}', 'show')->name('show');
-    });
+            Route::get('customer', 'index')->name('customer.index');
+            Route::get('customer/create', 'create')->name('customer.create');       
+            Route::get('{document}', 'show')->name('show');
+        });
 
 
     /*
