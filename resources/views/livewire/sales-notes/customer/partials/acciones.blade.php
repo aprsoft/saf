@@ -11,14 +11,23 @@
                     x-bind:disabled="cargando || !documentoId || !detalle.length" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">Enviar a caja</button> --}}
             <button
                 type="button"
-                x-on:click="$dispatch('open-confirm-modal', {
-                    id: documentoId,
-                    name: 'Nota de Venta N.º ' + documentoId,
-                    confirmEvent: 'confirm-send-sales-note-to-cash',
-                    title: 'Enviar nota a caja',
-                    message: '¿Está seguro de que desea enviar esta nota de venta a caja?',
-                    confirmLabel: 'Enviar a caja'
-                })"
+                x-on:click="
+                    errorPersistencia = '';
+
+                    if ($wire.clienteGenerico && !$wire.nombreReferencia.trim()) {
+                        errorPersistencia = 'Ingrese un nombre de referencia para caja.';
+                        return;
+                    }
+
+                    $dispatch('open-confirm-modal', {
+                        id: documentoId,
+                        name: 'Nota de Venta N.º ' + documentoId,
+                        confirmEvent: 'confirm-send-sales-note-to-cash',
+                        title: 'Enviar nota a caja',
+                        message: '¿Está seguro de que desea enviar esta nota de venta a caja?',
+                        confirmLabel: 'Enviar a caja'
+                    });
+                "
                 x-bind:disabled="cargando || !documentoId || !detalle.length"
                 class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
             >
