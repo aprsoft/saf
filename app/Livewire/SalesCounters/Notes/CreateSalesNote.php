@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\SalesCounters\Notes;
 
-use App\Livewire\SalesCounter\SalesDocumentEditor;
+use App\Livewire\SalesCounters\SalesDocumentEditor;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 
@@ -35,6 +35,6 @@ final class CreateSalesNote extends SalesDocumentEditor
 
     public function render(): View
     {
-        return view('livewire.sales-counter.notes.create-sales-note');
+        return view('livewire.sales-counters.notes.create-sales-note');
     }
 }

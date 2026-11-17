@@ -56,6 +56,6 @@ final class SalesCounter extends Component
 
     public function render(): View
     {
-        return view('livewire.sales-counter.sales-counter');
+        return view('livewire.sales-counters.sales-counter');
     }
 }

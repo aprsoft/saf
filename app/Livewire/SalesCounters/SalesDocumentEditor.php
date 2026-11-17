@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\SalesCounters;
 
-use App\Livewire\SalesCounter\Forms\DocumentItemForm;
-use App\Livewire\SalesCounter\Forms\SalesCounterForm;
+use App\Livewire\SalesCounters\Forms\DocumentItemForm;
+use App\Livewire\SalesCounters\Forms\SalesCounterForm;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Document;

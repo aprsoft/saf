@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\SalesCounters\Quotations;
 
-use App\Livewire\SalesCounter\SalesDocumentEditor;
+use App\Livewire\SalesCounters\SalesDocumentEditor;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 
@@ -36,6 +36,6 @@ final class CreateQuotation extends SalesDocumentEditor
 
     public function render(): View
     {
-        return view('livewire.sales-counter.quotations.create-quotation');
+        return view('livewire.sales-counters.quotations.create-quotation');
     }
 }
