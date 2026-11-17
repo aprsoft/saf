@@ -282,19 +282,61 @@ class CreateSalesNote extends Component
             'No se puede cambiar el tipo de un documento existente.'
         );
 
-            $producto = ProductService::query()->whereKey($validado['id'])
-                ->where('activo', true)->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])
-                ->with(['prices.priceList'])->firstOrFail();
-            $precio = $producto->prices->first(fn ($p) => (int) $p->unit_id === (int) $producto->sales_unit_id
-                && $p->priceList?->nombre === 'Venta público'
-                && $p->priceList?->tipo === 'VENTA'
-                && $p->priceList?->activo);
-            if (!$precio) {
-                throw ValidationException::withMessages(['producto' => 'El producto no tiene precio de venta público.']);
-            }
+            
+$detalle = $detalleId !== null
+    ? $documento->details()
+        ->whereKey($detalleId)
+        ->lockForUpdate()
+        ->firstOrFail()
+    : new Detail(['document_id' => $documento->id]);
 
-            $cantidad = (float) $validado['cantidad'];
-            $precioUnitario = (float) $precio->precio;
+$editandoCotizacion = $detalleId !== null
+    && (int) $documento->typedocument_id === 19;
+
+if ($editandoCotizacion) {
+
+    abort_unless(
+        (int) $detalle->product_service_id === (int) $validado['id'],
+        409,
+        'No se puede sustituir el producto cotizado.'
+    );
+
+    // Recuperar el producto aunque haya sido desactivado.
+    $producto = ProductService::withTrashed()
+        ->findOrFail($detalle->product_service_id);
+
+    // Conservar el precio originalmente cotizado.
+    $precioUnitario = (float) $detalle->PrcItem;
+
+} else {
+
+    // Productos nuevos y notas de venta: precio vigente.
+    $producto = ProductService::query()
+        ->whereKey($validado['id'])
+        ->where('activo', true)
+        ->whereIn('tipo', ['PRODUCTO', 'SERVICIO'])
+        ->with('prices.priceList')
+        ->firstOrFail();
+
+    $precio = $producto->prices->first(
+        fn ($p) =>
+            (int) $p->unit_id === (int) $producto->sales_unit_id
+            && $p->priceList?->nombre === 'Venta público'
+            && $p->priceList?->tipo === 'VENTA'
+            && $p->priceList?->activo
+    );
+
+    if (! $precio) {
+        throw ValidationException::withMessages([
+            'producto' => 'El producto no tiene precio de venta público.',
+        ]);
+    }
+
+    $precioUnitario = (float) $precio->precio;
+}
+
+$cantidad = (float) $validado['cantidad'];
+
 
             $detalle = $detalleId
                 ? $documento->details()
@@ -325,12 +367,12 @@ class CreateSalesNote extends Component
                 throw ValidationException::withMessages(['descuentoValor' => 'El descuento no es válido.']);
             }
             $monto = (int) ($bruto - $descuento);
-            $afecto = (bool) $producto->afecto_iva;
+            $afecto = $editandoCotizacion
+                ? $detalle->IndExe === null
+                : (bool) $producto->afecto_iva;
             $neto = $afecto ? (int) round($monto / 1.19) : 0;
             $iva = $afecto ? $monto - $neto : 0;
-            $detalle = $detalleId
-                ? $documento->details()->whereKey($detalleId)->lockForUpdate()->firstOrFail()
-                : new Detail(['document_id' => $documento->id]);
+            
             $detalle->fill([
                 'product_service_id' => $producto->id,
                 'QtyItem' => $cantidad,

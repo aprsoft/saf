@@ -7,6 +7,7 @@ namespace App\Livewire\SalesCounter;
 use App\Models\Company;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /** Único punto de entrada del mesón; los flujos comerciales permanecen separados. */
@@ -14,8 +15,10 @@ final class SalesCounter extends Component
 {
     public int $tipoDocumento = 2;
 
+    #[Locked]
     public int $tipoActual = 2;
 
+    #[Locked]
     public bool $documentoActivo = false;
 
     public string $advertencia = '';

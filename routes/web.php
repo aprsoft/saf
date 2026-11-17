@@ -11,6 +11,7 @@ use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesNoteController;
+use App\Http\Controllers\SalesCounterController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
@@ -203,9 +204,9 @@ Route::middleware('auth')->group(function () {
         Route::get('{id}', 'show')->middleware('can:errors.show')->name('show');
     });
 
-    // Una sola ruta y una sola vista maestra para notas de venta y cotizaciones.
-        Route::middleware('auth')->view('sales-counter-v2', 'sales-counter-v2.index')
-            ->name('sales-counter-v2.index');
+    // Mesón v2: Controller -> Blade -> Livewire.
+    Route::get('sales-counter-v2', [SalesCounterController::class, 'index'])
+        ->name('sales-counter-v2.index');
 
     
 });
