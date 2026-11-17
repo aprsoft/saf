@@ -9,8 +9,6 @@
     >
 
     <header class="flex flex-wrap items-center justify-between gap-3">
-        <div><h1 class="text-xl font-bold">Crear documento</h1>
-            <p class="text-xs text-gray-500">Ventas / Nuevo documento</p></div>
         <span x-show="documentoId" x-text="'Nota N.º ' + documentoId"
               class="rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700 dark:bg-blue-950 dark:text-blue-200"></span>
     </header>
