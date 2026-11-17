@@ -7,10 +7,13 @@
 
     @if ($form->clienteGenerico)
         <div class="mt-3">
-            <label for="v2-referencia" class="mb-1 block text-sm font-medium">Nombre de referencia</label>
-            <input id="v2-referencia" type="text" maxlength="191" wire:model.blur="form.nombreReferencia"
+            <label for="v2-referencia" class="mb-1 block text-sm font-medium">Nombre de referencia <span class="text-red-600">*</span></label>
+            <input id="v2-referencia" type="text" maxlength="191" required aria-required="true" wire:model.blur="form.nombreReferencia"
                    placeholder="Referencia para caja"
                    class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
+            @error('form.nombreReferencia')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
         </div>
     @else
         <div class="mt-3 space-y-3">

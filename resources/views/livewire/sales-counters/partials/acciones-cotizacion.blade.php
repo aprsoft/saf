@@ -22,8 +22,11 @@
         <div class="grid grid-cols-2 gap-2 text-sm">
             <button type="button" wire:click="abrirRecuperar" @disabled($documentoId !== null)
                     class="rounded-lg border px-3 py-2 disabled:opacity-40">Recuperar</button>
-            <button type="button" wire:click="guardarCotizacion" @disabled($documentoId === null)
+            <button type="button" wire:click="solicitarGuardarCotizacion" @disabled($documentoId === null)
                     class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Guardar cotización</button>
+            <button type="button" wire:click="solicitarAnularCotizacion"
+                    @disabled($documentoId === null)
+                    class="col-span-2 rounded-lg border border-red-400 px-3 py-2 text-red-600 disabled:opacity-40">Anular cotización</button>
             @if ($documentoId !== null)
                 <button type="button" wire:click="renovarVigencia" wire:confirm="¿Renovar la vigencia desde hoy?"
                         class="col-span-2 rounded-lg border border-blue-400 px-3 py-2 text-blue-600">Renovar vigencia</button>

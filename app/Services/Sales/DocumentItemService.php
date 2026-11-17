@@ -321,14 +321,38 @@ final class DocumentItemService
         });
     }
 
-    /** Descarta la nota en proceso y sus detalles sin dejar una nota ANULADA. */
+    /** Descarta únicamente documentos internos EN PROCESO del usuario autenticado. */
+    private function descartarDocumento(int $id, int $tipo, int $usuarioId): void
+    {
+        DB::transaction(function () use ($id, $tipo, $usuarioId): void {
+            $documento = $this->editable($id, $tipo, $usuarioId, true);
+            $documento->details()->delete();
+            $documento->delete();
+        });
+    }
+
     public function eliminarNota(int $id, int $usuarioId): void
     {
-        DB::transaction(function () use ($id, $usuarioId): void {
-            $nota = $this->editable($id, self::NOTA, $usuarioId, true);
-            $nota->details()->delete();
-            $nota->delete();
-        });
+        $this->descartarDocumento($id, self::NOTA, $usuarioId);
+    }
+
+    public function eliminarCotizacion(int $id, int $usuarioId): void
+    {
+        $this->descartarDocumento($id, self::COTIZACION, $usuarioId);
+    }
+
+    /** Exige referencia cuando el cliente es genérico en operaciones de cierre. */
+    public function validarReferenciaParaCaja(array $formulario): void
+    {
+        if (! ($formulario['clienteGenerico'] ?? false)) {
+            return;
+        }
+
+        if (trim((string) ($formulario['nombreReferencia'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'form.nombreReferencia' => 'Ingrese un nombre de referencia para el cliente genérico.',
+            ]);
+        }
     }
 
     public function cambiarEstado(
@@ -357,11 +381,9 @@ final class DocumentItemService
                 }
             }
 
-            if ($estado === 'FINALIZADO' && $formulario['clienteGenerico']
-                && trim($formulario['nombreReferencia']) === '') {
-                throw ValidationException::withMessages([
-                    'form.nombreReferencia' => 'Ingrese una referencia para caja.',
-                ]);
+            if (($tipo === self::NOTA && $estado === 'FINALIZADO')
+                || ($tipo === self::COTIZACION && $estado === 'PENDIENTE')) {
+                $this->validarReferenciaParaCaja($formulario);
             }
 
             if ($tipo === self::COTIZACION && $estado === 'PENDIENTE'
