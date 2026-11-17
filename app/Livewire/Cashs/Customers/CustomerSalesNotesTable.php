@@ -4,13 +4,14 @@ namespace App\Livewire\Cashs\Customers;
 
 use App\Models\Document;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Number;
+use Livewire\Attributes\On;
 use PowerComponents\LivewirePowerGrid\Button;
 use PowerComponents\LivewirePowerGrid\Column;
 use PowerComponents\LivewirePowerGrid\Components\SetUp\Responsive;
 use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
 use PowerComponents\LivewirePowerGrid\PowerGridComponent;
 use PowerComponents\LivewirePowerGrid\PowerGridFields;
-use Illuminate\Support\Number;
 
 
 
@@ -96,10 +97,18 @@ final class CustomerSalesNotesTable extends PowerGridComponent
         ]);
     }
 
-    #[\Livewire\Attributes\On('edit')]
-    public function edit($rowId): void
+    #[On('restore-sales-note-pos')]
+    public function edit(int $rowId): void
     {
-        $this->js('alert(' . $rowId . ')');
+        $salesNote = Document::query()
+            ->where('typedocument_id', 2)
+            ->where('estado_documento', 'VIGENTE')
+            ->where('condicion_documento', 'FINALIZADO')
+            ->findOrFail($rowId);
+
+        $salesNote->update([
+            'condicion_documento' => 'EN PROCESO',
+        ]);
     }
 
     public function actions($row): array
@@ -115,13 +124,24 @@ final class CustomerSalesNotesTable extends PowerGridComponent
                 ->class('px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center')
                 ->route('payments.customer.create', ['document' => $row->id]), 
 
-            Button::add('edit')
-                ->slot('Edit: '.$row->id)
+           Button::add('edit')
+                // ->slot('Edit: '.$row->id)
                 ->id()
-                ->icon('default-restore')               
+                ->icon('default-restore')
                 ->class('px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center justify-center')
-                >dispatch('edit', ['rowId' => $row->id]),
-        
+                // ->dispatch('edit', ['rowId' => $row->id]),
+                ->dispatch(
+                    'open-confirm-modal',
+                    [
+                        'id'           => $row->id,
+                        'name'         => 'Nota de Venta N° '.$row->id,
+                        'confirmEvent' => 'restore-sales-note-pos',
+                        'title'        => 'Restaurar Nota de Vneta',
+                        'message'      => '¿Está seguro de que desea devolver esta Nota de Venta?',
+                       
+                    ]
+                ),
+                    
         ];
     }
 
