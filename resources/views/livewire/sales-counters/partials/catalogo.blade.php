@@ -23,6 +23,7 @@
                             && $p->priceList?->tipo === 'VENTA'
                             && (bool) $p->priceList?->activo
                         );
+                        $seleccionado = $this->documento?->details->contains('product_service_id', $producto->id) ?? false;
                     @endphp
                     <tr wire:key="producto-v2-{{ $producto->id }}" class="border-b border-gray-100 dark:border-gray-700">
                         <td class="p-2">{{ $producto->codigo }}</td>
@@ -30,9 +31,9 @@
                         <td class="p-2 text-right">{{ $precio ? '$'.number_format((float) $precio->precio, 0, ',', '.') : 'Sin precio' }}</td>
                         <td class="p-2 text-right">
                             <button type="button" wire:click="abrirProducto({{ $producto->id }})"
-                                    wire:loading.attr="disabled" @disabled(! $precio)
+                                    wire:loading.attr="disabled" @disabled(! $precio || $seleccionado)
                                     class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40">
-                                Agregar
+                                {{ $seleccionado ? 'Agregado' : 'Agregar' }}
                             </button>
                         </td>
                     </tr>

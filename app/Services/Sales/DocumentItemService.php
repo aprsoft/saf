@@ -163,8 +163,6 @@ final class DocumentItemService
             $tipo, $usuarioId, $documentoId, $formulario, $productoId, $detalleId, $item
         ): Document {
             $producto = $this->productoDisponible($productoId);
-            $precio = $this->precioPublico($producto);
-
             if ($documentoId === null) {
                 abort_unless($detalleId === null, 409);
                 $fecha = today('America/Santiago');
@@ -189,6 +187,22 @@ final class DocumentItemService
             } else {
                 $documento = $this->editable($documentoId, $tipo, $usuarioId, true);
             }
+
+            // El bloqueo del documento serializa las inserciones de sus ítems.
+            $duplicados = $documento->details()
+                ->where('product_service_id', $productoId);
+
+            if ($detalleId !== null) {
+                $duplicados->whereKeyNot($detalleId);
+            }
+
+            if ($duplicados->exists()) {
+                throw ValidationException::withMessages([
+                    'producto' => 'El producto o servicio ya está seleccionado en este documento.',
+                ]);
+            }
+
+            $precio = $this->precioPublico($producto);
 
             $detalle = $detalleId === null
                 ? new Detail(['document_id' => $documento->id])
@@ -307,6 +321,16 @@ final class DocumentItemService
         });
     }
 
+    /** Descarta la nota en proceso y sus detalles sin dejar una nota ANULADA. */
+    public function eliminarNota(int $id, int $usuarioId): void
+    {
+        DB::transaction(function () use ($id, $usuarioId): void {
+            $nota = $this->editable($id, self::NOTA, $usuarioId, true);
+            $nota->details()->delete();
+            $nota->delete();
+        });
+    }
+
     public function cambiarEstado(
         int $id,
         int $tipo,
@@ -315,7 +339,7 @@ final class DocumentItemService
         array $formulario
     ): void {
         $permitidos = $tipo === self::NOTA
-            ? ['PENDIENTE', 'ANULADO', 'FINALIZADO']
+            ? ['PENDIENTE', 'FINALIZADO']
             : ['PENDIENTE'];
         abort_unless(in_array($estado, $permitidos, true), 422);
 

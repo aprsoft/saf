@@ -7,6 +7,7 @@ namespace App\Livewire\SalesCounters\Notes;
 use App\Livewire\SalesCounters\SalesDocumentEditor;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
 
 final class CreateSalesNote extends SalesDocumentEditor
 {
@@ -23,8 +24,55 @@ final class CreateSalesNote extends SalesDocumentEditor
 
     public function cancelarNota(): void
     {
-        $this->cambiarEstado('ANULADO');
-        $this->mensaje = 'Nota de venta anulada.';
+        abort_unless($this->documentoId !== null, 409);
+        $this->ventas()->eliminarNota($this->documentoId, (int) auth()->id());
+        $this->limpiarFormulario();
+        $this->mensaje = 'Nota de venta descartada.';
+    }
+
+    public function solicitarCancelarNota(): void
+    {
+        abort_unless($this->documentoId !== null, 409);
+        $nota = $this->ventas()->editable($this->documentoId, DocumentItemService::NOTA, (int) auth()->id());
+
+        $this->dispatch('open-confirm-modal',
+            id: $nota->id,
+            name: 'Nota de venta N.º '.$nota->id,
+            confirmEvent: 'confirm-sales-counter-cancel-note',
+            title: 'Anular nota de venta',
+            message: 'Se eliminarán definitivamente la nota y sus ítems.',
+            warning: 'Esta operación no se puede deshacer.',
+            confirmLabel: 'Anular y eliminar'
+        );
+    }
+
+    #[On('confirm-sales-counter-cancel-note')]
+    public function confirmarCancelarNota(int $id): void
+    {
+        abort_unless($this->documentoId === $id, 409);
+        $this->cancelarNota();
+    }
+
+    public function solicitarEnvioACaja(): void
+    {
+        abort_unless($this->documentoId !== null, 409);
+        $nota = $this->ventas()->editable($this->documentoId, DocumentItemService::NOTA, (int) auth()->id());
+
+        $this->dispatch('open-confirm-modal',
+            id: $nota->id,
+            name: 'Nota de venta N.º '.$nota->id,
+            confirmEvent: 'confirm-sales-counter-send-to-cash',
+            title: 'Enviar nota a caja',
+            message: '¿Está seguro de enviar esta nota de venta a caja?',
+            confirmLabel: 'Enviar a caja'
+        );
+    }
+
+    #[On('confirm-sales-counter-send-to-cash')]
+    public function confirmarEnvioACaja(int $id): void
+    {
+        abort_unless($this->documentoId === $id, 409);
+        $this->enviarACaja();
     }
 
     public function enviarACaja(): void

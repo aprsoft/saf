@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /** Estado y navegación compartidos; cada documento conserva sus propias acciones. */
@@ -197,6 +198,12 @@ abstract class SalesDocumentEditor extends Component
 
     public function abrirProducto(int $id): void
     {
+        if ($this->documento?->details->contains('product_service_id', $id)) {
+            throw ValidationException::withMessages([
+                'producto' => 'El producto o servicio ya está seleccionado en este documento.',
+            ]);
+        }
+
         $producto = $this->ventas()->productoDisponible($id);
         $this->precioModal = $this->ventas()->precioPublico($producto);
         $this->productoId = $id;
@@ -274,6 +281,37 @@ abstract class SalesDocumentEditor extends Component
         );
         unset($this->documento, $this->totales);
         $this->mensaje = 'Ítem eliminado.';
+    }
+
+    public function solicitarEliminarItem(int $detalleId): void
+    {
+        abort_unless($this->documentoId !== null, 409);
+
+        $documento = $this->ventas()->editable(
+            $this->documentoId,
+            $this->tipoDocumento(),
+            (int) auth()->id()
+        );
+
+        $detalle = $documento->details()
+            ->with('productService')
+            ->whereKey($detalleId)
+            ->firstOrFail();
+
+        $this->dispatch('open-confirm-modal',
+            id: $detalle->id,
+            name: $detalle->productService?->nombre ?? $detalle->detalle ?? 'Ítem '.$detalle->id,
+            confirmEvent: 'confirm-sales-counter-remove-item',
+            title: 'Quitar producto',
+            message: '¿Está seguro de quitar este ítem del documento?',
+            confirmLabel: 'Quitar'
+        );
+    }
+
+    #[On('confirm-sales-counter-remove-item')]
+    public function confirmarEliminarItem(int $id): void
+    {
+        $this->eliminarItem($id);
     }
 
     public function abrirRecuperar(): void

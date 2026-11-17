@@ -5,10 +5,10 @@
                 class="rounded-lg border px-3 py-2 disabled:opacity-40">Recuperar</button>
         <button type="button" wire:click="dejarEnEspera" @disabled($documentoId === null)
                 class="rounded-lg border px-3 py-2 disabled:opacity-40">Dejar en espera</button>
-        <button type="button" wire:click="cancelarNota" wire:confirm="¿Anular esta nota de venta?"
+        <button type="button" wire:click="solicitarCancelarNota"
                 @disabled($documentoId === null)
                 class="rounded-lg border border-red-400 px-3 py-2 text-red-600 disabled:opacity-40">Anular</button>
-        <button type="button" wire:click="enviarACaja" wire:confirm="¿Enviar la nota a caja?"
+        <button type="button" wire:click="solicitarEnvioACaja"
                 @disabled($documentoId === null)
                 class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Enviar a caja</button>
     </div>

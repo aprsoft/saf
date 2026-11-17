@@ -30,8 +30,7 @@
                             <div class="flex justify-end gap-2 whitespace-nowrap">
                                 <button type="button" wire:click="editarItem({{ $detalle->id }})"
                                         class="rounded-lg border border-blue-400 px-2 py-1 text-xs text-blue-600">Editar</button>
-                                <button type="button" wire:click="eliminarItem({{ $detalle->id }})"
-                                        wire:confirm="¿Quitar este ítem?"
+                                <button type="button" wire:click="solicitarEliminarItem({{ $detalle->id }})"
                                         class="rounded-lg border border-red-400 px-2 py-1 text-xs text-red-600">Quitar</button>
                             </div>
                         </td>
