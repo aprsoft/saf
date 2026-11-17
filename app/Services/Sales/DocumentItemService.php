@@ -243,19 +243,50 @@ final class DocumentItemService
         });
     }
 
+    /**
+     * Agrega los importes ya calculados y persistidos en cada detalle.
+     *
+     * @param iterable<Detail> $detalles
+     * @return array{monto_neto:int,monto_iva:int,monto_exento:int,monto_total:int}
+     */
+    public function totalizarDetalles(iterable $detalles): array
+    {
+        $totales = [
+            'monto_neto' => 0,
+            'monto_iva' => 0,
+            'monto_exento' => 0,
+            'monto_total' => 0,
+        ];
+
+        foreach ($detalles as $detalle) {
+            if ($detalle->estado_detalle !== 'VIGENTE') {
+                continue;
+            }
+
+            $totales['monto_neto'] += (int) $detalle->MontoNetoItem;
+            $totales['monto_iva'] += (int) $detalle->ivaItem;
+            $totales['monto_exento'] += (int) $detalle->MontoExeItem;
+            $totales['monto_total'] += (int) $detalle->MontoItem;
+        }
+
+        return $totales;
+    }
+
     private function actualizarTotales(Document $documento): void
     {
-        $sumas = $documento->details()
-            ->where('estado_detalle', 'VIGENTE')
-            ->selectRaw('COALESCE(SUM(MontoNetoItem),0) AS neto, COALESCE(SUM(ivaItem),0) AS iva, COALESCE(SUM(MontoExeItem),0) AS exento, COALESCE(SUM(MontoItem),0) AS total')
-            ->first();
+        $totales = $this->totalizarDetalles(
+            $documento->details()->get([
+                'estado_detalle',
+                'MontoNetoItem',
+                'ivaItem',
+                'MontoExeItem',
+                'MontoItem',
+            ])
+        );
 
         $documento->update([
-            'monto_neto' => (int) $sumas->neto,
-            'monto_iva' => (int) $sumas->iva,
-            'monto_exento' => (int) $sumas->exento,
-            'monto_total' => (int) $sumas->total,
-            'valor_pagar' => (int) $sumas->total,
+            ...$totales,
+            'valor_pagar' => $totales['monto_total'],
         ]);
     }
 

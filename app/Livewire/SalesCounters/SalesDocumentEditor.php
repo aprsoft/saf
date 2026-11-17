@@ -133,6 +133,13 @@ abstract class SalesDocumentEditor extends Component
             ->firstOrFail();
     }
 
+    /** Totales derivados de los mismos detalles que se muestran en pantalla. */
+    #[Computed]
+    public function totales(): array
+    {
+        return $this->ventas()->totalizarDetalles($this->documento?->details ?? []);
+    }
+
     #[Computed]
     public function recuperables(): Collection
     {
@@ -252,7 +259,7 @@ abstract class SalesDocumentEditor extends Component
         $this->documentoId = (int) $documento->id;
         $this->dispatch('sales-counter-document-status', activo: true);
         $this->cerrarProducto();
-        unset($this->documento);
+        unset($this->documento, $this->totales);
         $this->mensaje = 'Ítem guardado.';
     }
 
@@ -265,7 +272,7 @@ abstract class SalesDocumentEditor extends Component
             (int) auth()->id(),
             $detalleId
         );
-        unset($this->documento);
+        unset($this->documento, $this->totales);
         $this->mensaje = 'Ítem eliminado.';
     }
 
@@ -287,7 +294,7 @@ abstract class SalesDocumentEditor extends Component
         $this->form->clienteId = $this->form->clienteGenerico ? null : (int) $documento->customer_id;
         $this->form->nombreReferencia = (string) ($documento->nombre_referencia ?? '');
         $this->mostrarRecuperar = false;
-        unset($this->documento);
+        unset($this->documento, $this->totales);
         $this->mensaje = 'Documento recuperado.';
     }
 
@@ -316,6 +323,6 @@ abstract class SalesDocumentEditor extends Component
         $this->mostrarProducto = false;
         $this->productoId = null;
         $this->detalleId = null;
-        unset($this->documento, $this->recuperables, $this->clienteSeleccionado);
+        unset($this->documento, $this->totales, $this->recuperables, $this->clienteSeleccionado);
     }
 }
