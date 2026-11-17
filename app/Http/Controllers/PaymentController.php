@@ -26,10 +26,21 @@ class PaymentController extends Controller
     }
 
      
-    public function create(Document $document)
+    public function create(Request $request)
     {
-        
-        return view('payments.customer.create',compact('document')); 
+        // La ruta recibe ?document=ID, no un parámetro {document}.
+        $validated = $request->validate([
+            'document' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $document = Document::query()
+            ->whereKey((int) $validated['document'])
+            ->where('typedocument_id', 2)
+            ->where('estado_documento', 'VIGENTE')
+            ->where('condicion_documento', 'FINALIZADO')
+            ->firstOrFail();
+
+        return view('payments.customer.create', compact('document'));
     }
 
 
