@@ -531,6 +531,18 @@ class CreateSalesNote extends Component
         ];
     }
 
+    public function abrirRecuperar(): void
+    {
+        $this->requiereNotaVenta();
+
+        abort_if($this->documentoId !== null, 409);
+
+        $this->tipoRecuperacion = 2;
+        $this->mostrarRecuperar = true;
+
+        unset($this->notasRecuperables);
+    }
+
 
     public function abrirRecuperarCotizaciones(): void
     {
