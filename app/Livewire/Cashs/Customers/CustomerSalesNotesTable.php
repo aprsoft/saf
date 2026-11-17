@@ -32,7 +32,7 @@ final class CustomerSalesNotesTable extends PowerGridComponent
                 ->showPerPage(perPage: 10, perPageValues: [10, 20, 50, 100])
                 ->showRecordCount(),
             PowerGrid::responsive()
-                ->fixedColumns('total_format'),
+                ->fixedColumns('id', 'total_format', 'actions'),
         ];
     }
 
