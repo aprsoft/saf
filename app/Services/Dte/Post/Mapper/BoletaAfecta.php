@@ -84,7 +84,6 @@ class BoletaAfecta
     {
         $details = $this->document->details()
             ->vigente()
-            ->servicios()
             // El service_id 10 es descuento; no debe duplicarse como ítem.
             ->where('service_id', '!=', 10)
             ->get();

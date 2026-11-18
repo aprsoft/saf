@@ -90,8 +90,19 @@
                 <div class="mt-3 grid grid-cols-2 gap-2">
                     <a href="{{ route('cashs.customer.index') }}"
                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">Cancelar</a>
-                    <button type="button" wire:click="revisar" wire:loading.attr="disabled" wire:target="revisar"
-                            class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Pagar</button>
+                    {{-- <button type="button" wire:click="revisar" wire:loading.attr="disabled" wire:target="revisar"
+                            class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Pagar
+                    </button> --}}
+                    <button
+                        type="button"
+                        wire:click="solicitarEmitirDte"
+                        wire:loading.attr="disabled"
+                        wire:target="solicitarEmitirDte"
+                        class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white
+                            hover:bg-blue-700 disabled:opacity-50"
+                    >
+                        Pagar
+                    </button>
                 </div>
             </section>
 
@@ -209,7 +220,7 @@
         </div>
     @endif
 
-    @if ($mostrarConfirmacion)
+    {{-- @if ($mostrarConfirmacion)
         <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <button type="button" class="absolute inset-0 bg-gray-950/60"
                     wire:click="cerrarRevision" aria-label="Cerrar revisión"></button>
@@ -246,5 +257,5 @@
                 </div>
             </section>
         </div>
-    @endif
+    @endif --}}
 </div>

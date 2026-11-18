@@ -253,22 +253,27 @@ final class CreatePayment extends Component
     public function cerrarRevision(): void
     {
         $this->mostrarConfirmacion = false;
-    }
-
+    }    
+    
     public function solicitarEmitirDte(): void
     {
-        abort_unless($this->mostrarConfirmacion, 409);
-
-        // Validar nuevamente antes de solicitar confirmación.
         $this->revisar();
+
+        $tipoDte = match ((int) $this->form->tipoDocumento) {
+            15 => 'FACTURA ELECTRÓNICA',
+            17 => 'BOLETA ELECTRÓNICA',
+            18 => 'GUÍA DE DESPACHO ELECTRÓNICA',
+        };
 
         $this->dispatch('open-confirm-modal',
             id: $this->documentoId,
-            name: 'Nota de venta N.º '.$this->documentoId,
+            name: 'Nota de venta N.º ' . $this->documentoId,
             confirmEvent: 'confirm-payment-emit-dte',
             title: 'Confirmar cobro y emisión',
-            message: '¿Está seguro de cobrar y emitir este documento tributario?',
-            warning: 'Verifique el cliente, el documento y el importe.',
+            message: '¿Está seguro de cobrar $'
+                . number_format($this->totales['monto_total'], 0, ',', '.')
+                . ' y emitir el documento tributario?',
+            warning: 'Se emitirá una ' . $tipoDte . '.',
             confirmLabel: 'Cobrar y emitir'
         );
     }
@@ -277,12 +282,12 @@ final class CreatePayment extends Component
     public function confirmarEmitirDte(int $id): void
     {
         abort_unless(
-            $this->mostrarConfirmacion
-            && $id === $this->documentoId,
+            $this->mostrarConfirmacion &&
+            $id === $this->documentoId,
             409
         );
 
-        // Revalidar antes de ejecutar.
+        // Revalidar antes de ejecutar la operación.
         $this->revisar();
 
         $this->mostrarConfirmacion = false;
@@ -290,10 +295,16 @@ final class CreatePayment extends Component
         $this->emitirDte();
     }
 
-    public function emitirDte()
+    protected function emitirDte(): void
     {
-       dd('comprobando');
+        //inicio de transaccion
+        //asignar tipo documento y forma de pago a la nota de venta
+        //aplicar dteposmanager
+        //etc etc
+
+  
     }
+
 
     public function render(): View
     {
