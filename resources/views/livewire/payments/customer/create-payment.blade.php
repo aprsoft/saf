@@ -93,7 +93,7 @@
                 @endif
 
                 <div class="mt-3 grid grid-cols-2 gap-2">
-                    <a href="{{ route('cashs.customer.index') }}"
+                    <a href="{{ route('cashs.customers.sales-note.index') }}"
                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">Cancelar</a>
                     {{-- <button type="button" wire:click="revisar" wire:loading.attr="disabled" wire:target="revisar"
                             class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Pagar

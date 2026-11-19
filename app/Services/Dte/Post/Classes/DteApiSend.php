@@ -34,7 +34,7 @@ class DteApiSend
 
             $response = curl_exec($curl); 
             
-
+dd($response);
             return json_decode($response, true);  
             
             

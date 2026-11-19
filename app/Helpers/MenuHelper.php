@@ -85,14 +85,14 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Pagar Notas de Venta',
-                        'path' => route('payments.customers.index', absolute: false),
-                        'permission' => 'payments.customers.index',
+                        'path' => route('cashs.customers.sales-note.index', absolute: false),
+                        'permission' => 'cashs.customers.sales-note.index',
                         'pro' => false
                     ],  
                     [
                         'name' => 'Listado de Pagos',
-                        'path' => route('cashs.customer.index', absolute: false),
-                        'permission' => 'cashs.customer.index',
+                        'path' => route('payments.customers.index', absolute: false),
+                        'permission' => 'payments.customers.index',
                         'pro' => false
                     ], 
                      

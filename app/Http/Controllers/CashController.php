@@ -8,6 +8,6 @@ class CashController extends Controller
 {
     public function index()
     {
-        return view('cashs.index');
+        return view('cashs.customers.index');
     }
 }

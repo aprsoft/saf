@@ -133,18 +133,31 @@ final class TimbrePdf417Service
      * Esta validación es estructural;
      * no verifica la firma criptográfica.
      */
+    
     private function validarTed(string $ted): void
     {
+        if (preg_match('/<!DOCTYPE\b/i', $ted) === 1) {
+            throw new InvalidArgumentException(
+                'El TED no debe contener DOCTYPE.'
+            );
+        }
+
+        // Convertir solamente una copia para validar.
+        // Nunca modificar los bytes originales del TED.
+        $xmlValidacion = mb_check_encoding($ted, 'UTF-8')
+            ? $ted
+            : mb_convert_encoding($ted, 'UTF-8', 'ISO-8859-1');
+
         $documento = new DOMDocument();
         $previo = libxml_use_internal_errors(true);
 
         try {
             if (! $documento->loadXML(
-                $ted,
+                $xmlValidacion,
                 LIBXML_NONET | LIBXML_COMPACT
             )) {
                 throw new InvalidArgumentException(
-                    'El TED almacenado no es un XML válido.'
+                    'El TED almacenado no tiene una estructura XML válida.'
                 );
             }
 
@@ -190,6 +203,7 @@ final class TimbrePdf417Service
             libxml_use_internal_errors($previo);
         }
     }
+
 
     /**
      * Convierte XML o Base64 de XML a su contenido original.

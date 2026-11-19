@@ -370,7 +370,7 @@ final class CreatePayment extends Component
 
             $this->dispatch('dte-emitido', response: $resultado);
 
-            return $this->redirectRoute('cashs.customer.index');
+            return $this->redirectRoute('cashs.customers.index');
 
         } catch (Throwable $exception) {
 

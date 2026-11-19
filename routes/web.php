@@ -150,11 +150,11 @@ Route::middleware('auth')->group(function () {
     | Notas de venta
     |----------------------------------------------------------------------
     */
-        // Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
+        Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
 
-        //     Route::get('/', 'index')->name('create');      
+            Route::get('/', 'index')->name('index');      
  
-        // });
+        });
 
         /*
     |----------------------------------------------------------------------
@@ -175,7 +175,7 @@ Route::middleware('auth')->group(function () {
     */
         Route::prefix('cashs')->name('cashs.')->controller(CashController::class)->group(function () {
 
-            Route::get('/customer', 'index')->name('customer.index');    
+            Route::get('customers/sales-note', 'index')->name('customers.sales-note.index');   
         });
 
     /*
