@@ -42,13 +42,18 @@
                     </div>
                     <div>
                         <label for="caja-forma-pago" class="mb-1 block text-xs font-medium">Forma de pago</label>
-                        <select id="caja-forma-pago" wire:model.change="form.formaPago"
-                                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
-                            <option value="EFECTIVO">Efectivo</option>
-                            <option value="TARJETA DEBITO">Tarjeta de débito</option>
-                            <option value="TARJETA CREDITO">Tarjeta de crédito</option>
-                            <option value="TRANSFERENCIA BANCARIA">Transferencia bancaria</option>
-                        </select>
+                        <select wire:model="form.formaPago">
+                        <option value="EFECTIVO">Efectivo</option>
+                        <option value="TARJETA DEBITO">Tarjeta de débito</option>
+                        <option value="TARJETA CREDITO">Tarjeta de crédito</option>
+                        <option value="TARJETA COMERCIAL">Tarjeta comercial</option>
+                        <option value="TRANSFERENCIA BANCARIA">Transferencia bancaria</option>
+                        <option value="CHEQUE">Cheque</option>
+                        <option value="NOTA DE CREDITO" disabled>Nota de crédito (pendiente)</option>
+                        <option value="CREDITO INTERNO" disabled>Crédito interno (pendiente)</option>
+                        <option value="OTRO">Otro medio de pago</option>
+                    </select>
+                    
                     </div>
                     @if ($form->formaPago === 'EFECTIVO')
                         <div class="grid grid-cols-3 gap-2">

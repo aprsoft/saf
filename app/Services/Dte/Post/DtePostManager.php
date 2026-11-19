@@ -12,10 +12,9 @@ class DtePostManager
 {   
     public function send(Document $document)
     {   
-       $jsonSendDte     = DteApiFactory::resolve($document)->mapJsonDte(); 
-    
-       $jsonResponseDte = DteApiSend::send($jsonSendDte, $document->id);      
-// dd($jsonResponseDte);
+       $jsonSendDte     = DteApiFactory::resolve($document)->mapJsonDte();     
+       $jsonResponseDte = DteApiSend::send($jsonSendDte, $document->id);   
+          
        return DteApiResponse::manager($jsonResponseDte, $document);          
 
     } 

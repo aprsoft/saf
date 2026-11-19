@@ -7,15 +7,22 @@ namespace App\Livewire\Payments\Customer;
 use App\Livewire\Payments\Customer\Forms\PaymentForm;
 use App\Models\Customer;
 use App\Models\Document;
+use App\Models\ErrorDte;
+use App\Services\Dte\Post\Classes\DteResponse;
+use App\Services\Dte\Post\DtePostManager;
+use App\Services\Dte\Stamp\TimbrePdf417Service;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
-use Livewire\Component;
 use Livewire\Attributes\On;
+use Livewire\Component;
+use RuntimeException;
+use Throwable;
 
 final class CreatePayment extends Component
 {
@@ -295,15 +302,101 @@ final class CreatePayment extends Component
         $this->emitirDte();
     }
 
-    protected function emitirDte(): void
-    {
-        //inicio de transaccion
-        //asignar tipo documento y forma de pago a la nota de venta
-        //aplicar dteposmanager
-        //etc etc
 
-  
+    protected function emitirDte()
+    {
+        $datos = $this->form->validate();
+
+        $respuestaApi = null;
+
+        try {
+            $resultado = DB::transaction(function () use ($datos, &$respuestaApi) {
+
+                $documento = Document::query()
+                    ->whereKey($this->documentoId)
+                    ->where('typedocument_id', DocumentItemService::NOTA)
+                    ->where('estado_documento', 'VIGENTE')
+                    ->where('condicion_documento', 'FINALIZADO')
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+
+                $documento->update([
+                    'typedocument_id'     => (int) $datos['tipoDocumento'],
+                    'medio_pago'          => $datos['formaPago'],
+                    'condicion_documento' => 'PAGADO',
+                    // 'fmaPago' => 'CONTADO',
+                ]);
+
+                dd($documento);
+
+                $respuestaApi = app(DtePostManager::class)->send($documento);
+
+                $respuesta = $respuestaApi instanceof DteResponse
+                    ? $respuestaApi->toArray()
+                    : $respuestaApi;
+
+                $folio = is_array($respuesta)
+                    ? ($respuesta['folio'] ?? null)
+                    : null;
+
+                $xml = $respuesta['xml'];
+
+                $ted = app(TimbrePdf417Service::class)->extraerTed($xml);
+
+                $documento->update([
+                    'ted' => $ted,
+                ]);
+
+                if (
+                    filter_var($folio, FILTER_VALIDATE_INT, [
+                        'options' => ['min_range' => 1],
+                    ]) === false
+                ) {
+                    throw new RuntimeException(
+                        'Haulmer no confirmó la emisión del DTE con un folio válido.'
+                    );
+                }
+
+                $documento->update([
+                    'folio' => (int) $folio,
+                ]);
+
+                return $respuesta;
+
+            }, 1);
+
+            $this->dispatch('dte-emitido', response: $resultado);
+
+            return $this->redirectRoute('cashs.customer.index');
+
+        } catch (Throwable $exception) {
+
+            // DB::transaction() ya ejecutó rollback.
+            // Este registro queda fuera de la transacción fallida.
+            try {
+                $respuesta = $respuestaApi instanceof DteResponse
+                    ? $respuestaApi->toArray()
+                    : $respuestaApi;
+
+                ErrorDte::create([
+                    'document_id' => $this->documentoId,
+                    'error' => json_encode([
+                        'message' => $exception->getMessage(),
+                        'response' => $respuesta,
+                    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                ]);
+            } catch (Throwable) {
+                // Un fallo al registrar ErrorDte no debe ocultar
+                // la excepción original.
+            }
+
+            // Laravel reportará la excepción mediante bootstrap/app.php.
+            throw $exception;
+        }
     }
+    
+  
 
 
     public function render(): View

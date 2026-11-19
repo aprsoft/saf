@@ -23,7 +23,7 @@ class Detail extends Model
         return $query->where('estado_detalle', 'VIGENTE');
     }
 
-   
+  
 
 } 
   

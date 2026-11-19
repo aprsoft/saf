@@ -24,7 +24,9 @@ return new class extends Migration {
             $table->unsignedInteger('TpoDocRef')->nullable();
             $table->unsignedInteger('CodRef')->nullable();
             $table->longText('acuses')->nullable();
-            $table->enum('fmaPago', ['CONTADO','CREDITO','SIN COSTO (ENTREGA GRATUITA)','NO INFORMADO'])->nullable();
+            $table->enum('fmaPago', ['1', '2', '3', 'NO INFORMADO'])->nullable(); 
+            $table->enum('medioPago', ['1', '2', '3', '4', '5','NO INFORMADO'])->nullable();
+
             $table->integer('TpoTranCompra')->nullable();
             $table->integer('TpoTranVenta')->nullable();
             $table->integer('CdgSIISucur')->nullable();          
@@ -33,10 +35,12 @@ return new class extends Migration {
             //-------------------------------------------------------------            
                       
             $table->unsignedInteger('folio')->nullable();
+
+            $table->enum('medio_pago', ['1', '2', '3', '4', '5','NO INFORMADO'])->nullable();
             $table->date('fecha')->nullable();
             $table->date('fecha_vencimiento')->nullable();     
             $table->string('numero_orden', 191)->nullable();
-            $table->binary('timbre')->nullable();
+            $table->binary('ted')->nullable();
             $table->date('fecha_resolucion')->nullable();
             $table->integer('numero_resolucion')->nullable();
             $table->string('nombre_referencia')->nullable();
