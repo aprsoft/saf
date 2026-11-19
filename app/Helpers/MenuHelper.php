@@ -65,17 +65,18 @@ class MenuHelper
                 'name' => 'Ventas',
                 'subItems' => [
                     [
-                        'name' => 'Listado',
-                        'path' => route('dtes.customers.index', absolute: false),
-                        'permission' => 'dtes.customers.index',
-                        'pro' => false
-                    ],
-                    [
                         'name' => 'Meson de Ventas',
                         'path' => route('sales-counters.show', absolute: false),
                         'permission' => 'sales-counters.show',
                         'pro' => false
                     ],
+                    [
+                        'name' => 'Listado de Ventas',
+                        'path' => route('dtes.customers.index', absolute: false),
+                        'permission' => 'dtes.customers.index',
+                        'pro' => false
+                    ],
+                    
                 ],
             ],   
             [
@@ -83,17 +84,18 @@ class MenuHelper
                 'name' => 'Caja',
                 'subItems' => [
                     [
-                        'name' => 'Listado',
+                        'name' => 'Pagar Notas de Venta',
+                        'path' => route('payments.customers.index', absolute: false),
+                        'permission' => 'payments.customers.index',
+                        'pro' => false
+                    ],  
+                    [
+                        'name' => 'Listado de Pagos',
                         'path' => route('cashs.customer.index', absolute: false),
                         'permission' => 'cashs.customer.index',
                         'pro' => false
                     ], 
-                    [
-                        'name' => 'Pagos',
-                        'path' => route('payments.customers.index', absolute: false),
-                        'permission' => 'payments.customers.index',
-                        'pro' => false
-                    ],   
+                     
                     [
                         'name' => 'Reporte de Caja',
                         'path' => route('cashReports.show', absolute: false),

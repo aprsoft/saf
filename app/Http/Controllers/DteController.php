@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Document;
 use Illuminate\Http\Request;
 
 class DteController extends Controller
@@ -10,7 +11,6 @@ class DteController extends Controller
    
     public function index(Request $request)
     {           
-
         return view('dtes.customers.index');
     }
  
@@ -19,8 +19,8 @@ class DteController extends Controller
         return view('dtes.create');
     }
    
-    public function show(Documents $document)
+    public function show(Document $document)
     {
-        return view('documents.show',compact('document'));
+        return view('dtes.customers.show',compact('document'));
     }
 }

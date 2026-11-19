@@ -5,13 +5,14 @@ use App\Http\Controllers\CashReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DteController;
 use App\Http\Controllers\ErrorController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SalesNoteController;
 use App\Http\Controllers\SalesCounterController;
+use App\Http\Controllers\SalesNoteController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnpaidController;
 use App\Http\Controllers\UserController;
@@ -132,14 +133,15 @@ Route::middleware('auth')->group(function () {
     | Documentos Tributarios Electronicos
     |----------------------------------------------------------------------
     */
-        Route::prefix('dtes')->name('dtes.')->controller(DocumentController::class)->group(function () {
+        Route::prefix('dtes')->name('dtes.')->controller(DteController::class)->group(function () {
 
-            Route::get('customer', 'index')->name('customers.index');
-            Route::get('supplier', 'index')->name('suppliers.index');
-            Route::get('customer/create', 'create')->name('customer.create');
-            Route::get('supplier/create', 'create')->name('supplier.create');
+            Route::get('customers', 'index')->name('customers.index');
             Route::get('customer/{document}', 'show')->name('customer.show');
-            Route::get('supplier/{document}', 'show')->name('supplier.show');      
+
+            // Route::get('supplier', 'index')->name('suppliers.index');
+            // Route::get('customer/create', 'create')->name('customer.create');
+            // Route::get('supplier/create', 'create')->name('supplier.create');
+            // Route::get('supplier/{document}', 'show')->name('supplier.show');      
         
         });
 
