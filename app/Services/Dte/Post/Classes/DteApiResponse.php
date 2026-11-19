@@ -17,7 +17,8 @@ class DteApiResponse
 
             return new DteResponse(
                 accepted: true,
-                folio: $response['FOLIO'],         
+                folio: $response['FOLIO'], 
+                xml: $response['XML'],           
                 
             );          
 
@@ -26,7 +27,8 @@ class DteApiResponse
 
             ErrorDte::create([
                 'document_id' => $document->id,
-                'warning'     => json_encode($response['WARNING']),                    
+                'warning'     => json_encode($response['WARNING']),
+                                    
             ]);  
 
             
@@ -34,6 +36,8 @@ class DteApiResponse
                 accepted: true,
                 folio: $response['FOLIO'],                    
                 warnings: $response['WARNING'],
+                xml: $response['XML'],           
+
                 
             )->toArray();           
 

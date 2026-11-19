@@ -26,7 +26,7 @@ final class PaymentForm extends Form
             'formaPago' => [
                 'required',
                 'string',
-                'in:EFECTIVO,TARJETA DEBITO,TARJETA CREDITO,TARJETA COMERCIAL,TRANSFERENCIA BANCARIA,CHEQUE,NOTA DE CREDITO,CREDITO INTERNO,OTRO',
+                'in:EFECTIVO,TARJETA DEBITO,TARJETA CREDITO,TARJETA COMERCIAL,TRANSFERENCIA BANCARIA,CHEQUE,NOTA DE CREDITO,CREDITO ,OTRO',
             ],
 
             'montoRecibido' => $this->formaPago === 'EFECTIVO'

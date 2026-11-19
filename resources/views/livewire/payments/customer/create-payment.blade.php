@@ -50,7 +50,7 @@
                         <option value="TRANSFERENCIA BANCARIA">Transferencia bancaria</option>
                         <option value="CHEQUE">Cheque</option>
                         <option value="NOTA DE CREDITO" disabled>Nota de crédito (pendiente)</option>
-                        <option value="CREDITO INTERNO" disabled>Crédito interno (pendiente)</option>
+                        <option value="CREDITO" disabled>Crédito (pendiente)</option>
                         <option value="OTRO">Otro medio de pago</option>
                     </select>
                     

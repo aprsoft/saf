@@ -27,12 +27,13 @@ class DteApiSend
                 CURLOPT_POSTFIELDS     => $payload,
                 CURLOPT_HTTPHEADER     => [
                     "apikey:".$company->apikey,
-                    "Idempotency-Key:".$IdempotencyKey,
+                    // "Idempotency-Key:".$IdempotencyKey,
                     "Content-Type: application/json",
                 ],
             ]);
 
             $response = curl_exec($curl); 
+            
 
             return json_decode($response, true);  
             

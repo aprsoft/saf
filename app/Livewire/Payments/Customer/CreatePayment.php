@@ -325,12 +325,14 @@ final class CreatePayment extends Component
                     'typedocument_id'     => (int) $datos['tipoDocumento'],
                     'medio_pago'          => $datos['formaPago'],
                     'condicion_documento' => 'PAGADO',
-                    // 'fmaPago' => 'CONTADO',
+                    'fmaPago'             => 'CONTADO',
                 ]);
 
-                dd($documento);
+             
 
                 $respuestaApi = app(DtePostManager::class)->send($documento);
+
+               
 
                 $respuesta = $respuestaApi instanceof DteResponse
                     ? $respuestaApi->toArray()

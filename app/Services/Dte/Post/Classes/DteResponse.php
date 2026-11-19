@@ -7,12 +7,13 @@ use Illuminate\Contracts\Support\Arrayable;
 class DteResponse implements Arrayable
 {
     public function __construct(
-        public ?bool   $accepted = null,  
+        public ?bool   $accepted    = null,  
         public ?int    $document_id = null,    
-        public ?int    $folio = null,
-        public ?string $message = null,
-        public ?array   $warnings = null,
-        public ?array   $errors = null,
+        public ?int    $folio       = null,
+        public ?string $xml         = null,
+        public ?string $message     = null,
+        public ?array  $warnings    = null,
+        public ?array  $errors      = null,
        
     ) {}
 
@@ -22,6 +23,7 @@ class DteResponse implements Arrayable
             'accepted'     => $this->accepted,
             'document_id'  => $this->document_id,
             'folio'        => $this->folio,
+            'xml'          => $this->xml,
             'message'      => $this->message,
             'warnings'     => $this->warnings,
             'errors'       => $this->errors,
