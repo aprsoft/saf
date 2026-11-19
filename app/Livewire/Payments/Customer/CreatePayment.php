@@ -8,6 +8,7 @@ use App\Livewire\Payments\Customer\Forms\PaymentForm;
 use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ErrorDte;
+use App\Models\Payment;
 use App\Services\Dte\Post\Classes\DteResponse;
 use App\Services\Dte\Post\DtePostManager;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
@@ -300,7 +301,7 @@ final class CreatePayment extends Component
         $this->mostrarConfirmacion = false;
 
         $this->emitirDte();
-    }
+    }  
 
 
     protected function emitirDte()
@@ -325,7 +326,7 @@ final class CreatePayment extends Component
                     'typedocument_id'     => (int) $datos['tipoDocumento'],
                     'medio_pago'          => $datos['formaPago'],
                     'condicion_documento' => 'PAGADO',
-                    'fmaPago'             => 'CONTADO',
+                    'fmaPago'             => 1,
                 ]);
 
              
@@ -368,9 +369,25 @@ final class CreatePayment extends Component
 
             }, 1);
 
-            $this->dispatch('dte-emitido', response: $resultado);
+            $pago = Payment::create([
+				'typedocumentpayment_id'=>1,
+				'customer_id'=>$documento->customer->id,
+                'nombre_completo'=>$documento->customer->fullName,
+                'estado_pago'=>'VIGENTE',
+                'tipo_movimiento'=>'INGRESO',
+                'forma_pago'=>$this->formaPago,
+				'user_id'=>Auth::id(),
+				'detalle'=>$this->detalle,
+				'descuento'=>$descuento,
+				'monto'=>$total,
+				'fecha'=>$this->fecha,
+			]);
 
-            return $this->redirectRoute('cashs.customers.index');
+				$documento->payment()->attach($pago,['estado_abono'=>1,'abono'=>$documento->total]);
+
+
+
+            return $this->redirectRoute('cashs.customers.sales-note.index');
 
         } catch (Throwable $exception) {
 

@@ -145,8 +145,8 @@ final class TimbrePdf417Service
         // Convertir solamente una copia para validar.
         // Nunca modificar los bytes originales del TED.
         $xmlValidacion = mb_check_encoding($ted, 'UTF-8')
-            ? $ted
-            : mb_convert_encoding($ted, 'UTF-8', 'ISO-8859-1');
+        ? $ted
+        : '<?xml version="1.0" encoding="ISO-8859-1"?>' . "\n" . $ted;
 
         $documento = new DOMDocument();
         $previo = libxml_use_internal_errors(true);

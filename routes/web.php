@@ -147,6 +147,23 @@ Route::middleware('auth')->group(function () {
 
     /*
     |----------------------------------------------------------------------
+    | Documentos Tributarios Electronicos (Guis de despacho)
+    |----------------------------------------------------------------------
+    */
+        Route::prefix('dispatchs')->name('dispatchs.')->controller(DteController::class)->group(function () {
+
+            Route::get('customers', 'index')->name('customers.index');
+            Route::get('customer/{document}', 'show')->name('customer.show');
+
+            // Route::get('supplier', 'index')->name('suppliers.index');
+            // Route::get('customer/create', 'create')->name('customer.create');
+            // Route::get('supplier/create', 'create')->name('supplier.create');
+            // Route::get('supplier/{document}', 'show')->name('supplier.show');      
+        
+        });
+
+    /*
+    |----------------------------------------------------------------------
     | Notas de venta
     |----------------------------------------------------------------------
     */
@@ -183,9 +200,9 @@ Route::middleware('auth')->group(function () {
     | Documentos Impagos
     |----------------------------------------------------------------------
     */
-        Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
-        Route::get('/', 'index')->name('index');       
-        });
+        // Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
+        // Route::get('/', 'index')->name('index');       
+        // });
 
     /*
     |----------------------------------------------------------------------

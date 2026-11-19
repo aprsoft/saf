@@ -110,8 +110,8 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('unpaids.index', absolute: false),
-                        'permission' => 'unpaids.index',
+                        'path' => route('dispatchs.customers.index', absolute: false),
+                        'permission' => 'dispatchs.customers.index',
                         'pro' => false
                     ],  
                                       
@@ -123,8 +123,8 @@ class MenuHelper
                 'subItems' => [
                     [
                         'name' => 'Listado',
-                        'path' => route('unpaids.index', absolute: false),
-                        'permission' => 'unpaids.index',
+                        'path' => route('dispatchs.customers.index', absolute: false),
+                        'permission' => 'dispatchs.customers.index',
                         'pro' => false
                     ],  
                                       

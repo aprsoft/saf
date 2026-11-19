@@ -53,6 +53,7 @@ final class DocumentDtePdf implements PdfDocument
 
         // 1. Buscar el TED almacenado en documents.
         $ted = $document->ted;
+        
 
         // 2. Consultar la API solamente si no existe TED.
         if (! is_string($ted) || trim($ted) === '') {

@@ -61,7 +61,8 @@ final class CustomerDtesTable extends PowerGridComponent
 
     public function datasource(): Builder
     {
-        return Document::query()        
+        return Document::query()  
+        ->where('condicion_documento','PAGADO')      
         ->orderByDesc('created_at');      
     }
 
