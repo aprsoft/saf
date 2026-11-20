@@ -27,6 +27,7 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 use RuntimeException;
 use Throwable;
+use App\Services\Sales\GlobalDiscountService;
 
 final class CreatePayment extends Component
 {
@@ -94,11 +95,44 @@ final class CreatePayment extends Component
             ->firstOrFail();
     }
 
+    // #[Computed]
+    // public function totales(): array
+    // {
+    //     return app(DocumentItemService::class)
+    //         ->totalizarDetalles($this->documento->details);
+    // }
+
     #[Computed]
     public function totales(): array
     {
-        return app(DocumentItemService::class)
-            ->totalizarDetalles($this->documento->details);
+        $detalles = $this->documento->details;
+
+        $tipo = $this->form->descuentoTipo;
+
+        $valor = filter_var(
+            $this->form->descuentoValor,
+            FILTER_VALIDATE_INT
+        );
+
+        $service = app(GlobalDiscountService::class);
+
+        $subtotal = app(DocumentItemService::class)
+            ->totalizarDetalles($detalles)['monto_total'];
+
+        // Durante la edición no interrumpir la vista
+        // por un valor incompleto o fuera de rango.
+        if (
+            ! in_array($tipo, ['porcentaje', 'monto'], true)
+            || $valor === false
+            || $valor < 0
+            || ($tipo === 'porcentaje' && $valor > 100)
+            || ($tipo === 'porcentaje' && $valor === 100)
+            || ($tipo === 'monto' && $valor >= $subtotal && $valor > 0)
+        ) {
+            return $service->calcular($detalles);
+        }
+
+        return $service->calcular($detalles, $tipo, $valor);
     }
 
     #[Computed]
@@ -221,6 +255,51 @@ final class CreatePayment extends Component
         $this->resetValidation('form.montoRecibido');
     }
 
+        // public function revisar(): void
+        // {
+        //     $datos = $this->form->validate();
+        //     $this->mostrarConfirmacion = false;
+
+        //     // Revalida el documento y su total desde la base en cada solicitud.
+        //     $documento = $this->documento;
+        //     $totales = $this->totales;
+        //     $cliente = $this->clienteSeleccionado;
+
+        //     if ($documento->details->isEmpty() || $totales['monto_total'] <= 0) {
+        //         throw ValidationException::withMessages([
+        //             'documento' => 'La nota no tiene ítems vigentes para cobrar.',
+        //         ]);
+        //     }
+
+        //     if ($this->modoCliente === 'registrado' && $cliente === null) {
+        //         throw ValidationException::withMessages([
+        //             'cliente' => 'Seleccione un cliente registrado.',
+        //         ]);
+        //     }
+
+        //     if ((int) $datos['tipoDocumento'] !== 17 && $cliente === null) {
+        //         throw ValidationException::withMessages([
+        //             'form.tipoDocumento' => 'La factura y la guía requieren un cliente registrado.',
+        //         ]);
+        //     }
+
+        //     if ((int) $datos['tipoDocumento'] !== 17 && blank($cliente?->rut)) {
+        //         throw ValidationException::withMessages([
+        //             'cliente' => 'Para factura o guía el receptor debe tener RUT registrado.',
+        //         ]);
+        //     }
+
+        //     if ($datos['formaPago'] === 'EFECTIVO'
+        //         && (int) $datos['montoRecibido'] < $totales['monto_total']) {
+        //         throw ValidationException::withMessages([
+        //             'form.montoRecibido' => 'El importe recibido es inferior al total.',
+        //         ]);
+        //     }
+
+        //     // Fase de vista previa: deliberadamente NO escribe pagos ni emite DTE.
+        //     $this->mostrarConfirmacion = true;
+        // }
+
     public function revisar(): void
     {
         $datos = $this->form->validate();
@@ -228,8 +307,12 @@ final class CreatePayment extends Component
 
         // Revalida el documento y su total desde la base en cada solicitud.
         $documento = $this->documento;
-        $totales = $this->totales;
-        $cliente = $this->clienteSeleccionado;
+
+        $totales = app(GlobalDiscountService::class)->calcular(
+            $documento->details,
+            (string) $datos['descuentoTipo'],
+            (int) $datos['descuentoValor']
+        );        $cliente = $this->clienteSeleccionado;
 
         if ($documento->details->isEmpty() || $totales['monto_total'] <= 0) {
             throw ValidationException::withMessages([
@@ -310,6 +393,26 @@ final class CreatePayment extends Component
 
         $this->emitirDte();
     } 
+//-----
+    public function updatedFormDescuentoTipo(): void
+    {
+        $this->mostrarConfirmacion = false;
+
+        $this->resetValidation('form.descuentoTipo');
+        $this->resetValidation('form.descuentoValor');
+
+        unset($this->totales);
+    }
+
+    public function updatedFormDescuentoValor(): void
+    {
+        $this->mostrarConfirmacion = false;
+
+        $this->resetValidation('form.descuentoValor');
+
+        unset($this->totales);
+    }
+    //-----
 
     private function MedioPagoSii(string $pago): int
     {
@@ -355,15 +458,12 @@ final class CreatePayment extends Component
                 'Medio de pago no válido para boleta electrónica.'
             ),
         };
-    }
-    
-    
-    
+    }  
 
 
     protected function emitirDte()
     {
-    //  dd($this->document);
+        //  dd($this->document);
 
         $datos = $this->form->validate();
         $forma_pago = $this->medioPagoSii($datos['formaPago']);
@@ -381,13 +481,55 @@ final class CreatePayment extends Component
                     ->where('condicion_documento', 'FINALIZADO')
                     ->lockForUpdate()
                     ->firstOrFail();
+//--------------
+                $detalles = $documento->details()
+                    ->vigente()
+                    ->lockForUpdate()
+                    ->get();
 
+                $totales = app(GlobalDiscountService::class)->calcular(
+                    $detalles,
+                    (string) $datos['descuentoTipo'],
+                    (int) $datos['descuentoValor']
+                );
+
+                if ($detalles->isEmpty() || $totales['monto_total'] <= 0) {
+                    throw ValidationException::withMessages([
+                        'documento' => 'La nota no tiene ítems válidos para cobrar.',
+                    ]);
+                }
+
+                if (
+                    $datos['formaPago'] === 'EFECTIVO'
+                    && (int) $datos['montoRecibido'] < $totales['monto_total']
+                ) {
+                    throw ValidationException::withMessages([
+                        'form.montoRecibido' => 'El importe recibido es inferior al total.',
+                    ]);
+                }
+
+//------------
+
+
+                // $documento->update([
+                //     'typedocument_id'     => (int) $datos['tipoDocumento'],                   
+                //     'condicion_documento' => 'PAGADO',
+                //     'fmaPago'             => 1,
+                //     'medioPago'           => $forma_pago,
+                // ]);
 
                 $documento->update([
-                    'typedocument_id'     => (int) $datos['tipoDocumento'],                   
+                    'typedocument_id' => (int) $datos['tipoDocumento'],
                     'condicion_documento' => 'PAGADO',
-                    'fmaPago'             => 1,
-                    'medioPago'           => $forma_pago,
+                    'fmaPago' => '1',
+
+                    // La enum actual utiliza vacío para efectivo.
+                    'medioPago' => $forma_pago === 1
+                        ? ''
+                        : (string) $forma_pago,
+
+                    'descuento_global_tipo' => $datos['descuentoTipo'],
+                    'descuento_global_valor' => (int) $datos['descuentoValor'],
                 ]);
 
              
@@ -436,11 +578,13 @@ final class CreatePayment extends Component
 				'user_id'                => Auth::id(),
 				// 'detalle'                => $this->detalle,
 				// 'descuento'              => $descuento,
-				'monto'                  => $documento->total,
+				// 'monto'                  => $documento->total,
+                'monto' => $totales['monto_total'],
 				'fecha'                  => Carbon::now()->format('Y-m-d'),
 			]);
 
-				$documento->payment()->attach($pago,['estado_abono'=>'VIGENTE','abono'=>$documento->total,'forma_pago'=>$datos['formaPago']]);
+				// $documento->payment()->attach($pago,['estado_abono'=>'VIGENTE','abono'=>$documento->total,'forma_pago'=>$datos['formaPago']]);
+                $documento->payment()->attach($pago,['estado_abono'=>'VIGENTE','abono' => $totales['monto_total'],'forma_pago'=>$datos['formaPago']]);
 
                 return $respuesta;
 

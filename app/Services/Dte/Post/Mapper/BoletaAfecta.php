@@ -6,19 +6,13 @@ namespace App\Services\Dte\Post\Mapper;
 
 use App\Models\Company;
 use App\Models\Document;
+use App\Services\Sales\GlobalDiscountService;
 use DomainException;
 use LogicException;
 
-class BoletaAfecta
+final class BoletaAfecta
 {
-    private Document $document;
-    private Company $company;
-
-    public function __construct(Document $document)
-    {
-        $this->document = $document;
-        $this->company  = Company::query()->firstOrFail();
-    }
+    public function __construct(private Document $document) {}
 
     public function mapJsonDte(): string
     {
@@ -26,119 +20,85 @@ class BoletaAfecta
             throw new LogicException('El mapper BoletaAfecta solo soporta TipoDTE 39.');
         }
 
-        $customer = $this->document->customer;
-        if ($customer === null) {
-            throw new DomainException('El documento no tiene receptor.');
-        }
+        $customer = $this->document->customer
+            ?? throw new DomainException('El documento no tiene receptor.');
+        $company = Company::query()->firstOrFail();
+        $servicio = app(GlobalDiscountService::class);
+        $totales = $servicio->paraDocumento($this->document);
 
         $dte = [
             'Encabezado' => [
                 'IdDoc' => [
-                    'TipoDTE'      => 39,
-                    'Folio'        => 0,
-                    'FchEmis'      => $this->document->fecha,
-                    'IndServicio'  => 3,
-                    'MedioPago'    => $this->document->medioPago
+                    'TipoDTE' => 39,
+                    'Folio' => 0,
+                    'FchEmis' => $this->document->fecha,
+                    'IndServicio' => 3,
+                    'MedioPago' => (int) ($this->document->medioPago ?: 1),
                 ],
                 'Emisor' => [
-                    'RUTEmisor'    => $this->company->rut_emisor,
-                    'RznSocEmisor' => $this->company->razon_social,
-                    'GiroEmisor'   => $this->company->giro_emisor,
-                    'DirOrigen'    => $this->company->direccion_origen,
-                    'CmnaOrigen'   => $this->company->comuna_origen,
-                    'CdgSIISucur'  => '',
+                    'RUTEmisor' => $company->rut_emisor,
+                    'RznSocEmisor' => $company->razon_social,
+                    'GiroEmisor' => $company->giro_emisor,
+                    'DirOrigen' => $company->direccion_origen,
+                    'CmnaOrigen' => $company->comuna_origen,
                 ],
                 'Receptor' => [
-                    'RUTRecep'     => $customer->rutDte,
-                    'RznSocRecep'  => $customer->fullName,
-                    'DirRecep'     => $customer->direccion_cliente,
-                    'CmnaRecep'    => $customer->comuna,
+                    'RUTRecep' => $customer->rutDte,
+                    'RznSocRecep' => $customer->fullName,
+                    'DirRecep' => $customer->direccion_cliente,
+                    'CmnaRecep' => $customer->comuna,
                 ],
                 'Totales' => [
-                    'MntExe'       => $this->document->exento,
-                    'MntNeto'      => $this->document->neto,
-                    'IVA'          => $this->document->iva,
-                    'MntTotal'     => $this->document->total,
-                    'TotalPeriodo' => $this->document->total,
+                    'MntNeto' => $totales['monto_neto'],
+                    'MntExe' => $totales['monto_exento'],
+                    'IVA' => $totales['monto_iva'],
+                    'MntTotal' => $totales['monto_total'],
                 ],
             ],
             'Detalle' => $this->mapDetails(),
-            'DscRcgGlobal'  => [     
-                "NroLinDR"  =>1,
-                "TpoMov"    =>"D",
-                "GlosaDR"   =>"DESCUENTO GLOBAL 10%",
-                "TpoValor"  =>"%",
-                "ValorDR"   =>10
-            ]        
-    
         ];
 
-        
+        $descuentos = $servicio->lineasDte($this->document, $totales);
+        if ($descuentos !== []) {
+            $dte['DscRcgGlobal'] = $descuentos;
+        }
 
         return json_encode(
-            ['response' => ['TIMBRE', 'FOLIO', 'XML'], 'dte' => $dte],
+            ['response' => ['TIMBRE', 'FOLIO', 'XML','PDF'], 'dte' => $dte],
             JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
         );
     }
 
-
-    
-    protected function mapDetails(): array
+    private function mapDetails(): array
     {
-        $details = $this->document->details()
-            ->vigente()
-            ->with('productService')
-            ->orderBy('id')
-            ->get();
-
-        if ($details->isEmpty()) {
-            throw new DomainException(
-                'El documento no tiene ítems vigentes para el DTE.'
-            );
+        $detalles = $this->document->details()
+            ->vigente()->with('productService')->orderBy('id')->get();
+        if ($detalles->isEmpty()) {
+            throw new DomainException('El documento no tiene ítems vigentes para el DTE.');
         }
 
-        return $details->values()
-            ->map(function ($detail, int $index): array {
-                if (
-                    $detail->productService === null ||
-                    $detail->QtyItem === null ||
-                    $detail->PrcItem === null ||
-                    $detail->MontoItem === null
-                ) {
-                    throw new DomainException(
-                        'El detalle tiene datos incompletos.'
-                    );
+        return $detalles->values()->map(static function ($detalle, int $index): array {
+            if ($detalle->QtyItem === null || $detalle->PrcItem === null || $detalle->MontoItem === null) {
+                throw new DomainException('El detalle tiene cantidad, precio o monto incompletos.');
+            }
+            $linea = [
+                'NroLinDet' => $index + 1,
+                'NmbItem' => $detalle->productService?->nombre ?? $detalle->detalle ?? 'PRODUCTO',
+                'QtyItem' => (float) $detalle->QtyItem,
+                'PrcItem' => (int) $detalle->PrcItem,
+                'MontoItem' => (int) $detalle->MontoItem,
+            ];
+            if ($detalle->IndExe !== null) {
+                $linea['IndExe'] = (int) $detalle->IndExe;
+            }
+            if ((int) $detalle->DescuentoMonto > 0) {
+                if ($detalle->DescuentoPct !== null) {
+                    $linea['DescuentoPct'] = (int) $detalle->DescuentoPct;
                 }
+                $linea['DescuentoMonto'] = (int) $detalle->DescuentoMonto;
+            }
 
-                $line = [
-                    'NroLinDet' => $index + 1,
-                    'NmbItem' => $detail->productService->nombre,
-                    'QtyItem' => (float) $detail->QtyItem,
-                    'PrcItem' => (int) $detail->PrcItem,
-                    'MontoItem' => (int) $detail->MontoItem,
-                ];
-
-                if ($detail->IndExe !== null) {
-                    $line['IndExe'] = (int) $detail->IndExe;
-                }
-
-                if ((int) $detail->DescuentoMonto > 0) {
-                    if ($detail->DescuentoPct !== null) {
-                        $line['DescuentoPct'] =
-                            (float) $detail->DescuentoPct;
-                    }
-
-                    $line['DescuentoMonto'] =
-                        (int) $detail->DescuentoMonto;
-                }
-
-                return $line;
-            })
-            ->all();
+            return $linea;
+        })->all();
     }
-
-    
-
-   
-
 }

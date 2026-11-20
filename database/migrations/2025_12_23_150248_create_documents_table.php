@@ -35,6 +35,8 @@ return new class extends Migration {
             //-------------------------------------------------------------            
                       
             $table->unsignedInteger('folio')->nullable();
+            $table->enum('descuento_global_tipo', ['porcentaje', 'monto'])->nullable();
+            $table->unsignedBigInteger('descuento_global_valor')->default(0);
             
             $table->date('fecha')->nullable();
             $table->date('fecha_vencimiento')->nullable();     

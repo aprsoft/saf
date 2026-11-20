@@ -15,47 +15,56 @@ final class PaymentForm extends Form
 
     public string $montoRecibido = '0';
 
+    public string $descuentoTipo = 'porcentaje';
+
+    public string $descuentoValor = '0';
+
     public function rules(): array
     {
         return [
             'tipoDocumento' => [
-                'required',
-                'integer',
-                'in:17,15,18',
+                'required', 'integer', 'in:17,15,18',
             ],
 
             'formaPago' => [
                 'required',
-                'string',
-                'in:EFECTIVO, TARJETA DEBITO,T ARJETA CREDITO,TARJETA COMERCIAL,TRANSFERENCIA BANCARIA, 
-                 DEPSOSITO BANCARIO, CHEQUE, NOTA DE CREDITO,CREDITO ,OTRO',
+                'in:EFECTIVO,TARJETA DEBITO,TARJETA CREDITO,TARJETA COMERCIAL,TRANSFERENCIA BANCARIA,DEPOSITO BANCARIO,CHEQUE,NOTA DE CREDITO,CREDITO,OTRO',
             ],
 
             'montoRecibido' => $this->formaPago === 'EFECTIVO'
                 ? ['required', 'integer', 'min:0']
                 : ['nullable', 'integer', 'min:0'],
+
+            'descuentoTipo' => [
+                'required', 'in:porcentaje,monto',
+            ],
+
+            'descuentoValor' => $this->descuentoTipo === 'porcentaje'
+                ? ['required', 'integer', 'between:0,100']
+                : ['required', 'integer', 'min:0'],
         ];
     }
 
     public function medioPagoSii(): int
     {
-        return match ('formaPago') {
+        return match ($this->formaPago) {
             'EFECTIVO' => 1,
 
             'TARJETA DEBITO',
             'TARJETA CREDITO' => 2,
 
-            'TRANSFERENCIA BANCARIA' => 3,
+            'TRANSFERENCIA BANCARIA',
+            'DEPOSITO BANCARIO' => 3,
 
             'CHEQUE' => 4,
 
             'TARJETA COMERCIAL',
-            'CREDITO INTERNO',
             'NOTA DE CREDITO',
+            'CREDITO',
             'OTRO' => 5,
 
             default => throw new DomainException(
-                'Medio de pago no válido para boleta electrónica.'
+                'Medio de pago no válido.'
             ),
         };
     }
