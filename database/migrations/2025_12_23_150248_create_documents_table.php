@@ -35,9 +35,7 @@ return new class extends Migration {
             //-------------------------------------------------------------            
                       
             $table->unsignedInteger('folio')->nullable();
-
-            $table->enum('medio_pago', ['EFECTIVO', 'TARJETA DEBITO', 'TARJETA CREDITO', 'CHEQUE',
-                'CREDITO','NOTA DE CREDITO','OTRO','PAGO MIXTO','NO INFORMADO'])->nullable();
+            
             $table->date('fecha')->nullable();
             $table->date('fecha_vencimiento')->nullable();     
             $table->string('numero_orden', 191)->nullable();

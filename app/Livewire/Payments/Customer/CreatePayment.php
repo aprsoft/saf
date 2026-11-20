@@ -13,9 +13,11 @@ use App\Services\Dte\Post\Classes\DteResponse;
 use App\Services\Dte\Post\DtePostManager;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use App\Services\Sales\DocumentItemService;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -301,17 +303,46 @@ final class CreatePayment extends Component
         $this->mostrarConfirmacion = false;
 
         $this->emitirDte();
-    }  
+    } 
+
+     private function medioPagoSii($pago): int
+    {
+        return match ($pago) {
+            'EFECTIVO' => 1,
+
+            'TARJETA DEBITO',
+            'TARJETA CREDITO' => 2,
+
+            'TRANSFERENCIA BANCARIA' => 3,
+
+            'CHEQUE' => 4,
+
+            'TARJETA COMERCIAL',
+            'CREDITO INTERNO',
+            'NOTA DE CREDITO',
+            'OTRO' => 5,
+
+            default => throw new DomainException(
+                'Medio de pago no válido para boleta electrónica.'
+            ),
+        };
+    }
+    
+    
 
 
     protected function emitirDte()
     {
+     
+
         $datos = $this->form->validate();
+        $forma_pago = $this->medioPagoSii($datos['formaPago']);
+     
 
         $respuestaApi = null;
 
         try {
-            $resultado = DB::transaction(function () use ($datos, &$respuestaApi) {
+            $resultado = DB::transaction(function () use ($datos, &$respuestaApi, $forma_pago) {
 
                 $documento = Document::query()
                     ->whereKey($this->documentoId)
@@ -323,10 +354,10 @@ final class CreatePayment extends Component
 
 
                 $documento->update([
-                    'typedocument_id'     => (int) $datos['tipoDocumento'],
-                    'medio_pago'          => $datos['formaPago'],
+                    'typedocument_id'     => (int) $datos['tipoDocumento'],                   
                     'condicion_documento' => 'PAGADO',
                     'fmaPago'             => 1,
+                    'medioPago'           => $forma_pago,
                 ]);
 
              
@@ -370,17 +401,17 @@ final class CreatePayment extends Component
             }, 1);
 
             $pago = Payment::create([
-				'typedocumentpayment_id'=>1,
-				'customer_id'=>$documento->customer->id,
-                'nombre_completo'=>$documento->customer->fullName,
-                'estado_pago'=>'VIGENTE',
-                'tipo_movimiento'=>'INGRESO',
-                'forma_pago'=>$this->formaPago,
-				'user_id'=>Auth::id(),
-				'detalle'=>$this->detalle,
-				'descuento'=>$descuento,
-				'monto'=>$total,
-				'fecha'=>$this->fecha,
+				'typedocumentpayment_id' =>1 ,
+				'customer_id'            => $documento->customer->id,
+                'nombre_completo'        => $documento->customer->fullName,
+                'estado_pago'            =>'VIGENTE',
+                'tipo_movimiento'        =>'INGRESO',            
+                'forma_pago'             => $datos['formaPago'],
+				'user_id'                => Auth::id(),
+				'detalle'                => $this->detalle,
+				'descuento'              => $descuento,
+				'monto'                  => $total,
+				'fecha'                  => $this->fecha,
 			]);
 
 				$documento->payment()->attach($pago,['estado_abono'=>1,'abono'=>$documento->total]);

@@ -48,6 +48,7 @@
                         <option value="TARJETA CREDITO">Tarjeta de crédito</option>
                         <option value="TARJETA COMERCIAL">Tarjeta comercial</option>
                         <option value="TRANSFERENCIA BANCARIA">Transferencia bancaria</option>
+                        <option value="DEPOSITO BANCARIO">deposito bancario</option>
                         <option value="CHEQUE">Cheque</option>
                         <option value="NOTA DE CREDITO" disabled>Nota de crédito (pendiente)</option>
                         <option value="CREDITO" disabled>Crédito (pendiente)</option>
@@ -56,7 +57,7 @@
                     
                     </div>
                     @if ($form->formaPago === 'EFECTIVO')
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-4 gap-2">
                             <div class="min-w-0">
                                 <span class="mb-1 block text-xs font-medium">Monto por pagar</span>
                                 <div class="flex min-h-10 items-center rounded-lg bg-gray-50 px-2 py-2 text-sm font-semibold dark:bg-gray-900">{{ $dinero($total) }}</div>
@@ -70,6 +71,7 @@
                                 <span class="mb-1 block text-xs font-medium">Vuelto</span>
                                 <div class="flex min-h-10 items-center rounded-lg bg-gray-50 px-2 py-2 text-sm font-semibold dark:bg-gray-900">{{ $dinero($this->vuelto) }}</div>
                             </div>
+                             
                         </div>
                         @error('form.montoRecibido')
                             <p role="alert" class="text-xs text-red-600">{{ $message }}</p>

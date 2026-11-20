@@ -38,7 +38,7 @@ class BoletaAfecta
                     'Folio'        => 0,
                     'FchEmis'      => $this->document->fecha,
                     'IndServicio'  => 3,
-                    'MedioPago'    => $this->medioPagoSii(),
+                    'MedioPago'    => $this->document->medioPago
                 ],
                 'Emisor' => [
                     'RUTEmisor'    => $this->company->rut_emisor,
@@ -128,28 +128,7 @@ class BoletaAfecta
             ->all();
     }
 
-    private function medioPagoSii(): int
-    {
-        return match ($this->document->medio_pago) {
-            'EFECTIVO' => 1,
-
-            'TARJETA DEBITO',
-            'TARJETA CREDITO' => 2,
-
-            'TRANSFERENCIA BANCARIA' => 3,
-
-            'CHEQUE' => 4,
-
-            'TARJETA COMERCIAL',
-            'CREDITO INTERNO',
-            'NOTA DE CREDITO',
-            'OTRO' => 5,
-
-            default => throw new DomainException(
-                'Medio de pago no válido para boleta electrónica.'
-            ),
-        };
-    }
+    
 
    
 
