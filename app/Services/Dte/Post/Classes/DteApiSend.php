@@ -11,6 +11,61 @@ class DteApiSend
     public static function send(string $payload, int $IdempotencyKey)
     {   
     //   dd($payload);
+
+    
+                $payload = '{
+                "response": ["FOLIO", "TIMBRE","PDF"],
+                "dte": {
+                    "Encabezado": {
+                    "IdDoc": {
+                        "TipoDTE": 33,
+                        "Folio": 0,
+                        "FchEmis": "2026-11-20",
+                        "FmaPago": 1
+                    },
+                    "Emisor": {
+                        "RUTEmisor": "76795561-8",
+                        "RznSoc": "HAULMER SPA",
+                        "GiroEmis": "COMERCIO",
+                        "Acteco": "479100",
+                        "DirOrigen": "ARTURO PRAT 527",
+                        "CmnaOrigen": "CURICO"
+                    },
+                    "Receptor": {
+                        "RUTRecep": "66666666-6",
+                        "RznSocRecep": "CLIENTE DE PRUEBA",
+                        "GiroRecep": "PARTICULAR",
+                        "DirRecep": "DIRECCION DE PRUEBA",
+                        "CmnaRecep": "SANTIAGO"
+                    },
+                    "Totales": {
+                        "MntNeto": 9000,
+                        "TasaIVA": 19,
+                        "IVA": 1710,
+                        "MntTotal": 10710
+                    }
+                    },
+                    "Detalle": [
+                    {
+                        "NroLinDet": 1,
+                        "NmbItem": "MARTILLO",
+                        "QtyItem": 2,
+                        "PrcItem": 5000,
+                        "MontoItem": 10000
+                    }
+                    ],
+                    "DscRcgGlobal": [
+                    {
+                        "NroLinDR": 1,
+                        "TpoMov": "D",
+                        "GlosaDR": "DESCUENTO GLOBAL 10%",
+                        "TpoValor": "%",
+                        "ValorDR": 10
+                    }
+                    ]
+                }
+                }';
+
        
         $company = Company::query()->firstOrFail();
 
@@ -32,11 +87,15 @@ class DteApiSend
                 ],
             ]);
 
-            $response = curl_exec($curl);             return json_decode($response, true);  
+            $response = curl_exec($curl);             
+            dd($response);
+            return json_decode($response, true);  
             
             
 
     }  
+
+    
     
     
 

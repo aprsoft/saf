@@ -17,6 +17,7 @@ use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +31,7 @@ use Throwable;
 final class CreatePayment extends Component
 {
     public PaymentForm $form;
+    public Document $document;
 
     #[Locked]
     public int $documentoId;
@@ -48,7 +50,8 @@ final class CreatePayment extends Component
     public bool $mostrarConfirmacion = false;
 
     public function mount(Document $document): void
-    {
+    {   
+
         abort_unless(
             $document->exists
             && (int) $document->typedocument_id === DocumentItemService::NOTA
@@ -57,7 +60,10 @@ final class CreatePayment extends Component
             404
         );
 
+         $this->document = $document;
+
         $this->documentoId = (int) $document->getKey();
+
         $cliente = $document->customer;
 
         if ($cliente !== null && $cliente->rut !== '66666666-6') {
@@ -357,7 +363,7 @@ final class CreatePayment extends Component
 
     protected function emitirDte()
     {
-     
+    //  dd($this->document);
 
         $datos = $this->form->validate();
         $forma_pago = $this->medioPagoSii($datos['formaPago']);
@@ -420,11 +426,7 @@ final class CreatePayment extends Component
                     'folio' => (int) $folio,
                 ]);
 
-                return $respuesta;
-
-            }, 1);
-
-            $pago = Payment::create([
+                $pago = Payment::create([
 				'typedocumentpayment_id' =>1 ,
 				'customer_id'            => $documento->customer->id,
                 'nombre_completo'        => $documento->customer->fullName,
@@ -432,13 +434,19 @@ final class CreatePayment extends Component
                 'tipo_movimiento'        =>'INGRESO',            
                 'forma_pago'             => $datos['formaPago'],
 				'user_id'                => Auth::id(),
-				'detalle'                => $this->detalle,
-				'descuento'              => $descuento,
-				'monto'                  => $total,
-				'fecha'                  => $this->fecha,
+				// 'detalle'                => $this->detalle,
+				// 'descuento'              => $descuento,
+				'monto'                  => $documento->total,
+				'fecha'                  => Carbon::now()->format('Y-m-d'),
 			]);
 
-				$documento->payment()->attach($pago,['estado_abono'=>1,'abono'=>$documento->total]);
+				$documento->payment()->attach($pago,['estado_abono'=>'VIGENTE','abono'=>$documento->total,'forma_pago'=>$datos['formaPago']]);
+
+                return $respuesta;
+
+            }, 1);
+
+            
 
 
 

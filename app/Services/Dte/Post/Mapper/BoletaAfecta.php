@@ -63,6 +63,14 @@ class BoletaAfecta
                 ],
             ],
             'Detalle' => $this->mapDetails(),
+            'DscRcgGlobal'  => [     
+                "NroLinDR"  =>1,
+                "TpoMov"    =>"D",
+                "GlosaDR"   =>"DESCUENTO GLOBAL 10%",
+                "TpoValor"  =>"%",
+                "ValorDR"   =>10
+            ]        
+    
         ];
 
         
