@@ -46,6 +46,7 @@ class BoletaAfecta
                     'GiroEmisor'   => $this->company->giro_emisor,
                     'DirOrigen'    => $this->company->direccion_origen,
                     'CmnaOrigen'   => $this->company->comuna_origen,
+                    'CdgSIISucur'  => '',
                 ],
                 'Receptor' => [
                     'RUTRecep'     => $customer->rutDte,

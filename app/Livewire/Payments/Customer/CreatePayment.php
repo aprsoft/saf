@@ -305,7 +305,7 @@ final class CreatePayment extends Component
         $this->emitirDte();
     } 
 
-     private function medioPagoSii($pago): int
+    private function MedioPagoSii(string $pago): int
     {
         return match ($pago) {
             'EFECTIVO' => 1,
@@ -327,6 +327,30 @@ final class CreatePayment extends Component
             ),
         };
     }
+
+    private function FmaPagoSii(string $pago): int
+    {
+        return match ($pago) {
+            'EFECTIVO' => 1,
+
+            'TARJETA DEBITO',
+            'TARJETA CREDITO' => 1,
+
+            'TRANSFERENCIA BANCARIA' => 1,
+
+            'CHEQUE' => 1,
+
+            'TARJETA COMERCIAL',
+            'CREDITO INTERNO',
+            'NOTA DE CREDITO',
+            'OTRO' => 5,
+
+            default => throw new DomainException(
+                'Medio de pago no válido para boleta electrónica.'
+            ),
+        };
+    }
+    
     
     
 

@@ -12,6 +12,10 @@ return new class extends Migration {
             $table->unsignedBigInteger('document_id');
             $table->unsignedBigInteger('payment_id');
             $table->enum('estado_abono', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
+            $table->enum('forma_pago', [
+                'EFECTIVO','TARJETA DEBITO','TARJETA CREDITO','TRANSFERENCIA BANCARIA','CREDITO','CHEQUE',
+                'DEPOSITO BANCARIO','CONDONACION','SIN INFORMACION','INCOBRABLE'
+            ])->nullable();
             $table->integer('abono')->nullable();
             $table->timestamps();
 
