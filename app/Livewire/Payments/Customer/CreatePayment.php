@@ -411,7 +411,7 @@ final class CreatePayment extends Component
         };
     }
 
-    protected function emitirDte(): mixed
+    protected function emitirDte()
     {
         $datos = $this->form->validate();
         $medioPago = $this->medioPagoSii($datos['formaPago']);
@@ -421,14 +421,8 @@ final class CreatePayment extends Component
         $folioEmitido = null;
 
         try {
-            DB::transaction(function () use (
-                $datos,
-                $medioPago,
-                &$respuestaApi,
-                &$envioIniciado,
-                &$dteEmitido,
-                &$folioEmitido
-            ): void {
+            DB::transaction(function () use ($datos, $medioPago, &$respuestaApi, &$envioIniciado, &$dteEmitido, &$folioEmitido): void 
+            {
                 $documento = Document::query()
                     ->whereKey($this->documentoId)
                     ->where('typedocument_id', DocumentItemService::NOTA)
