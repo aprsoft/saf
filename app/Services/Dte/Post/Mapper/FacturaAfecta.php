@@ -89,7 +89,7 @@ final class FacturaAfecta
         }
 
         return json_encode(
-            ['response' => ['TIMBRE', 'FOLIO', 'XML'], 'dte' => $dte],
+            ['response' => ['TIMBRE', 'FOLIO', 'XML','PDF'], 'dte' => $dte],
             JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
         );
     }
