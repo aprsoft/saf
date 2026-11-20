@@ -52,13 +52,8 @@ final class DocumentItemService
     }
 
     /** Calcula el valor de una línea utilizando pesos y porcentajes enteros. */
-    public function calcularLinea(
-        int $precioUnitario,
-        string $cantidad,
-        string $descuentoTipo,
-        int $descuentoValor,
-        bool $afectoIva
-    ): array {
+    public function calcularLinea(int $precioUnitario, string $cantidad, string $descuentoTipo, int $descuentoValor, bool $afectoIva): array 
+    {
         if ($precioUnitario < 0 || ! preg_match('/^\d{1,6}(?:\.\d{1,3})?$/', $cantidad)) {
             throw ValidationException::withMessages(['item.cantidad' => 'Cantidad o precio inválido.']);
         }
@@ -148,15 +143,8 @@ final class DocumentItemService
         });
     }
 
-    public function guardarItem(
-        int $tipo,
-        int $usuarioId,
-        ?int $documentoId,
-        array $formulario,
-        int $productoId,
-        ?int $detalleId,
-        array $item
-    ): Document {
+    public function guardarItem(int $tipo, int $usuarioId, ?int $documentoId, array $formulario, int $productoId, ?int $detalleId, array $item): Document
+    {
         abort_unless(in_array($tipo, [self::NOTA, self::COTIZACION], true), 422);
 
         return DB::transaction(function () use (
@@ -355,13 +343,8 @@ final class DocumentItemService
         }
     }
 
-    public function cambiarEstado(
-        int $id,
-        int $tipo,
-        int $usuarioId,
-        string $estado,
-        array $formulario
-    ): void {
+    public function cambiarEstado(int $id, int $tipo, int $usuarioId, string $estado, array $formulario): void 
+    {
         $permitidos = $tipo === self::NOTA
             ? ['PENDIENTE', 'FINALIZADO']
             : ['PENDIENTE'];

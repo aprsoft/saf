@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Sales\DocumentItemService;
+use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -9,44 +11,27 @@ class Document extends Model
 {
     protected $guarded = ['id'];
 
+    
     public function getExentoAttribute(): int
     {
-        if($this->customer_id){
-        
-            return round($this->details()->whereNotNull('IndExe')->sum(DB::raw('PrcExeItem*QtyItem')));
-        }
-        if($this->supplier_id){
-            return round($this->details()->sum('valor_exento'));
-        }
-
-        return 0;        
+        return $this->calcularTotales()['monto_exento'];
     }
-   
 
-    // Solo entrega la suma de los detalles de los servicios, el resto del los detalles los deja fuera(subtotales informativos, descuentos, subsidios,etc)
     public function getNetoAttribute(): int
     {
-        if($this->customer_id){
-            
-            return round($this->details()->whereNull('IndExe')->sum(DB::raw('PrcNetoItem*QtyItem')));
-        }
-         if($this->supplier_id){
-            return round($this->details()->sum(DB::raw('PrcNetoItem*QtyItem')));
-        }
-
-        return 0;        
+        return $this->calcularTotales()['monto_neto'];
     }
 
     public function getIvaAttribute(): int
     {
-        return round($this->details()->whereNull('IndExe')->sum(DB::raw('MontoItem - (MontoItem / 1.19)')));
+        return $this->calcularTotales()['monto_iva'];
     }
 
     public function getTotalAttribute(): int
     {
-   
-        return round($this->getNetoAttribute() + $this->getIvaAttribute() +  $this->getExentoAttribute());
+        return $this->calcularTotales()['monto_total'];
     }
+
 
     public function getRutAttribute(): ?string
     {
@@ -157,6 +142,29 @@ class Document extends Model
                     ) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')",
                     [$busqueda]
                 );
+        }
+
+        /**
+         * Obtiene los importes desde los servicios existentes.
+         *
+         * Ventas: considera descuentos individuales y globales.
+         * Compras: suma los importes persistidos en details.
+         */
+        
+        private function calcularTotales(): array
+        {
+            if (
+                $this->supplier_id !== null
+                && $this->customer_id === null
+            ) {
+                return app(DocumentItemService::class)
+                    ->totalizarDetalles(
+                        $this->details()->vigente()->get()
+                    );
+            }
+
+            return app(GlobalDiscountService::class)
+                ->paraDocumento($this);
         }
 
  
