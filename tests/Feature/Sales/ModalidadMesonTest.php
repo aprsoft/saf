@@ -69,12 +69,19 @@ test('caja central conserva nota de venta y enviar a caja', function (): void {
 
     Livewire::actingAs($user)
         ->test(SalesCounter::class)
-        ->assertSee('Nota de Venta')
+        ->assertSet('cajaIntegrada', false)
+        ->assertSet('tipoActual', 2)
         ->assertDontSee('Documento tributario (DTE)');
 
+    // El selector se renderiza en el componente hijo, no en el padre.
     Livewire::actingAs($user)
-        ->test(CreateSalesNote::class)
-        ->assertSee('Enviar a caja');
+        ->test(CreateSalesNote::class, [
+            'tipoDocumentoSeleccionado' => 2,
+            'cajaIntegrada' => false,
+        ])
+        ->assertSee('Nota de venta')
+        ->assertSee('Enviar a caja')
+        ->assertDontSee('Pagar');
 });
 
 test('caja integrada ofrece DTE y botón pagar sin enviar a caja', function (): void {
