@@ -11,7 +11,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('companies', function (Blueprint $table): void {
-            $table->string('modo_cobro', 20)->default('CAJA_CENTRAL');
+            $table->enum('modo_cobro', [
+                'CAJA_CENTRAL',
+                'CAJA_INTEGRADA',
+            ])->default('CAJA_CENTRAL');
         });
     }
 
