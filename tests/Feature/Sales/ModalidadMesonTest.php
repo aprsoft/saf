@@ -368,6 +368,9 @@ test('cliente y nombre de referencia comparten fila sin alterar formulario', fun
         ->assertSee('sm:grid-cols-2')
         ->assertSee('CLIENTE GENERICO')
         ->assertSee('Nombre de referencia')
+        ->assertSee('sm:grid-cols-[minmax(0,7fr)_minmax(0,4fr)]')
+        ->assertSee('shrink-0 whitespace-nowrap')
+        ->assertSee('h-10')
         ->set('form.nombreReferencia', 'Venta mostrador')
         ->assertSet('form.nombreReferencia', 'Venta mostrador');
 });
