@@ -1,6 +1,14 @@
 <section class="relative rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
          x-data x-on:keydown.escape.window="$wire.cerrarBusquedaCliente()">
-    <div class="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,7fr)_minmax(0,4fr)]">
+    {{-- Fallback Tailwind compilado + proporción estable sin recompilar Vite. --}}
+    <style>
+        @media (min-width: 640px) {
+            .saf-pos-cliente-referencia {
+                grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+            }
+        }
+    </style>
+    <div class="saf-pos-cliente-referencia grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-2">
         {{-- Cliente y referencia ocupan una sola fila en desktop. --}}
         <div class="relative min-w-0 {{ $form->clienteGenerico ? '' : 'sm:col-span-2' }}">
             <h2 class="mb-1 block h-5 text-sm font-semibold leading-5">Cliente</h2>
