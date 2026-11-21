@@ -15,7 +15,7 @@
     <header class="flex flex-wrap items-center justify-between gap-2">
         <div>
             <h1 class="text-lg font-semibold">
-                Caja · Cobrar venta
+                {{ $integrado ? 'Confirmar pago y DTE' : 'Caja · Cobrar venta' }}
             </h1>
 
             <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -79,9 +79,11 @@
                                 Factura electrónica (33)
                             </option>
 
-                            <option value="18" @disabled($cliente === null)>
-                                Guía de despacho (52)
-                            </option>
+                            @unless ($integrado)
+                                <option value="18" @disabled($cliente === null)>
+                                    Guía de despacho (52)
+                                </option>
+                            @endunless
                         </select>
 
                         @error('form.tipoDocumento')
@@ -230,10 +232,6 @@
                                 Tarjeta de crédito
                             </option>
 
-                            <option value="TARJETA COMERCIAL">
-                                Tarjeta comercial
-                            </option>
-
                             <option value="TRANSFERENCIA BANCARIA">
                                 Transferencia bancaria
                             </option>
@@ -254,9 +252,6 @@
                                 Crédito (pendiente)
                             </option>
 
-                            <option value="OTRO">
-                                Otro medio de pago
-                            </option>
                         </select>
 
                         @error('form.formaPago')
@@ -396,6 +391,12 @@
                 {{-- ACCIONES --}}
                 <div class="mt-3 grid grid-cols-2 gap-2">
 
+                    @if ($integrado)
+                        <button type="button" wire:click="$dispatch('sales-counter-close-payment')"
+                                class="inline-flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium">
+                            Cancelar
+                        </button>
+                    @else
                     <a
                         href="{{ route('cashs.customers.sales-note.index') }}"
                         class="inline-flex items-center justify-center
@@ -407,21 +408,32 @@
                     >
                         Cancelar
                     </a>
+                    @endif
 
                     <button
                         type="button"
                         wire:click="solicitarEmitirDte"
                         wire:loading.attr="disabled"
-                        wire:target="solicitarEmitirDte,confirmarEmitirDte"
+                        wire:target="solicitarEmitirDte,confirmarEmitirDte,confirmarPagoIntegrado"
                         class="rounded-lg bg-blue-600
                                px-3 py-2.5 text-sm font-semibold
                                text-white hover:bg-blue-700
                                disabled:cursor-not-allowed
                                disabled:opacity-50"
                     >
-                        Pagar
+                        {{ $integrado ? 'Revisar pago' : 'Pagar' }}
                     </button>
                 </div>
+                @if ($integrado && $mostrarConfirmacion)
+                    <div role="status" class="mt-3 rounded-lg border border-blue-300 p-3 text-sm dark:border-blue-700">
+                        <p class="mb-2">Confirme el DTE seleccionado y el cobro por <strong>{{ $dinero($total) }}</strong>.</p>
+                        <button type="button" wire:click="confirmarPagoIntegrado"
+                                wire:loading.attr="disabled" wire:target="confirmarPagoIntegrado"
+                                class="w-full rounded-lg bg-green-700 px-3 py-2 font-semibold text-white disabled:opacity-50">
+                            Confirmar pago y emitir DTE
+                        </button>
+                    </div>
+                @endif
 
             </section>
 

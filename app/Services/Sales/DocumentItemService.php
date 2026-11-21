@@ -109,6 +109,11 @@ final class DocumentItemService
 
         $documento = ($bloquear ? $query->lockForUpdate() : $query)->first();
         abort_unless($documento, 409, 'El documento no está disponible para edición.');
+        abort_if(
+            DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(),
+            409,
+            'Existe un intento de emisión DTE. Debe conciliarse antes de editar.'
+        );
 
         return $documento;
     }

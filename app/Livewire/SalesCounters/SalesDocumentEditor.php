@@ -54,7 +54,7 @@ abstract class SalesDocumentEditor extends Component
     public function mount(): void
     {
         abort_unless(auth()->check(), 403);
-        abort_unless(Company::query()->firstOrFail()->punto_venta === 'BASICO', 403);
+        Company::query()->firstOrFail();
     }
 
     protected function ventas(): DocumentItemService
@@ -369,6 +369,13 @@ abstract class SalesDocumentEditor extends Component
             $this->form->validate()
         );
         $this->limpiarFormulario();
+    }
+
+    #[On('sales-counter-clear-document')]
+    public function limpiarDespuesDePago(): void
+    {
+        $this->limpiarFormulario();
+        $this->mensaje = 'Venta pagada y documento emitido.';
     }
 
     protected function limpiarFormulario(): void
