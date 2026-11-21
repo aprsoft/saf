@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\Pdf\Classes\QuotationPdf;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 
@@ -45,7 +47,7 @@ function documentoMesonConUnDetalle(User $vendedor, int $tipo = 2): Document
     return $documento;
 }
 
-test('mesón guarda descuento global y actualiza los importes persistidos', function (): void {
+test('mesón guarda el descuento global y calcula importes sin duplicarlos', function (): void {
     $vendedor = User::factory()->create();
     $nota = documentoMesonConUnDetalle($vendedor);
 
@@ -55,13 +57,14 @@ test('mesón guarda descuento global y actualiza los importes persistidos', func
     );
 
     $nota->refresh();
+    $totales = app(GlobalDiscountService::class)->paraDocumento($nota);
 
     expect($nota->descuento_global_tipo)->toBe('porcentaje')
         ->and((int) $nota->descuento_global_valor)->toBe(10)
-        ->and((int) $nota->monto_neto)->toBe(9000)
-        ->and((int) $nota->monto_iva)->toBe(1710)
-        ->and((int) $nota->monto_total)->toBe(10710)
-        ->and((int) $nota->valor_pagar)->toBe(10710)
+        ->and($totales['monto_neto'])->toBe(9000)
+        ->and($totales['monto_iva'])->toBe(1710)
+        ->and($totales['monto_total'])->toBe(10710)
+        ->and($nota->total)->toBe(10710)
         ->and((int) $nota->details()->firstOrFail()->MontoItem)->toBe(11900);
 });
 
@@ -139,5 +142,11 @@ test('al finalizar se guarda el descuento aunque no se pulse Aplicar', function 
 
     expect($nota->condicion_documento)->toBe('FINALIZADO')
         ->and((int) $nota->descuento_global_valor)->toBe(10)
-        ->and((int) $nota->valor_pagar)->toBe(10710);
+        ->and($nota->total)->toBe(10710);
+});
+
+test('el esquema documents no almacena totales derivados de details', function (): void {
+    foreach (['monto_neto', 'monto_iva', 'monto_exento', 'monto_total', 'valor_pagar'] as $campo) {
+        expect(Schema::hasColumn('documents', $campo))->toBeFalse();
+    }
 });

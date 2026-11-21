@@ -471,11 +471,6 @@ final class CreatePayment extends Component
                     'medioPago' => $medioPago === 1 ? '' : (string) $medioPago,
                     'descuento_global_tipo' => (string) $datos['descuentoTipo'],
                     'descuento_global_valor' => (int) $datos['descuentoValor'],
-                    'monto_neto' => $totales['monto_neto'],
-                    'monto_iva' => $totales['monto_iva'],
-                    'monto_exento' => $totales['monto_exento'],
-                    'monto_total' => $totales['monto_total'],
-                    'valor_pagar' => $totales['monto_total'],
                 ]);
 
                 // Previene usar el cliente generico que pudo quedar cargado.

@@ -151,7 +151,7 @@ final class DocumentItemService
         DB::transaction(function () use ($id, $tipo, $usuarioId, $formulario): void {
             $documento = $this->editable($id, $tipo, $usuarioId, true);
             $this->actualizarDescuentoEnDocumento($documento, $formulario);
-            $this->actualizarTotales($documento);
+            $this->validarTotales($documento);
         });
     }
 
@@ -165,12 +165,6 @@ final class DocumentItemService
                 'form.descuentoValor' => 'Ingrese un descuento global entero válido.',
             ]);
         }
-
-        app(GlobalDiscountService::class)->calcular(
-            $documento->details()->vigente()->get(),
-            $tipo,
-            (int) $valor
-        );
 
         $documento->update([
             'descuento_global_tipo' => $tipo,
@@ -200,11 +194,6 @@ final class DocumentItemService
                             : null,
                         'estado_documento' => 'VIGENTE',
                         'condicion_documento' => 'EN PROCESO',
-                        'monto_neto' => 0,
-                        'monto_iva' => 0,
-                        'monto_exento' => 0,
-                        'monto_total' => 0,
-                        'valor_pagar' => 0,
                     ]
                 ));
             } else {
@@ -266,7 +255,7 @@ final class DocumentItemService
             $detalle->save();
             $documento->update($this->cabecera($formulario));
             $this->actualizarDescuentoEnDocumento($documento, $formulario);
-            $this->actualizarTotales($documento);
+            $this->validarTotales($documento);
 
             return $documento;
         });
@@ -277,7 +266,7 @@ final class DocumentItemService
         DB::transaction(function () use ($id, $tipo, $usuarioId, $detalleId): void {
             $documento = $this->editable($id, $tipo, $usuarioId, true);
             $documento->details()->whereKey($detalleId)->firstOrFail()->delete();
-            $this->actualizarTotales($documento);
+            $this->validarTotales($documento);
         });
     }
 
@@ -310,18 +299,13 @@ final class DocumentItemService
         return $totales;
     }
 
-    private function actualizarTotales(Document $documento): void
+    /**
+     * Comprueba que los importes derivados y el descuento global sean válidos.
+     * No duplica valores calculados en la cabecera del documento.
+     */
+    private function validarTotales(Document $documento): void
     {
-        // El cálculo global parte de ítems ya descontados individualmente.
-        $totales = app(GlobalDiscountService::class)->paraDocumento($documento);
-
-        $documento->update([
-            'monto_neto' => $totales['monto_neto'],
-            'monto_iva' => $totales['monto_iva'],
-            'monto_exento' => $totales['monto_exento'],
-            'monto_total' => $totales['monto_total'],
-            'valor_pagar' => $totales['monto_total'],
-        ]);
+        app(GlobalDiscountService::class)->paraDocumento($documento);
     }
 
     public function recuperar(int $id, int $tipo, int $usuarioId): Document
@@ -411,7 +395,7 @@ final class DocumentItemService
 
             // Persistir cambios pendientes antes de enviar a caja o guardar.
             $this->actualizarDescuentoEnDocumento($documento, $formulario);
-            $this->actualizarTotales($documento);
+            $this->validarTotales($documento);
 
             $documento->update(array_merge(
                 $this->cabecera($formulario),
