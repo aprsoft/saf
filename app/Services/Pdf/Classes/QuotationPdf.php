@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\User;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
 use App\Services\Sales\DocumentItemService;
+use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Support\Facades\Gate;
 
 final class QuotationPdf implements PdfDocument
@@ -55,7 +56,7 @@ final class QuotationPdf implements PdfDocument
         return [
             'document' => $cotizacion,
             'company' => Company::query()->first(),
-            'totals' => app(DocumentItemService::class)->totalizarDetalles($cotizacion->details),
+            'totals' => app(GlobalDiscountService::class)->paraDocumento($cotizacion),
         ];
     }
 

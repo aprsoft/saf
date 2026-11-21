@@ -112,6 +112,13 @@
 
     <table class="totals">
         <tbody>
+            <tr><td>Subtotal (tras descuentos por ítem)</td><td class="number">{{ $money($totals['subtotal']) }}</td></tr>
+            @if ($totals['descuento_global'] > 0)
+                <tr>
+                    <td>Descuento global ({{ $document->descuento_global_tipo === 'porcentaje' ? $document->descuento_global_valor.'%' : 'monto fijo' }})</td>
+                    <td class="number">-{{ $money($totals['descuento_global']) }}</td>
+                </tr>
+            @endif
             <tr><td>Neto</td><td class="number">{{ $money($totals['monto_neto']) }}</td></tr>
             <tr><td>IVA</td><td class="number">{{ $money($totals['monto_iva']) }}</td></tr>
             <tr><td>Exento</td><td class="number">{{ $money($totals['monto_exento']) }}</td></tr>

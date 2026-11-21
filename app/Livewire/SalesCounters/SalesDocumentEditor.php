@@ -11,6 +11,7 @@ use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ProductService;
 use App\Services\Sales\DocumentItemService;
+use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
@@ -134,11 +135,13 @@ abstract class SalesDocumentEditor extends Component
             ->firstOrFail();
     }
 
-    /** Totales derivados de los mismos detalles que se muestran en pantalla. */
+    /** Cálculo coherente entre mesón, caja y DTE. */
     #[Computed]
     public function totales(): array
     {
-        return $this->ventas()->totalizarDetalles($this->documento?->details ?? []);
+        return $this->documento === null
+            ? app(GlobalDiscountService::class)->calcular([])
+            : app(GlobalDiscountService::class)->paraDocumento($this->documento);
     }
 
     #[Computed]
@@ -194,6 +197,23 @@ abstract class SalesDocumentEditor extends Component
                 $this->form->validate()
             );
         }
+    }
+
+    /** Guarda un descuento global sin alterar los importes de cada línea. */
+    public function guardarDescuentoGlobal(): void
+    {
+        abort_unless($this->documentoId !== null, 409);
+
+        $this->ventas()->establecerDescuentoGlobal(
+            $this->documentoId,
+            $this->tipoDocumento(),
+            (int) auth()->id(),
+            $this->form->validate()
+        );
+
+        unset($this->documento, $this->totales);
+        $this->resetValidation('form.descuentoValor');
+        $this->mensaje = 'Descuento global guardado.';
     }
 
     public function abrirProducto(int $id): void
@@ -331,6 +351,8 @@ abstract class SalesDocumentEditor extends Component
             || $documento->customer?->rut === '66666666-6';
         $this->form->clienteId = $this->form->clienteGenerico ? null : (int) $documento->customer_id;
         $this->form->nombreReferencia = (string) ($documento->nombre_referencia ?? '');
+        $this->form->descuentoTipo = $documento->descuento_global_tipo ?? 'porcentaje';
+        $this->form->descuentoValor = (string) ($documento->descuento_global_valor ?? 0);
         $this->mostrarRecuperar = false;
         unset($this->documento, $this->totales);
         $this->mensaje = 'Documento recuperado.';
