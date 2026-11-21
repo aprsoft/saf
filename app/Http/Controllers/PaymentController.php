@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\Document;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,9 @@ class PaymentController extends Controller
      
     public function create(Request $request)
     {
+        // El cobro separado de notas finalizadas corresponde solo a caja central.
+        abort_if(Company::query()->first()?->cajaIntegrada(), 404);
+
         // La ruta recibe ?document=ID, no un parámetro {document}.
         $validated = $request->validate([
             'document' => ['required', 'integer', 'min:1'],

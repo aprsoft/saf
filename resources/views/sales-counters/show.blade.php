@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Mesón de ventas" />
+    <x-common.page-breadcrumb :page-title="$titulo" />
 
     <livewire:sales-counters.sales-counter />
     

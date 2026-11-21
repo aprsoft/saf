@@ -293,3 +293,64 @@ test('cliente buscado puede volver al genérico y mantiene la referencia existen
         ->assertSee('CLIENTE GENERICO')
         ->assertSee('Nombre de referencia');
 });
+
+
+test('caja integrada cambia nombre del menú y bloquea cobro separado de notas', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $usuario = User::factory()->create();
+
+    $items = \App\Helpers\MenuHelper::getManagementItems();
+    $ventas = collect($items)->firstWhere('name', 'Ventas');
+    $caja = collect($items)->firstWhere('name', 'Caja');
+
+    expect(collect($ventas['subItems'])->pluck('name')->all())
+        ->toContain('Punto de venta')
+        ->and(collect($caja['subItems'])->pluck('name')->all())
+        ->not->toContain('Pagar Notas de Venta');
+
+    $this->actingAs($usuario)
+        ->get(route('sales-counters.show'))
+        ->assertOk()
+        ->assertSee('Punto de venta');
+
+    $this->get(route('cashs.customers.sales-note.index'))
+        ->assertNotFound();
+
+    $this->get(route('payments.customer.create', ['document' => 1]))
+        ->assertNotFound();
+});
+
+test('caja central conserva nombres y ruta de cobro de notas', function (): void {
+    configurarCaja('CAJA_CENTRAL');
+    $usuario = User::factory()->create();
+
+    $items = \App\Helpers\MenuHelper::getManagementItems();
+    $ventas = collect($items)->firstWhere('name', 'Ventas');
+    $caja = collect($items)->firstWhere('name', 'Caja');
+
+    expect(collect($ventas['subItems'])->pluck('name')->all())
+        ->toContain('Mesón de ventas')
+        ->and(collect($caja['subItems'])->pluck('name')->all())
+        ->toContain('Pagar Notas de Venta');
+
+    $this->actingAs($usuario)
+        ->get(route('cashs.customers.sales-note.index'))
+        ->assertOk();
+});
+
+test('resumen del mesón distribuye descuento y totales en dos columnas', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $usuario = User::factory()->create();
+
+    Livewire::actingAs($usuario)
+        ->test(CreateSalesNote::class, [
+            'tipoDocumentoSeleccionado' => 17,
+            'cajaIntegrada' => true,
+        ])
+        ->assertSee('sm:grid-cols-2')
+        ->assertSee('Descuento global')
+        ->assertSee('Aplicar descuento')
+        ->assertSee('Subtotal')
+        ->assertSee('TOTAL')
+        ->assertSee('Pagar');
+});

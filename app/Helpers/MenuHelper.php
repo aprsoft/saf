@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Helpers\Function\IconHelper;
+use App\Models\Company;
 
 class MenuHelper
 {
@@ -22,6 +23,8 @@ class MenuHelper
 
     public static function getManagementItems(): array
     {
+        $cajaIntegrada = Company::query()->first()?->cajaIntegrada() ?? false;
+
         return [
             [
                 'icon' => 'users',
@@ -65,7 +68,7 @@ class MenuHelper
                 'name' => 'Ventas',
                 'subItems' => [
                     [
-                        'name' => 'Meson de Ventas',
+                        'name' => $cajaIntegrada ? 'Punto de venta' : 'Mesón de ventas',
                         'path' => route('sales-counters.show', absolute: false),
                         'permission' => 'sales-counters.show',
                         'pro' => false
@@ -83,12 +86,12 @@ class MenuHelper
                 'icon' => 'file',
                 'name' => 'Caja',
                 'subItems' => [
-                    [
+                    ...($cajaIntegrada ? [] : [[
                         'name' => 'Pagar Notas de Venta',
                         'path' => route('cashs.customers.sales-note.index', absolute: false),
                         'permission' => 'cashs.customers.sales-note.index',
                         'pro' => false
-                    ],  
+                    ]]),
                     [
                         'name' => 'Listado de Pagos',
                         'path' => route('payments.customers.index', absolute: false),
