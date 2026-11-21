@@ -328,7 +328,8 @@ abstract class SalesDocumentEditor extends Component
         $this->dispatch('sales-counter-document-status', activo: true);
         $this->cerrarProducto();
         unset($this->documento, $this->totales);
-        $this->mensaje = 'Ítem guardado.';
+        // Actualizar el detalle es la confirmación visual; no mostrar aviso redundante.
+        $this->mensaje = '';
     }
 
     public function eliminarItem(int $detalleId): void
