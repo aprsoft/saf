@@ -12,6 +12,11 @@ use Livewire\Attributes\Locked;
 
 final class CreateQuotation extends SalesDocumentEditor
 {
+    #[\Livewire\Attributes\Reactive]
+    public int $tipoDocumentoSeleccionado = 19;
+
+    #[\Livewire\Attributes\Reactive]
+    public bool $cajaIntegrada = false;
     #[Locked]
     public ?int $ultimaCotizacionGuardada = null;
 

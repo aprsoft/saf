@@ -1,41 +1,30 @@
-<div class="space-y-4 text-gray-900 dark:text-gray-100">
-    <header class="flex flex-wrap items-end justify-between gap-3">
-        <div>
-            {{-- <h1 class="text-xl font-semibold">Mesón de ventas</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Gestión de notas de venta y cotizaciones</p> --}}
-        </div>
-
-        <div class="w-full max-w-xs">
-            <label for="sales-counter-tipo" class="mb-1 block text-sm font-medium">Tipo de documento</label>
-            <select id="sales-counter-tipo" wire:model.live="tipoDocumento"
-                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
-                @if ($cajaIntegrada)
-                    <option value="17">Boleta electrónica</option>
-                    <option value="15">Factura electrónica</option>
-                    <option value="18">Guía de despacho</option>
-                    <option value="19">Cotización</option>
-                @else
-                    <option value="2">Nota de venta</option>
-                    <option value="19">Cotización</option>
-                @endif
-            </select>
-        </div>
-    </header>
-
+<div class="relative space-y-3 text-gray-900 dark:text-gray-100 xl:flex xl:h-[calc(100dvh-12rem)] xl:min-h-0 xl:flex-col xl:space-y-0">
     @if ($mensajePago !== '')
-        <p role="status" class="rounded-lg border border-green-300 bg-green-50 p-3 text-sm text-green-900">{{ $mensajePago }}</p>
+        <p wire:key="payment-success-{{ $ultimoFolioPago }}"
+           role="status" aria-live="polite"
+           x-data="{ visible: true }"
+           x-init="setTimeout(() => { visible = false; $wire.limpiarMensajePago({{ (int) $ultimoFolioPago }}); }, 5000)"
+           x-show="visible" x-transition.opacity.duration.300ms
+           class="fixed right-4 top-20 z-[60] max-w-md rounded-lg border border-green-300 bg-green-50 p-4 text-sm font-semibold text-green-900 shadow-lg">
+            {{ $mensajePago }}
+        </p>
     @endif
 
     @if ($advertencia !== '')
-        <p class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-gray-800 dark:text-amber-300" role="alert">{{ $advertencia }}</p>
+        <p class="shrink-0 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-gray-800 dark:text-amber-300" role="alert">{{ $advertencia }}</p>
     @endif
 
-    @if (($cajaIntegrada && in_array($tipoActual, [15, 17, 18], true)) || (! $cajaIntegrada && $tipoActual === 2))
-        <livewire:sales-counters.notes.create-sales-note
-            :tipo-documento-seleccionado="$tipoActual" :key="'counter-note-editor'" />
-    @elseif ($tipoActual === 19)
-        <livewire:sales-counters.quotations.create-quotation :key="'counter-quotation-editor'" />
-    @endif
+    <div class="min-h-0 xl:flex-1">
+        @if (($cajaIntegrada && in_array($tipoActual, [15, 17, 18], true)) || (! $cajaIntegrada && $tipoActual === 2))
+            <livewire:sales-counters.notes.create-sales-note
+                :tipo-documento-seleccionado="$tipoActual" :caja-integrada="$cajaIntegrada"
+                :key="'counter-note-editor'" />
+        @elseif ($tipoActual === 19)
+            <livewire:sales-counters.quotations.create-quotation
+                :tipo-documento-seleccionado="$tipoActual" :caja-integrada="$cajaIntegrada"
+                :key="'counter-quotation-editor'" />
+        @endif
+    </div>
     @if ($cajaIntegrada && $pagoDocumentoId !== null)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <button type="button" class="absolute inset-0 bg-black/60"

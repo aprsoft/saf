@@ -83,14 +83,17 @@ test('caja integrada ofrece DTE y botón pagar sin enviar a caja', function (): 
 
     Livewire::actingAs($user)
         ->test(SalesCounter::class)
+        ->assertDontSee('Documento tributario (DTE)');
+
+    Livewire::actingAs($user)
+        ->test(CreateSalesNote::class, [
+            'tipoDocumentoSeleccionado' => 17,
+            'cajaIntegrada' => true,
+        ])
         ->assertSee('Boleta electrónica')
         ->assertSee('Factura electrónica')
         ->assertSee('Guía de despacho')
         ->assertSee('Cotización')
-        ->assertDontSee('Documento tributario (DTE)');
-
-    Livewire::actingAs($user)
-        ->test(CreateSalesNote::class)
         ->assertSee('Pagar')
         ->assertDontSee('Enviar a caja');
 });
@@ -222,4 +225,16 @@ test('guía seleccionable no puede emitirse desde Pagar', function (): void {
         ->set('tipoDocumento', 18)
         ->call('abrirPago', $nota->id)
         ->assertStatus(422);
+});
+
+
+test('selector del documento se muestra dentro de la columna de cobro', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(CreateSalesNote::class, ['tipoDocumentoSeleccionado' => 17, 'cajaIntegrada' => true])
+        ->assertSee('sales-counter-tipo')
+        ->assertSee('xl:overflow-y-auto')
+        ->assertSee('Pagar');
 });

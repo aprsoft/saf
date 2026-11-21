@@ -1,9 +1,9 @@
-<section class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-    <h2 class="mb-3 font-semibold">
-        {{ \App\Models\Company::query()->firstOrFail()->cajaIntegrada() ? 'Acciones · Documento tributario' : 'Acciones · Nota de venta' }}
+<section class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+    <h2 class="mb-2 font-semibold">
+        {{ $cajaIntegrada ? 'Acciones · Documento tributario' : 'Acciones · Nota de venta' }}
     </h2>
-    @if (\App\Models\Company::query()->firstOrFail()->cajaIntegrada())
-        <div class="mb-3 space-y-2 text-sm">
+    @if ($cajaIntegrada)
+        <div class="mb-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
             <div>
                 <label for="meson-forma-pago" class="mb-1 block text-xs font-medium">Medio de pago</label>
                 <select id="meson-forma-pago" wire:model.change="formaPago"
@@ -40,7 +40,7 @@
         <button type="button" wire:click="solicitarCancelarNota"
                 @disabled($documentoId === null)
                 class="rounded-lg border border-red-400 px-3 py-2 text-red-600 disabled:opacity-40">Anular</button>
-        @if (\App\Models\Company::query()->firstOrFail()->cajaIntegrada())
+        @if ($cajaIntegrada)
             <button type="button" wire:click="solicitarPago"
                     @disabled($documentoId === null || $tipoDocumentoSeleccionado === 18)
                     class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Pagar</button>

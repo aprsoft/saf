@@ -31,6 +31,7 @@ final class SalesCounter extends Component
 
     public string $advertencia = '';
 
+    #[Locked]
     public string $mensajePago = '';
 
     #[Locked]
@@ -138,6 +139,13 @@ final class SalesCounter extends Component
         $this->documentoActivo = false;
         $this->mensajePago = 'Pago registrado. DTE emitido con folio N.º '.$folio.'.';
         $this->dispatch('sales-counter-clear-document');
+    }
+
+    public function limpiarMensajePago(int $folio): void
+    {
+        if ($this->ultimoFolioPago === $folio) {
+            $this->mensajePago = '';
+        }
     }
 
     #[On('sales-counter-document-status')]

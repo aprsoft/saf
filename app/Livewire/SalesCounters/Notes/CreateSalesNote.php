@@ -16,6 +16,9 @@ final class CreateSalesNote extends SalesDocumentEditor
     #[Reactive]
     public int $tipoDocumentoSeleccionado = 17;
 
+    #[Reactive]
+    public bool $cajaIntegrada = false;
+
     public string $formaPago = 'EFECTIVO';
 
     public string $montoRecibido = '';

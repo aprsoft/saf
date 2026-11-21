@@ -375,7 +375,8 @@ abstract class SalesDocumentEditor extends Component
     public function limpiarDespuesDePago(): void
     {
         $this->limpiarFormulario();
-        $this->mensaje = 'Venta pagada y documento emitido.';
+        // El componente padre muestra el único aviso tras confirmar la respuesta del DTE.
+        $this->mensaje = '';
     }
 
     protected function limpiarFormulario(): void
