@@ -29,6 +29,8 @@ abstract class SalesDocumentEditor extends Component
 
     public string $busquedaCliente = '';
 
+    public bool $buscandoCliente = false;
+
     public string $busquedaProducto = '';
 
     #[Locked]
@@ -55,6 +57,12 @@ abstract class SalesDocumentEditor extends Component
     {
         abort_unless(auth()->check(), 403);
         Company::query()->firstOrFail();
+
+        // Es un cliente real de la BD; no se crea uno distinto en cada venta.
+        Customer::query()->firstOrCreate(
+            ['rut' => '66666666-6'],
+            ['nombres' => 'CLIENTE GENERICO']
+        );
     }
 
     protected function ventas(): DocumentItemService
@@ -89,19 +97,29 @@ abstract class SalesDocumentEditor extends Component
     #[Computed]
     public function clientes(): Collection
     {
-        $busqueda = trim($this->busquedaCliente);
-        if ($this->form->clienteGenerico || mb_strlen($busqueda) < 2) {
+        $busqueda = mb_substr(trim($this->busquedaCliente), 0, 80);
+        if (! $this->buscandoCliente || mb_strlen($busqueda) < 2) {
             return new Collection();
         }
 
+        $palabras = preg_split('/\s+/u', $busqueda, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
         return Customer::query()
-            ->select(['id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno'])
-            ->where(function (Builder $query) use ($busqueda): void {
-                $query->where('rut', 'like', "%{$busqueda}%")
-                    ->orWhereRaw(
-                        "CONCAT_WS(' ', nombres, apellido_paterno, apellido_materno) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')",
-                        [$busqueda]
-                    );
+            ->select(['id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno', 'giro'])
+            ->where(function (Builder $query) use ($busqueda, $palabras): void {
+                $query->where('rut', 'like', '%'.$busqueda.'%')
+                    ->orWhere(function (Builder $nombres) use ($palabras): void {
+                        // Cada palabra puede aparecer en nombres o apellidos.
+                        // Compatible tanto con MySQL como con SQLite (tests).
+                        foreach ($palabras as $palabra) {
+                            $nombres->where(function (Builder $parte) use ($palabra): void {
+                                $patron = '%'.$palabra.'%';
+                                $parte->where('nombres', 'like', $patron)
+                                    ->orWhere('apellido_paterno', 'like', $patron)
+                                    ->orWhere('apellido_materno', 'like', $patron);
+                            });
+                        }
+                    });
             })
             ->orderBy('nombres')
             ->limit(10)
@@ -116,6 +134,14 @@ abstract class SalesDocumentEditor extends Component
         }
 
         return Customer::query()->find($this->form->clienteId);
+    }
+
+    #[Computed]
+    public function clienteEnPantalla(): ?Customer
+    {
+        return $this->form->clienteGenerico
+            ? Customer::query()->where('rut', '66666666-6')->first()
+            : $this->clienteSeleccionado;
     }
 
     #[Computed]
@@ -158,27 +184,42 @@ abstract class SalesDocumentEditor extends Component
             ->get();
     }
 
+    public function abrirBusquedaCliente(): void
+    {
+        $this->buscandoCliente = true;
+        $this->busquedaCliente = '';
+        unset($this->clientes);
+    }
+
+    public function cerrarBusquedaCliente(): void
+    {
+        $this->buscandoCliente = false;
+        $this->busquedaCliente = '';
+        unset($this->clientes);
+    }
+
     public function seleccionarCliente(int $id): void
     {
-        abort_if($this->form->clienteGenerico, 409);
-        $this->form->clienteId = Customer::query()->findOrFail($id)->id;
-        $this->busquedaCliente = '';
+        abort_unless($this->buscandoCliente, 409);
+
+        $cliente = Customer::query()->findOrFail($id);
+        $this->form->clienteGenerico = $cliente->rut === '66666666-6';
+        $this->form->clienteId = $this->form->clienteGenerico ? null : (int) $cliente->id;
+        $this->form->nombreReferencia = '';
+        $this->cerrarBusquedaCliente();
         $this->sincronizarCabecera();
+        unset($this->clienteSeleccionado, $this->clienteEnPantalla);
     }
 
     public function limpiarCliente(): void
     {
-        $this->form->clienteId = null;
-        $this->busquedaCliente = '';
-        $this->sincronizarCabecera();
-    }
-
-    public function updatedFormClienteGenerico(): void
-    {
+        // Volver al cliente genérico, que también existe en customers.
+        $this->form->clienteGenerico = true;
         $this->form->clienteId = null;
         $this->form->nombreReferencia = '';
-        $this->busquedaCliente = '';
+        $this->cerrarBusquedaCliente();
         $this->sincronizarCabecera();
+        unset($this->clienteSeleccionado, $this->clienteEnPantalla);
     }
 
     public function updatedFormNombreReferencia(): void
@@ -354,7 +395,8 @@ abstract class SalesDocumentEditor extends Component
         $this->form->descuentoTipo = $documento->descuento_global_tipo ?? 'porcentaje';
         $this->form->descuentoValor = (string) ($documento->descuento_global_valor ?? 0);
         $this->mostrarRecuperar = false;
-        unset($this->documento, $this->totales);
+        $this->cerrarBusquedaCliente();
+        unset($this->documento, $this->totales, $this->clienteSeleccionado, $this->clienteEnPantalla);
         $this->mensaje = 'Documento recuperado.';
     }
 
@@ -385,12 +427,12 @@ abstract class SalesDocumentEditor extends Component
         $this->dispatch('sales-counter-document-status', activo: false);
         $this->form->reset();
         $this->item->reset();
-        $this->busquedaCliente = '';
+        $this->cerrarBusquedaCliente();
         $this->busquedaProducto = '';
         $this->mostrarRecuperar = false;
         $this->mostrarProducto = false;
         $this->productoId = null;
         $this->detalleId = null;
-        unset($this->documento, $this->totales, $this->recuperables, $this->clienteSeleccionado);
+        unset($this->documento, $this->totales, $this->recuperables, $this->clienteSeleccionado, $this->clienteEnPantalla);
     }
 }

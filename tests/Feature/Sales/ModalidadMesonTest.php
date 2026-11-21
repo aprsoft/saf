@@ -245,3 +245,51 @@ test('selector del documento se muestra dentro de la columna de cobro', function
         ->assertSee('xl:overflow-y-auto')
         ->assertSee('Pagar');
 });
+
+
+test('buscador en el mismo campo inicia con cliente genérico y permite elegir otro cliente', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $user = User::factory()->create();
+    $cliente = Customer::query()->create([
+        'rut' => '76430498-5',
+        'nombres' => 'FERRETERIA LOS ANDES',
+        'apellido_paterno' => '',
+        'apellido_materno' => '',
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(CreateSalesNote::class, ['tipoDocumentoSeleccionado' => 17, 'cajaIntegrada' => true])
+        ->assertSet('form.clienteGenerico', true)
+        ->assertSee('CLIENTE GENERICO')
+        ->assertDontSee('type="checkbox"', false)
+        ->call('abrirBusquedaCliente')
+        ->assertSet('buscandoCliente', true)
+        ->set('busquedaCliente', 'FERRETERIA')
+        ->assertSee('FERRETERIA LOS ANDES')
+        ->call('seleccionarCliente', $cliente->id)
+        ->assertSet('form.clienteGenerico', false)
+        ->assertSet('form.clienteId', $cliente->id)
+        ->assertSet('buscandoCliente', false)
+        ->assertSee('FERRETERIA LOS ANDES')
+        ->assertDontSee('Nombre de referencia');
+});
+
+test('cliente buscado puede volver al genérico y mantiene la referencia existente', function (): void {
+    configurarCaja('CAJA_CENTRAL');
+    $user = User::factory()->create();
+    $cliente = Customer::query()->create([
+        'rut' => '76430498-5',
+        'nombres' => 'CLIENTE PRUEBA',
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(CreateSalesNote::class, ['tipoDocumentoSeleccionado' => 2, 'cajaIntegrada' => false])
+        ->call('abrirBusquedaCliente')
+        ->call('seleccionarCliente', $cliente->id)
+        ->assertSet('form.clienteGenerico', false)
+        ->call('limpiarCliente')
+        ->assertSet('form.clienteGenerico', true)
+        ->assertSet('form.clienteId', null)
+        ->assertSee('CLIENTE GENERICO')
+        ->assertSee('Nombre de referencia');
+});
