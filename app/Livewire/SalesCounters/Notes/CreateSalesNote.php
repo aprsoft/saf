@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\SalesCounters\Notes;
 
 use App\Livewire\SalesCounters\SalesDocumentEditor;
+use App\Models\Company;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -53,8 +54,27 @@ final class CreateSalesNote extends SalesDocumentEditor
         $this->cancelarNota();
     }
 
+    public function solicitarPago(): void
+    {
+        abort_unless(Company::query()->firstOrFail()->cajaIntegrada(), 403);
+        abort_unless($this->documentoId !== null, 409);
+        $documento = $this->ventas()->editable(
+            $this->documentoId, DocumentItemService::NOTA, (int) auth()->id()
+        );
+        abort_unless($documento->details()->vigente()->exists(), 409);
+
+        $this->ventas()->establecerDescuentoGlobal(
+            $this->documentoId, DocumentItemService::NOTA,
+            (int) auth()->id(), $this->form->validate()
+        );
+
+        unset($this->documento, $this->totales);
+        $this->dispatch('sales-counter-open-payment', id: $this->documentoId);
+    }
+
     public function solicitarEnvioACaja(): void
     {
+        abort_if(Company::query()->firstOrFail()->cajaIntegrada(), 403);
         abort_unless($this->documentoId !== null, 409);
         $nota = $this->ventas()->editable($this->documentoId, DocumentItemService::NOTA, (int) auth()->id());
 
@@ -77,6 +97,7 @@ final class CreateSalesNote extends SalesDocumentEditor
 
     public function enviarACaja(): void
     {
+        abort_if(Company::query()->firstOrFail()->cajaIntegrada(), 403);
         $this->cambiarEstado('FINALIZADO');
         $this->mensaje = 'Nota enviada a caja.';
     }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\Payments\Customer;
 
 use App\Livewire\Payments\Customer\Forms\PaymentForm;
+use App\Models\Company;
+use App\Services\Sales\CheckoutService;
 use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ErrorDte;
@@ -33,6 +35,9 @@ final class CreatePayment extends Component
 {
     public PaymentForm $form;
 
+    #[Locked]
+    public bool $integrado = false;
+
     public Document $document;
 
     #[Locked]
@@ -51,15 +56,23 @@ final class CreatePayment extends Component
 
     public bool $mostrarConfirmacion = false;
 
-    public function mount(Document $document): void
+    public function mount(Document $document, bool $integrado = false): void
     {
+        $this->integrado = $integrado;
         abort_unless(
             $document->exists
             && (int) $document->typedocument_id === DocumentItemService::NOTA
             && $document->estado_documento === 'VIGENTE'
-            && $document->condicion_documento === 'FINALIZADO',
+            && $document->condicion_documento === ($integrado ? 'EN PROCESO' : 'FINALIZADO'),
             404
         );
+        if ($integrado) {
+            abort_unless(
+                Company::query()->firstOrFail()->cajaIntegrada()
+                && (int) $document->user_id === (int) auth()->id(),
+                403
+            );
+        }
 
         $this->document = $document;
         $this->documentoId = (int) $document->getKey();
@@ -85,7 +98,8 @@ final class CreatePayment extends Component
             ->whereKey($this->documentoId)
             ->where('typedocument_id', DocumentItemService::NOTA)
             ->where('estado_documento', 'VIGENTE')
-            ->where('condicion_documento', 'FINALIZADO')
+            ->where('condicion_documento', $this->integrado ? 'EN PROCESO' : 'FINALIZADO')
+            ->when($this->integrado, fn (Builder $query) => $query->where('user_id', (int) auth()->id()))
             ->with([
                 'customer',
                 'details' => fn ($query) => $query
@@ -332,6 +346,11 @@ final class CreatePayment extends Component
     public function revisar(): void
     {
         $datos = $this->form->validate();
+        if ($this->integrado && ! in_array((int) $datos['tipoDocumento'], [15, 17], true)) {
+            throw ValidationException::withMessages([
+                'form.tipoDocumento' => 'Caja integrada solo permite boleta o factura.',
+            ]);
+        }
         $this->mostrarConfirmacion = false;
 
         $documento = $this->documento;
@@ -370,6 +389,9 @@ final class CreatePayment extends Component
     public function solicitarEmitirDte(): void
     {
         $this->revisar();
+        if ($this->integrado) {
+            return;
+        }
 
         $tipoDte = match ((int) $this->form->tipoDocumento) {
             15 => 'FACTURA ELECTRONICA',
@@ -401,6 +423,14 @@ final class CreatePayment extends Component
         $this->emitirDte();
     }
 
+    public function confirmarPagoIntegrado(): void
+    {
+        abort_unless($this->integrado && $this->mostrarConfirmacion, 409);
+        $this->revisar();
+        $this->mostrarConfirmacion = false;
+        $this->emitirDte();
+    }
+
     private function medioPagoSii(string $pago): int
     {
         return match ($pago) {
@@ -416,175 +446,18 @@ final class CreatePayment extends Component
     protected function emitirDte()
     {
         $datos = $this->form->validate();
-        $medioPago = $this->medioPagoSii($datos['formaPago']);
-        $respuestaApi = null;
-        $envioIniciado = false;
-        $dteEmitido = false;
-        $folioEmitido = null;
+        $cliente = $this->resolverReceptor((int) $datos['tipoDocumento']);
 
-        try {
-            DB::transaction(function () use ($datos, $medioPago, &$respuestaApi, &$envioIniciado, &$dteEmitido, &$folioEmitido): void 
-            {
-                $documento = Document::query()
-                    ->whereKey($this->documentoId)
-                    ->where('typedocument_id', DocumentItemService::NOTA)
-                    ->where('estado_documento', 'VIGENTE')
-                    ->where('condicion_documento', 'FINALIZADO')
-                    ->lockForUpdate()
-                    ->firstOrFail();
+        $resultado = app(CheckoutService::class)->cobrar(
+            $this->documentoId, (int) auth()->id(), $this->integrado, $datos, $cliente
+        );
 
-                $detalles = $documento->details()
-                    ->vigente()
-                    ->lockForUpdate()
-                    ->get();
-
-                $totales = app(GlobalDiscountService::class)->calcular(
-                    $detalles,
-                    (string) $datos['descuentoTipo'],
-                    (int) $datos['descuentoValor']
-                );
-
-                if ($detalles->isEmpty() || $totales['monto_total'] <= 0) {
-                    throw ValidationException::withMessages([
-                        'documento' => 'La nota no tiene items validos para cobrar.',
-                    ]);
-                }
-
-                if (
-                    $datos['formaPago'] === 'EFECTIVO'
-                    && (int) $datos['montoRecibido'] < $totales['monto_total']
-                ) {
-                    throw ValidationException::withMessages([
-                        'form.montoRecibido' => 'El importe recibido es inferior al total.',
-                    ]);
-                }
-
-                // Revalidar el cliente elegido en la misma solicitud de emision.
-                $cliente = $this->resolverReceptor((int) $datos['tipoDocumento']);
-
-                $documento->update([
-                    'customer_id' => $cliente->getKey(),
-                    'typedocument_id' => (int) $datos['tipoDocumento'],
-                    'condicion_documento' => 'PAGADO',
-                    'fmaPago' => '1',
-                    // La enum documents.medioPago almacena cadena vacia para efectivo.
-                    'medioPago' => $medioPago === 1 ? '' : (string) $medioPago,
-                    'descuento_global_tipo' => (string) $datos['descuentoTipo'],
-                    'descuento_global_valor' => (int) $datos['descuentoValor'],
-                ]);
-
-                // Previene usar el cliente generico que pudo quedar cargado.
-                $documento->unsetRelation('customer');
-                $documento->load('customer', 'typedocument');
-
-                // Esta marca indica que el intento de envío comenzó;
-                // un fallo de transporte deja el estado externo incierto.
-                $envioIniciado = true;
-
-                $respuestaApi = app(DtePostManager::class)->send(
-                    $documento,
-                    function (?int $folio) use (&$dteEmitido, &$folioEmitido): void {
-                        // Se registra ANTES de procesar la respuesta API.
-                        $dteEmitido = true;
-                        $folioEmitido = $folio;
-                    }
-                );
-
-                $respuesta = $respuestaApi instanceof DteResponse
-                    ? $respuestaApi->toArray()
-                    : $respuestaApi;
-
-                $folio = is_array($respuesta) ? ($respuesta['folio'] ?? null) : null;
-                $xml = is_array($respuesta) ? ($respuesta['xml'] ?? null) : null;
-
-                if (
-                    filter_var($folio, FILTER_VALIDATE_INT, [
-                        'options' => ['min_range' => 1],
-                    ]) === false
-                    || ! is_string($xml)
-                    || $xml === ''
-                ) {
-                    throw new RuntimeException(
-                        'Haulmer no confirmo la emision con folio y XML validos.'
-                    );
-                }
-
-                $ted = app(TimbrePdf417Service::class)->extraerTed($xml);
-
-                $documento->update([
-                    'folio' => (int) $folio,
-                    'ted' => $ted,
-                ]);
-
-                $pago = Payment::create([
-                    'typedocumentpayment_id' => 1,
-                    'customer_id' => $cliente->getKey(),
-                    'nombre_completo' => $cliente->fullName,
-                    'estado_pago' => 'VIGENTE',
-                    'tipo_movimiento' => 'INGRESO',
-                    'forma_pago' => $datos['formaPago'],
-                    'user_id' => Auth::id(),
-                    'monto' => $totales['monto_total'],
-                    'fecha' => Carbon::now()->format('Y-m-d'),
-                ]);
-
-                $documento->payment()->attach($pago, [
-                    'estado_abono' => 'VIGENTE',
-                    'abono' => $totales['monto_total'],
-                    'forma_pago' => $datos['formaPago'],
-                ]);
-            }, 1);
-
-            return $this->redirectRoute('cashs.customers.sales-note.index');
-        } catch (Throwable $exception) {
-            // El rollback SQL NO revierte el DTE emitido en Haulmer.
-            if ($dteEmitido) {
-                $mensaje = 'ATENCIÓN: EL DTE SÍ FUE EMITIDO EN HAULMER'
-                    . ($folioEmitido !== null ? ' (folio N.º '.$folioEmitido.')' : '')
-                    . '. Falló el registro del cobro en SAF. NO VUELVA A EMITIRLO.'
-                    . ' Verifique el DTE en Haulmer y concilie el pago en SAF.';
-            } elseif (
-                $respuestaApi instanceof DteResponse
-                && $respuestaApi->accepted === false
-            ) {
-                $mensaje = 'Haulmer rechazó el documento: '
-                    . ($respuestaApi->message ?? $exception->getMessage());
-            } elseif ($envioIniciado) {
-                $mensaje = 'No fue posible confirmar si Haulmer emitió el DTE.'
-                    . ' NO LO REENVÍE sin verificar antes su estado en Haulmer.';
-            } else {
-                $mensaje = $exception->getMessage();
-            }
-
-            try {
-                $respuesta = $respuestaApi instanceof DteResponse
-                    ? $respuestaApi->toArray()
-                    : $respuestaApi;
-
-                ErrorDte::create([
-                    'document_id' => $this->documentoId,
-                    'error' => json_encode([
-                        'message' => $mensaje,
-                        'exception' => $exception->getMessage(),
-                        'emision_confirmada' => $dteEmitido,
-                        'envio_iniciado' => $envioIniciado,
-                        'folio_emitido' => $folioEmitido,
-                        'response' => $respuesta,
-                    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-                ]);
-            } catch (Throwable $logException) {
-                report($logException);
-            }
-
-            if ($envioIniciado) {
-                report($exception);
-                throw ValidationException::withMessages([
-                    'documento' => $mensaje,
-                ]);
-            }
-
-            throw $exception;
+        if ($this->integrado) {
+            $this->dispatch('sales-counter-payment-completed', folio: $resultado['folio']);
+            return;
         }
+
+        return $this->redirectRoute('cashs.customers.sales-note.index');
     }
 
     public function render(): View

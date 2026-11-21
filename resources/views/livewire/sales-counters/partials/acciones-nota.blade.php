@@ -8,8 +8,14 @@
         <button type="button" wire:click="solicitarCancelarNota"
                 @disabled($documentoId === null)
                 class="rounded-lg border border-red-400 px-3 py-2 text-red-600 disabled:opacity-40">Anular</button>
-        <button type="button" wire:click="solicitarEnvioACaja"
-                @disabled($documentoId === null)
-                class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Enviar a caja</button>
+        @if (\App\Models\Company::query()->firstOrFail()->cajaIntegrada())
+            <button type="button" wire:click="solicitarPago"
+                    @disabled($documentoId === null)
+                    class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Pagar</button>
+        @else
+            <button type="button" wire:click="solicitarEnvioACaja"
+                    @disabled($documentoId === null)
+                    class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white disabled:opacity-40">Enviar a caja</button>
+        @endif
     </div>
 </section>
