@@ -36,21 +36,11 @@ function configurarCaja(string $modo): Company
     ]);
 }
 
-    function notaParaCajaIntegrada(User $user): array
-    {
-        DB::table('typedocuments')->insertOrIgnore([
-        [
-            'id' => 2,
-            'name' => 'NOTA DE VENTA',
-            'transacciontype' => 'INGRESO',
-            'codigo' => null,
-        ],
-        [
-            'id' => 17,
-            'name' => 'BOLETA',
-            'transacciontype' => 'INGRESO',
-            'codigo' => 39,
-        ],
+function notaParaCajaIntegrada(User $user): array
+{
+    DB::table('typedocuments')->insertOrIgnore([
+        ['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO', 'codigo' => null],
+        ['id' => 17, 'name' => 'BOLETA', 'transacciontype' => 'INGRESO', 'codigo' => 39],
     ]);
     $cliente = Customer::query()->firstOrCreate(
         ['rut' => '66666666-6'],
@@ -93,7 +83,11 @@ test('caja integrada ofrece DTE y botón pagar sin enviar a caja', function (): 
 
     Livewire::actingAs($user)
         ->test(SalesCounter::class)
-        ->assertSee('Documento tributario (DTE)');
+        ->assertSee('Boleta electrónica')
+        ->assertSee('Factura electrónica')
+        ->assertSee('Guía de despacho')
+        ->assertSee('Cotización')
+        ->assertDontSee('Documento tributario (DTE)');
 
     Livewire::actingAs($user)
         ->test(CreateSalesNote::class)
@@ -179,4 +173,53 @@ test('una respuesta positiva sin XML bloquea reenvío sin crear pagos', function
     expect(DB::table('dte_emission_attempts')->where('document_id', $nota->id)->value('estado'))
         ->toBe('INCIERTA');
     expect(Payment::query()->count())->toBe(0);
+});
+
+test('la caja integrada confirma el tipo elegido en un modal compacto', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $vendedor = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($vendedor);
+
+    Livewire::actingAs($vendedor)
+        ->test(SalesCounter::class)
+        ->set('tipoDocumento', 15)
+        ->assertSet('tipoActual', 15)
+        ->call('abrirPago', $nota->id)
+        ->assertSet('pagoDocumentoId', $nota->id)
+        ->assertSee('Confirmar pago');
+
+    Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota, 'integrado' => true, 'tipoDocumento' => 15])
+        ->assertSet('tipoDteSeleccionado', 15)
+        ->assertSet('form.tipoDocumento', 15)
+        ->assertSee('Confirmar pago')
+        ->assertDontSee('Documento y cobro')
+        ->assertDontSee('Detalle de venta');
+
+    expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO')
+        ->and(Payment::query()->count())->toBe(0);
+});
+
+test('el tipo DTE elegido no se puede sustituir desde la confirmación', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $vendedor = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($vendedor);
+
+    Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota, 'integrado' => true, 'tipoDocumento' => 17])
+        ->set('form.tipoDocumento', 15)
+        ->call('revisar')
+        ->assertHasErrors(['form.tipoDocumento']);
+});
+
+test('guía seleccionable no puede emitirse desde Pagar', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $vendedor = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($vendedor);
+
+    Livewire::actingAs($vendedor)
+        ->test(SalesCounter::class)
+        ->set('tipoDocumento', 18)
+        ->call('abrirPago', $nota->id)
+        ->assertStatus(422);
 });

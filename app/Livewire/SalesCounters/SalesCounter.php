@@ -33,23 +33,41 @@ final class SalesCounter extends Component
 
     public string $mensajePago = '';
 
+    #[Locked]
+    public string $pagoFormaPago = 'EFECTIVO';
+
+    #[Locked]
+    public string $pagoMontoRecibido = '0';
+
     public function mount(): void
     {
         abort_unless(auth()->check(), 403);
         $this->cajaIntegrada = Company::query()->firstOrFail()->cajaIntegrada();
+        if ($this->cajaIntegrada) {
+            $this->tipoDocumento = 17;
+            $this->tipoActual = 17;
+        }
     }
 
     public function updatedTipoDocumento(int|string $tipo): void
     {
         $tipo = (int) $tipo;
-        if (! in_array($tipo, [2, 19], true)) {
+        $permitidos = $this->cajaIntegrada ? [17, 15, 18, 19] : [2, 19];
+
+        if (! in_array($tipo, $permitidos, true)) {
             $this->tipoDocumento = $this->tipoActual;
             return;
         }
 
-        if ($this->documentoActivo && $tipo !== $this->tipoActual) {
+        // La boleta y factura comparten carrito, persistido como nota interna.
+        $cambioEntreDte = $this->cajaIntegrada
+            && in_array($tipo, [17, 15, 18], true)
+            && in_array($this->tipoActual, [17, 15, 18], true);
+
+        if (($this->documentoActivo && $tipo !== $this->tipoActual && ! $cambioEntreDte)
+            || $this->pagoDocumentoId !== null) {
             $this->tipoDocumento = $this->tipoActual;
-            $this->advertencia = 'Guarde o termine el documento antes de cambiar de tipo.';
+            $this->advertencia = 'Guarde o finalice el documento antes de cambiar de flujo.';
             return;
         }
 
@@ -74,11 +92,26 @@ final class SalesCounter extends Component
     }
 
     #[On('sales-counter-open-payment')]
-    public function abrirPago(int $id): void
+    public function abrirPago(int $id, string $formaPago = 'EFECTIVO', string $montoRecibido = ''): void
     {
         abort_unless($this->cajaIntegrada && Company::query()->firstOrFail()->cajaIntegrada(), 403);
+        // La guía requiere motivo de traslado; no se cobra ni emite aquí.
+        abort_unless(in_array($this->tipoActual, [15, 17], true), 422);
+        abort_unless(in_array($formaPago, [
+            'EFECTIVO', 'TARJETA DEBITO', 'TARJETA CREDITO',
+            'TRANSFERENCIA BANCARIA', 'DEPOSITO BANCARIO', 'CHEQUE',
+        ], true), 422);
+        abort_unless(
+            $montoRecibido === '' || (ctype_digit($montoRecibido) && strlen($montoRecibido) <= 12),
+            422
+        );
         $documento = app(DocumentItemService::class)->editable($id, 2, (int) auth()->id());
         abort_unless($documento->details()->vigente()->exists(), 409);
+        $this->pagoFormaPago = $formaPago;
+        $this->pagoMontoRecibido = $montoRecibido === ''
+            ? (string) app(\App\Services\Sales\GlobalDiscountService::class)
+                ->paraDocumento($documento)['monto_total']
+            : $montoRecibido;
         $this->pagoDocumentoId = $id;
         $this->mensajePago = '';
     }

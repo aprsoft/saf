@@ -38,6 +38,9 @@ final class CreatePayment extends Component
     #[Locked]
     public bool $integrado = false;
 
+    #[Locked]
+    public int $tipoDteSeleccionado = 17;
+
     public Document $document;
 
     #[Locked]
@@ -56,9 +59,15 @@ final class CreatePayment extends Component
 
     public bool $mostrarConfirmacion = false;
 
-    public function mount(Document $document, bool $integrado = false): void
+    public function mount(Document $document, bool $integrado = false, int $tipoDocumento = 17, string $formaPago = 'EFECTIVO', string $montoRecibido = ''): void
     {
         $this->integrado = $integrado;
+        if ($integrado) {
+            abort_unless(in_array($tipoDocumento, [15, 17], true), 422);
+            $this->tipoDteSeleccionado = $tipoDocumento;
+            $this->form->tipoDocumento = $tipoDocumento;
+            $this->form->formaPago = $formaPago;
+        }
         abort_unless(
             $document->exists
             && (int) $document->typedocument_id === DocumentItemService::NOTA
@@ -87,8 +96,7 @@ final class CreatePayment extends Component
         // Caja hereda el descuento definido en el mesón.
         $this->form->descuentoTipo = $document->descuento_global_tipo ?? 'porcentaje';
         $this->form->descuentoValor = (string) ($document->descuento_global_valor ?? 0);
-        $this->form->montoRecibido = (string) app(GlobalDiscountService::class)
-            ->paraDocumento($document)['monto_total'];
+        $this->form->montoRecibido = $integrado && $montoRecibido !== '' ? $montoRecibido : (string) app(GlobalDiscountService::class)->paraDocumento($document)['monto_total'];
     }
 
     #[Computed]
@@ -346,7 +354,7 @@ final class CreatePayment extends Component
     public function revisar(): void
     {
         $datos = $this->form->validate();
-        if ($this->integrado && ! in_array((int) $datos['tipoDocumento'], [15, 17], true)) {
+        if ($this->integrado && (! in_array((int) $datos['tipoDocumento'], [15, 17], true) || (int) $datos['tipoDocumento'] !== $this->tipoDteSeleccionado)) {
             throw ValidationException::withMessages([
                 'form.tipoDocumento' => 'Caja integrada solo permite boleta o factura.',
             ]);
@@ -425,7 +433,7 @@ final class CreatePayment extends Component
 
     public function confirmarPagoIntegrado(): void
     {
-        abort_unless($this->integrado && $this->mostrarConfirmacion, 409);
+        abort_unless($this->integrado, 403);
         $this->revisar();
         $this->mostrarConfirmacion = false;
         $this->emitirDte();
@@ -462,6 +470,6 @@ final class CreatePayment extends Component
 
     public function render(): View
     {
-        return view('livewire.payments.customer.create-payment');
+        return view($this->integrado ? 'livewire.payments.customer.confirm-payment' : 'livewire.payments.customer.create-payment');
     }
 }

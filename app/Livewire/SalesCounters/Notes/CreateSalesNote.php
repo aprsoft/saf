@@ -9,9 +9,16 @@ use App\Models\Company;
 use App\Services\Sales\DocumentItemService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Reactive;
 
 final class CreateSalesNote extends SalesDocumentEditor
 {
+    #[Reactive]
+    public int $tipoDocumentoSeleccionado = 17;
+
+    public string $formaPago = 'EFECTIVO';
+
+    public string $montoRecibido = '';
     protected function tipoDocumento(): int
     {
         return DocumentItemService::NOTA;
@@ -57,6 +64,7 @@ final class CreateSalesNote extends SalesDocumentEditor
     public function solicitarPago(): void
     {
         abort_unless(Company::query()->firstOrFail()->cajaIntegrada(), 403);
+        abort_unless(in_array($this->tipoDocumentoSeleccionado, [15, 17], true), 422);
         abort_unless($this->documentoId !== null, 409);
         $documento = $this->ventas()->editable(
             $this->documentoId, DocumentItemService::NOTA, (int) auth()->id()
@@ -69,7 +77,12 @@ final class CreateSalesNote extends SalesDocumentEditor
         );
 
         unset($this->documento, $this->totales);
-        $this->dispatch('sales-counter-open-payment', id: $this->documentoId);
+        $this->dispatch(
+            'sales-counter-open-payment',
+            id: $this->documentoId,
+            formaPago: $this->formaPago,
+            montoRecibido: $this->montoRecibido
+        );
     }
 
     public function solicitarEnvioACaja(): void
