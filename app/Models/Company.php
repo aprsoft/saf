@@ -9,7 +9,6 @@ class Company extends Model
     public $timestamps = false;
 
     protected $guarded=['id'];
-    public $timestamps = false;
 
     public function cajaIntegrada(): bool
     {
