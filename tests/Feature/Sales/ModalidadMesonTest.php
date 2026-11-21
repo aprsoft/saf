@@ -354,3 +354,20 @@ test('resumen del mesón distribuye descuento y totales en dos columnas', functi
         ->assertSee('TOTAL')
         ->assertSee('Pagar');
 });
+
+
+test('cliente y nombre de referencia comparten fila sin alterar formulario', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $usuario = User::factory()->create();
+
+    Livewire::actingAs($usuario)
+        ->test(CreateSalesNote::class, [
+            'tipoDocumentoSeleccionado' => 17,
+            'cajaIntegrada' => true,
+        ])
+        ->assertSee('sm:grid-cols-2')
+        ->assertSee('CLIENTE GENERICO')
+        ->assertSee('Nombre de referencia')
+        ->set('form.nombreReferencia', 'Venta mostrador')
+        ->assertSet('form.nombreReferencia', 'Venta mostrador');
+});
