@@ -19,3 +19,33 @@ git -C ~/Proyectos/base log --oneline --decorate -n 20
 ** restaura un commits segun su codigo
 
 git restore --source=c0e092c --staged --worktree -- :/
+
+crea commit con nombre especifico
+
+git add .
+git commit -m "Version estable antes de modificar ventas"
+
+asignarle un onmbre para recuperarlo
+
+git tag respaldo-ventas
+
+recuperlo posteriormente
+
+git switch --detach respaldo-ventas
+
+Para restaurar el proyecto a ese estado en una rama nueva, sin modificar tu rama actual:
+
+git switch -c recuperacion-ventas respaldo-ventas
+
+Si quieres devolver tu rama actual exactamente a ese commit, descartando los cambios y commits posteriores:
+
+git reset --hard respaldo-ventas
+
+Ver todos los respaldos con nombre
+
+git tag
+
+. Subir el respaldo a GitHub
+
+git push origin respaldo-ventas
+
