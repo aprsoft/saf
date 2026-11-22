@@ -40,7 +40,7 @@ final class PaymentForm extends Form
             ],
 
             'descuentoValor' => $this->descuentoTipo === 'porcentaje'
-                ? ['required', 'integer', 'between:0,100']
+                ? ['required', 'integer', 'between:0,99']
                 : ['required', 'integer', 'min:0'],
         ];
     }

@@ -98,6 +98,37 @@ test('caja no confirma efectivo inferior al total con descuento', function (): v
     expect(Payment::query()->count())->toBe(0);
 });
 
+test('caja rechaza descuento porcentual de 100 antes de confirmar el cobro', function (): void {
+    $vendedor = User::factory()->create();
+    $nota = nuevaNotaParaPruebaCaja($vendedor);
+
+    Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota])
+        ->set('form.descuentoTipo', 'porcentaje')
+        ->set('form.descuentoValor', '100')
+        ->call('revisar')
+        ->assertHasErrors(['form.descuentoValor'])
+        ->assertSet('mostrarConfirmacion', false);
+
+    expect(Payment::query()->count())->toBe(0);
+});
+
+test('caja permite descuento porcentual de 99 sin registrar un cobro durante la vista previa', function (): void {
+    $vendedor = User::factory()->create();
+    $nota = nuevaNotaParaPruebaCaja($vendedor);
+
+    Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota])
+        ->set('form.descuentoTipo', 'porcentaje')
+        ->set('form.descuentoValor', '99')
+        ->call('revisar')
+        ->assertHasNoErrors()
+        ->assertSet('mostrarConfirmacion', true);
+
+    expect($nota->fresh()->condicion_documento)->toBe('FINALIZADO')
+        ->and(Payment::query()->count())->toBe(0);
+});
+
 test('caja impide facturar al receptor genérico', function (): void {
     $vendedor = User::factory()->create();
     $nota = nuevaNotaParaPruebaCaja($vendedor);
