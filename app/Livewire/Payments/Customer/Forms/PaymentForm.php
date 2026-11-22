@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Livewire\Payments\Customer\Forms;
 
-use DomainException;
+use App\Models\Document;
+use App\Services\Sales\GlobalDiscountService;
 use Livewire\Form;
 
 final class PaymentForm extends Form
@@ -18,6 +19,17 @@ final class PaymentForm extends Form
     public string $descuentoTipo = 'porcentaje';
 
     public string $descuentoValor = '0';
+
+    public function inicializar(Document $documento, int $tipoDocumento, string $formaPago, string $montoRecibido): void
+    {
+        $this->tipoDocumento = $tipoDocumento;
+        $this->formaPago = $formaPago;
+        $this->descuentoTipo = $documento->descuento_global_tipo ?? 'porcentaje';
+        $this->descuentoValor = (string) ($documento->descuento_global_valor ?? 0);
+        $this->montoRecibido = $montoRecibido !== ''
+            ? $montoRecibido
+            : (string) app(GlobalDiscountService::class)->paraDocumento($documento)['monto_total'];
+    }
 
     public function rules(): array
     {
@@ -43,29 +55,5 @@ final class PaymentForm extends Form
                 ? ['required', 'integer', 'between:0,99']
                 : ['required', 'integer', 'min:0'],
         ];
-    }
-
-    public function medioPagoSii(): int
-    {
-        return match ($this->formaPago) {
-            'EFECTIVO' => 1,
-
-            'TARJETA DEBITO',
-            'TARJETA CREDITO' => 2,
-
-            'TRANSFERENCIA BANCARIA',
-            'DEPOSITO BANCARIO' => 3,
-
-            'CHEQUE' => 4,
-
-            'TARJETA COMERCIAL',
-            'NOTA DE CREDITO',
-            'CREDITO',
-            'OTRO' => 5,
-
-            default => throw new DomainException(
-                'Medio de pago no válido.'
-            ),
-        };
     }
 }

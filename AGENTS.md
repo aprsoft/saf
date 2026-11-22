@@ -219,3 +219,8 @@ SAF es una plataforma de gestión comercial independiente del rubro, concebida p
 8. Respeta las reglas generales de Laravel Boost que anteceden esta sección. La skill `.agents/skills/saf-development/SKILL.md` complementa estas instrucciones.
 
 <!-- SAF-PROJECT-RULES:END -->
+
+## Preferencia de eficiencia de Codex (SAF)
+- Por defecto, responder en español, de forma breve y directa; leer únicamente los archivos relevantes para la tarea.
+- Para ajustar nivel de análisis o de respuesta, utilizar la skill `saf-efficient` y su archivo `PREFERENCIAS.md`.
+- Respetar las reglas de seguridad, precisión y verificación de este `AGENTS.md`; ahorrar contexto no implica omitir comprobaciones necesarias.

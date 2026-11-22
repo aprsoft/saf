@@ -7,8 +7,8 @@ use App\Models\Customer;
 use App\Models\Detail;
 use App\Models\Document;
 use App\Models\Payment;
-use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 function nuevaNotaParaPruebaCaja(User $vendedor): Document
@@ -187,4 +187,47 @@ test('seleccionar receptor válido no cambia la nota hasta confirmar emisión', 
     expect($nota->fresh()->customer_id)->toBe($clienteOriginal)
         ->and($nota->fresh()->typedocument_id)->toBe(2)
         ->and(Payment::query()->count())->toBe(0);
+});
+
+test('caja inicializa el formulario con el descuento heredado y el total a recibir', function (): void {
+    $vendedor = User::factory()->create();
+    $nota = nuevaNotaParaPruebaCaja($vendedor);
+    $nota->update(['descuento_global_tipo' => 'porcentaje', 'descuento_global_valor' => 50]);
+
+    Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota])
+        ->assertSet('form.descuentoTipo', 'porcentaje')
+        ->assertSet('form.descuentoValor', '50')
+        ->assertSet('form.montoRecibido', '1075')
+        ->call('revisar')
+        ->assertHasNoErrors();
+});
+
+test('confirmar vuelve a validar el receptor y cierra la revisión si sus datos cambiaron', function (): void {
+    $vendedor = User::factory()->create();
+    $nota = nuevaNotaParaPruebaCaja($vendedor);
+    $cliente = Customer::query()->create([
+        'nombres' => 'Cliente Empresa',
+        'rut' => '12345678-5',
+        'giro' => 'Venta de herramientas',
+        'direccion_cliente' => 'Calle Ejemplo 123',
+        'comuna' => 'Santiago',
+    ]);
+    $componente = Livewire::actingAs($vendedor)
+        ->test(CreatePayment::class, ['document' => $nota])
+        ->call('abrirSelectorClientes')
+        ->call('seleccionarCliente', $cliente->id)
+        ->set('form.tipoDocumento', 15)
+        ->call('revisar')
+        ->assertHasNoErrors()
+        ->assertSet('mostrarConfirmacion', true);
+    $cliente->update(['giro' => '']);
+
+    $componente->call('confirmarEmitirDte', $nota->id)
+        ->assertHasErrors(['cliente'])
+        ->assertSet('mostrarConfirmacion', false);
+
+    expect($nota->fresh()->typedocument_id)->toBe(2)
+        ->and(Payment::query()->count())->toBe(0);
+    $this->assertDatabaseCount('dte_emission_attempts', 0);
 });

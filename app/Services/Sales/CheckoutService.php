@@ -46,18 +46,7 @@ final class CheckoutService
 
         $cliente = Customer::query()->findOrFail($cliente->id);
 
-        if ($tipo !== 17 && ($cliente->rut === '66666666-6' || blank($cliente->rut))) {
-            throw ValidationException::withMessages([
-                'cliente' => 'El documento requiere un receptor identificado.',
-            ]);
-        }
-        if ($tipo === 15 && (
-            blank($cliente->giro) || blank($cliente->direccion_cliente) || blank($cliente->comuna)
-        )) {
-            throw ValidationException::withMessages([
-                'cliente' => 'La factura requiere giro, dirección y comuna.',
-            ]);
-        }
+        $this->validarReceptor($cliente, $tipo);
 
         $medioSii = match ($datos['formaPago']) {
             'EFECTIVO' => 1,
@@ -95,18 +84,10 @@ final class CheckoutService
                 $detalles, (string) $datos['descuentoTipo'], (int) $datos['descuentoValor']
             );
 
-            if ($detalles->isEmpty() || $totales['monto_total'] <= 0 || $totales['monto_total'] > 2147483647) {
-                throw ValidationException::withMessages([
-                    'documento' => 'El documento tiene un importe inválido para cobrar.',
-                ]);
-            }
-
-            if ($datos['formaPago'] === 'EFECTIVO'
-                && (int) $datos['montoRecibido'] < $totales['monto_total']) {
-                throw ValidationException::withMessages([
-                    'form.montoRecibido' => 'El monto recibido es inferior al total.',
-                ]);
-            }
+            $this->validarImporteCobro(
+                $totales['monto_total'], $detalles->isNotEmpty(),
+                $datos['formaPago'], (int) $datos['montoRecibido']
+            );
 
             // Los campos DTE se aplican a una copia solo en memoria.
             // La nota original se conserva intacta hasta confirmar la emisión.
@@ -252,6 +233,50 @@ final class CheckoutService
                         .($folioConfirmado !== null ? ' (folio '.$folioConfirmado.')' : '')
                         .'. NO vuelva a emitir sin conciliar con el proveedor.',
             ]);
+        }
+    }
+
+    public function validarImporteCobro(int $total, bool $tieneDetalles, string $formaPago, int $montoRecibido): void
+    {
+        if (! $tieneDetalles || $total <= 0 || $total > 2147483647) {
+            throw ValidationException::withMessages([
+                'documento' => 'El documento tiene un importe inválido para cobrar.',
+            ]);
+        }
+
+        if ($formaPago === 'EFECTIVO' && $montoRecibido < $total) {
+            throw ValidationException::withMessages([
+                'form.montoRecibido' => 'El monto recibido es inferior al total.',
+            ]);
+        }
+    }
+
+    public function validarReceptor(Customer $cliente, int $tipoDocumento): void
+    {
+        if ($tipoDocumento !== 17 && ($cliente->rut === '66666666-6' || blank($cliente->rut))) {
+            throw ValidationException::withMessages([
+                'cliente' => 'La factura y la guia requieren el RUT del receptor.',
+            ]);
+        }
+
+        if ($tipoDocumento === 15) {
+            $faltantes = [];
+
+            foreach ([
+                'giro' => 'giro comercial',
+                'direccion_cliente' => 'direccion',
+                'comuna' => 'comuna',
+            ] as $campo => $nombre) {
+                if (blank($cliente->{$campo})) {
+                    $faltantes[] = $nombre;
+                }
+            }
+
+            if ($faltantes !== []) {
+                throw ValidationException::withMessages([
+                    'cliente' => 'Complete los datos del receptor: '.implode(', ', $faltantes).'.',
+                ]);
+            }
         }
     }
 }

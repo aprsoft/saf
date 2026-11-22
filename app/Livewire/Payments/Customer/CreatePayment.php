@@ -6,30 +6,19 @@ namespace App\Livewire\Payments\Customer;
 
 use App\Livewire\Payments\Customer\Forms\PaymentForm;
 use App\Models\Company;
-use App\Services\Sales\CheckoutService;
 use App\Models\Customer;
 use App\Models\Document;
-use App\Models\ErrorDte;
-use App\Models\Payment;
-use App\Services\Dte\Post\Classes\DteResponse;
-use App\Services\Dte\Post\DtePostManager;
-use App\Services\Dte\Stamp\TimbrePdf417Service;
+use App\Services\Sales\CheckoutService;
 use App\Services\Sales\DocumentItemService;
 use App\Services\Sales\GlobalDiscountService;
-use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use RuntimeException;
-use Throwable;
 
 final class CreatePayment extends Component
 {
@@ -40,8 +29,6 @@ final class CreatePayment extends Component
 
     #[Locked]
     public int $tipoDteSeleccionado = 17;
-
-    public Document $document;
 
     #[Locked]
     public int $documentoId;
@@ -65,8 +52,6 @@ final class CreatePayment extends Component
         if ($integrado) {
             abort_unless(in_array($tipoDocumento, [15, 17], true), 422);
             $this->tipoDteSeleccionado = $tipoDocumento;
-            $this->form->tipoDocumento = $tipoDocumento;
-            $this->form->formaPago = $formaPago;
         }
         abort_unless(
             $document->exists
@@ -83,7 +68,6 @@ final class CreatePayment extends Component
             );
         }
 
-        $this->document = $document;
         $this->documentoId = (int) $document->getKey();
 
         $cliente = $document->customer;
@@ -93,10 +77,12 @@ final class CreatePayment extends Component
             $this->modoCliente = 'registrado';
         }
 
-        // Caja hereda el descuento definido en el mesón.
-        $this->form->descuentoTipo = $document->descuento_global_tipo ?? 'porcentaje';
-        $this->form->descuentoValor = (string) ($document->descuento_global_valor ?? 0);
-        $this->form->montoRecibido = $integrado && $montoRecibido !== '' ? $montoRecibido : (string) app(GlobalDiscountService::class)->paraDocumento($document)['monto_total'];
+        $this->form->inicializar(
+            $document,
+            $integrado ? $tipoDocumento : 17,
+            $integrado ? $formaPago : 'EFECTIVO',
+            $integrado ? $montoRecibido : ''
+        );
     }
 
     #[Computed]
@@ -166,7 +152,7 @@ final class CreatePayment extends Component
         $busqueda = trim($this->busquedaCliente);
 
         if (! $this->mostrarSelectorClientes || mb_strlen($busqueda) < 2) {
-            return new Collection();
+            return new Collection;
         }
 
         return Customer::query()
@@ -305,12 +291,6 @@ final class CreatePayment extends Component
                     })
                     ->first();
         } else {
-            if ($tipoDocumento !== 17) {
-                throw ValidationException::withMessages([
-                    'cliente' => 'La factura y la guia requieren un cliente registrado.',
-                ]);
-            }
-
             $cliente = Customer::query()
                 ->where('rut', '66666666-6')
                 ->first();
@@ -322,36 +302,22 @@ final class CreatePayment extends Component
             ]);
         }
 
-        if ($tipoDocumento !== 17 && blank($cliente->rut)) {
-            throw ValidationException::withMessages([
-                'cliente' => 'La factura y la guia requieren el RUT del receptor.',
-            ]);
-        }
-
-        if ($tipoDocumento === 15) {
-            $faltantes = [];
-
-            foreach ([
-                'giro' => 'giro comercial',
-                'direccion_cliente' => 'direccion',
-                'comuna' => 'comuna',
-            ] as $campo => $nombre) {
-                if (blank($cliente->{$campo})) {
-                    $faltantes[] = $nombre;
-                }
-            }
-
-            if ($faltantes !== []) {
-                throw ValidationException::withMessages([
-                    'cliente' => 'Complete los datos del receptor: '.implode(', ', $faltantes).'.',
-                ]);
-            }
-        }
+        app(CheckoutService::class)->validarReceptor($cliente, $tipoDocumento);
 
         return $cliente;
     }
 
     public function revisar(): void
+    {
+        $this->mostrarConfirmacion = false;
+        $this->validarCobro();
+        $this->mostrarConfirmacion = true;
+    }
+
+    /**
+     * @return array{datos: array{tipoDocumento: int, formaPago: string, montoRecibido: string, descuentoTipo: string, descuentoValor: string}, cliente: Customer}
+     */
+    private function validarCobro(): array
     {
         $datos = $this->form->validate();
         if ($this->integrado && (! in_array((int) $datos['tipoDocumento'], [15, 17], true) || (int) $datos['tipoDocumento'] !== $this->tipoDteSeleccionado)) {
@@ -359,8 +325,6 @@ final class CreatePayment extends Component
                 'form.tipoDocumento' => 'Caja integrada solo permite boleta o factura.',
             ]);
         }
-        $this->mostrarConfirmacion = false;
-
         $documento = $this->documento;
         $totales = app(GlobalDiscountService::class)->calcular(
             $documento->details,
@@ -368,25 +332,17 @@ final class CreatePayment extends Component
             (int) $datos['descuentoValor']
         );
 
-        if ($documento->details->isEmpty() || $totales['monto_total'] <= 0) {
-            throw ValidationException::withMessages([
-                'documento' => 'La nota no tiene items vigentes para cobrar.',
-            ]);
-        }
+        app(CheckoutService::class)->validarImporteCobro(
+            $totales['monto_total'],
+            $documento->details->isNotEmpty(),
+            $datos['formaPago'],
+            (int) $datos['montoRecibido']
+        );
 
-        $this->resolverReceptor((int) $datos['tipoDocumento']);
-
-        if (
-            $datos['formaPago'] === 'EFECTIVO'
-            && (int) $datos['montoRecibido'] < $totales['monto_total']
-        ) {
-            throw ValidationException::withMessages([
-                'form.montoRecibido' => 'El importe recibido es inferior al total.',
-            ]);
-        }
-
-        // Solo valida: no modifica la nota, no registra el pago y no emite DTE.
-        $this->mostrarConfirmacion = true;
+        return [
+            'datos' => $datos,
+            'cliente' => $this->resolverReceptor((int) $datos['tipoDocumento']),
+        ];
     }
 
     public function cerrarRevision(): void
@@ -426,7 +382,6 @@ final class CreatePayment extends Component
     {
         abort_unless($this->mostrarConfirmacion && $id === $this->documentoId, 409);
 
-        $this->revisar();
         $this->mostrarConfirmacion = false;
         $this->emitirDte();
     }
@@ -434,27 +389,13 @@ final class CreatePayment extends Component
     public function confirmarPagoIntegrado(): void
     {
         abort_unless($this->integrado, 403);
-        $this->revisar();
         $this->mostrarConfirmacion = false;
         $this->emitirDte();
     }
 
-    private function medioPagoSii(string $pago): int
+    private function emitirDte(): void
     {
-        return match ($pago) {
-            'EFECTIVO' => 1,
-            'TARJETA DEBITO', 'TARJETA CREDITO' => 2,
-            'TRANSFERENCIA BANCARIA', 'DEPOSITO BANCARIO' => 3,
-            'CHEQUE' => 4,
-            'TARJETA COMERCIAL', 'CREDITO', 'NOTA DE CREDITO', 'OTRO' => 5,
-            default => throw new DomainException('Medio de pago no valido para DTE.'),
-        };
-    }
-
-    protected function emitirDte()
-    {
-        $datos = $this->form->validate();
-        $cliente = $this->resolverReceptor((int) $datos['tipoDocumento']);
+        ['datos' => $datos, 'cliente' => $cliente] = $this->validarCobro();
 
         $resultado = app(CheckoutService::class)->cobrar(
             $this->documentoId, (int) auth()->id(), $this->integrado, $datos, $cliente
@@ -462,10 +403,11 @@ final class CreatePayment extends Component
 
         if ($this->integrado) {
             $this->dispatch('sales-counter-payment-completed', folio: $resultado['folio']);
+
             return;
         }
 
-        return $this->redirectRoute('cashs.customers.sales-note.index');
+        $this->redirectRoute('cashs.customers.sales-note.index');
     }
 
     public function render(): View
