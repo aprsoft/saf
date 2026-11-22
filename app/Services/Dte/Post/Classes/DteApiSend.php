@@ -11,6 +11,7 @@ final class DteApiSend
 {
     public static function send(string $payload, int $documentoId): array
     {
+
         $company = Company::query()->firstOrFail();
         $curl = curl_init();
 
@@ -22,10 +23,12 @@ final class DteApiSend
             curl_setopt_array($curl, [
                 CURLOPT_URL => $company->url,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_CONNECTTIMEOUT => 8,
-                CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_POST => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_HTTPHEADER => [
                     'apikey: '.$company->apikey,
@@ -35,6 +38,7 @@ final class DteApiSend
             ]);
 
             $response = curl_exec($curl);
+
             $httpStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($response === false) {
