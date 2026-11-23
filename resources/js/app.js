@@ -12,7 +12,6 @@ window.Alpine = Alpine;
 
 // 2. Iniciar Livewire (esto también inicia Alpine automáticamente)
 Alpine.data('permissionSelector', permissionSelector);
-Alpine.data('permissionSelector', permissionSelector);
 Alpine.data('salesNotePos', salesNotePos);
 
 Alpine.data('printerSettings', printerSettings);
