@@ -224,3 +224,50 @@ SAF es una plataforma de gestión comercial independiente del rubro, concebida p
 - Por defecto, responder en español, de forma breve y directa; leer únicamente los archivos relevantes para la tarea.
 - Para ajustar nivel de análisis o de respuesta, utilizar la skill `saf-efficient` y su archivo `PREFERENCIAS.md`.
 - Respetar las reglas de seguridad, precisión y verificación de este `AGENTS.md`; ahorrar contexto no implica omitir comprobaciones necesarias.
+
+
+
+
+## SAF — Eficiencia y nivel de respuesta
+
+### Optimización del contexto
+- Minimizar el consumo innecesario de tokens.
+- Leer primero los archivos relacionados con la tarea.
+- No explorar todo el repositorio salvo necesidad justificada.
+- Reutilizar información ya obtenida.
+- Evitar consultas repetidas a herramientas MCP.
+- No repetir código ni explicaciones innecesarias.
+- No ejecutar pruebas completas si bastan pruebas específicas.
+- Priorizar precisión y seguridad sobre ahorro de tokens.
+
+### Niveles de respuesta
+
+Nivel predeterminado: NORMAL.
+
+RAPIDO:
+- Respuestas directas y breves.
+- Sin explicaciones extensas.
+- Código mínimo necesario.
+
+NORMAL:
+- Solución concreta.
+- Explicación técnica breve.
+- Mostrar solo los cambios relevantes.
+
+PROFUNDO:
+- Análisis detallado.
+- Evaluación de arquitectura y dependencias.
+- Riesgos, alternativas y pruebas pertinentes.
+
+El usuario puede cambiar el nivel escribiendo:
+RAPIDO, NORMAL o PROFUNDO.
+
+### Reglas de ejecución
+- No realizar refactorizaciones fuera del alcance.
+- No modificar archivos innecesarios.
+- No duplicar funcionalidades existentes.
+- Informar brevemente los archivos modificados.
+- Indicar las pruebas ejecutadas y sus resultados.
+- Si hay incertidumbre, verificar antes de asumir.
+- Respetar siempre las reglas de Laravel Boost
+  y las skills correspondientes.
