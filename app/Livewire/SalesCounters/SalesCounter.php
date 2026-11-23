@@ -18,6 +18,9 @@ final class SalesCounter extends Component
     public int $tipoDocumento = 2;
 
     #[Locked]
+public ?int $ultimoFolioPago = null;
+
+    #[Locked]
     public int $tipoActual = 2;
 
     #[Locked]
@@ -128,6 +131,8 @@ final class SalesCounter extends Component
     {
         abort_unless($this->pagoDocumentoId !== null, 409);
 
+        $this->ultimoFolioPago = $folio;
+
         Document::query()
             ->whereKey($this->pagoDocumentoId)
             ->where('user_id', (int) auth()->id())
@@ -143,9 +148,13 @@ final class SalesCounter extends Component
 
     public function limpiarMensajePago(int $folio): void
     {
-        if ($this->ultimoFolioPago === $folio) {
-            $this->mensajePago = '';
-        }
+        // if ($this->ultimoFolioPago === $folio) {
+        //     $this->mensajePago = '';
+        // }
+         if ($this->ultimoFolioPago === $folio) {
+        $this->mensajePago = '';
+        $this->ultimoFolioPago = null;
+    }
     }
 
     #[On('sales-counter-document-status')]
