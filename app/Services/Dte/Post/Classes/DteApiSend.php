@@ -38,6 +38,7 @@ final class DteApiSend
             ]);
 
             $response = curl_exec($curl);
+            
 
             $httpStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
