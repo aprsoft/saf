@@ -8,18 +8,17 @@ use App\Models\Company;
 class MenuHelper
 {
     public static function getMainNavItems(): array
-    {        
+    {
         return [
             [
                 'icon' => 'home',
                 'name' => 'Inicio',
                 'path' => route('dashboard', absolute: false),
             ],
-         
-        ];
-    
-    }
 
+        ];
+
+    }
 
     public static function getManagementItems(): array
     {
@@ -34,13 +33,13 @@ class MenuHelper
                         'name' => 'Listado',
                         'path' => route('customers.index', absolute: false),
                         'permission' => 'customers.index',
-                        'pro' => false
+                        'pro' => false,
                     ],
                     [
                         'name' => 'Crear Cliente',
                         'path' => route('customers.create', absolute: false),
                         'permission' => 'customers.create',
-                        'pro' => false
+                        'pro' => false,
                     ],
                 ],
             ],
@@ -52,17 +51,17 @@ class MenuHelper
                         'name' => 'Listado',
                         'path' => route('suppliers.index', absolute: false),
                         'permission' => 'suppliers.index',
-                        'pro' => false
+                        'pro' => false,
                     ],
                     [
                         'name' => 'Crear Cliente',
                         'path' => route('suppliers.create', absolute: false),
                         'permission' => 'suppliers.create',
-                        'pro' => false
+                        'pro' => false,
                     ],
                 ],
-            ],  
-           
+            ],
+
             [
                 'icon' => 'file',
                 'name' => 'Ventas',
@@ -71,17 +70,17 @@ class MenuHelper
                         'name' => $cajaIntegrada ? 'Punto de venta' : 'Mesón de ventas',
                         'path' => route('sales-counters.show', absolute: false),
                         'permission' => 'sales-counters.show',
-                        'pro' => false
+                        'pro' => false,
                     ],
                     [
                         'name' => 'Listado de Ventas',
                         'path' => route('dtes.customers.index', absolute: false),
                         'permission' => 'dtes.customers.index',
-                        'pro' => false
+                        'pro' => false,
                     ],
-                    
+
                 ],
-            ],   
+            ],
             [
                 'icon' => 'file',
                 'name' => 'Caja',
@@ -90,23 +89,23 @@ class MenuHelper
                         'name' => 'Pagar Notas de Venta',
                         'path' => route('cashs.customers.sales-note.index', absolute: false),
                         'permission' => 'cashs.customers.sales-note.index',
-                        'pro' => false
+                        'pro' => false,
                     ]]),
                     [
                         'name' => 'Listado de Pagos',
                         'path' => route('payments.customers.index', absolute: false),
                         'permission' => 'payments.customers.index',
-                        'pro' => false
-                    ], 
-                     
+                        'pro' => false,
+                    ],
+
                     [
                         'name' => 'Reporte de Caja',
                         'path' => route('cashReports.show', absolute: false),
                         'permission' => 'cashReports.show',
-                        'pro' => false
-                    ],                    
+                        'pro' => false,
+                    ],
                 ],
-            ], 
+            ],
             [
                 'icon' => 'file',
                 'name' => 'Despacho',
@@ -115,11 +114,11 @@ class MenuHelper
                         'name' => 'Listado',
                         'path' => route('dispatchs.customers.index', absolute: false),
                         'permission' => 'dispatchs.customers.index',
-                        'pro' => false
-                    ],  
-                                      
+                        'pro' => false,
+                    ],
+
                 ],
-            ], 
+            ],
             [
                 'icon' => 'file',
                 'name' => 'Bodega',
@@ -128,15 +127,14 @@ class MenuHelper
                         'name' => 'Listado',
                         'path' => route('dispatchs.customers.index', absolute: false),
                         'permission' => 'dispatchs.customers.index',
-                        'pro' => false
-                    ],  
-                                      
+                        'pro' => false,
+                    ],
+
                 ],
-            ],         
-           
+            ],
+
         ];
     }
-    
 
     public static function getAdministrationItems(): array
     {
@@ -149,84 +147,90 @@ class MenuHelper
                         'name' => 'Listado',
                         'path' => route('users.index', absolute: false),
                         'permission' => 'users.index',
-                        'pro' => false
+                        'pro' => false,
                     ],
                     [
                         'name' => 'Crear Usuario',
                         'path' => route('users.create', absolute: false),
                         'permission' => 'users.create',
-                        'pro' => false
+                        'pro' => false,
                     ],
                 ],
-            ],        
-           
+            ],
+
         ];
     }
 
     public static function getRolesPermissionsItems(): array
     {
         return [
-         
+
             [
                 'icon' => 'access',
                 'name' => 'Roles',
                 'subItems' => [
-                    [                        
+                    [
                         'name' => 'listado',
                         'path' => route('roles.index', absolute: false),
                         'permission' => 'roles.index',
-                        'pro'  => false
+                        'pro' => false,
                     ],
-                    [                        
+                    [
                         'name' => 'Crear Roles',
                         'path' => route('roles.create', absolute: false),
                         'permission' => 'roles.create',
-                        'pro'  => false
+                        'pro' => false,
                     ],
-                    
+
                 ],
             ],
             [
                 'icon' => 'access',
                 'name' => 'Permisos',
                 'subItems' => [
-                    [                        
+                    [
                         'name' => 'Listado',
                         'path' => route('permissions.index', absolute: false),
                         'permission' => 'permissions.index',
-                        'pro'  => false
+                        'pro' => false,
                     ],
-                    [                        
+                    [
                         'name' => 'Crear Permiso',
                         'path' => route('permissions.create', absolute: false),
                         'permission' => 'permissions.create',
-                        'pro'  => false
+                        'pro' => false,
                     ],
-                    
+
                 ],
-            ]
+            ],
         ];
-    }    
+    }
 
     public static function getSupportItems(): array
     {
-        return [            
+        return [
+            [
+                'icon' => 'support',
+                'name' => 'Configuración',
+                'path' => route('configuration.edit', absolute: false),
+                'permission' => 'configuration.edit',
+                'pro' => false,
+            ],
             [
                 'icon' => 'support',
                 'name' => 'Errores',
                 'path' => route('errors.index', absolute: false),
                 'permission' => 'errors.index',
-                'pro' => false
+                'pro' => false,
             ],
         ];
     }
-
 
     public static function getMenuGroups(): array
     {
         $user = auth('web')->user();
 
-        if (!$user) {
+        if (! $user) {
             return [];
         }
 
@@ -234,7 +238,7 @@ class MenuHelper
             [
                 'title' => 'Menu',
                 'items' => self::getMainNavItems(),
-            ],         
+            ],
             [
                 'title' => 'Gestion',
                 'items' => self::getManagementItems(),
@@ -261,7 +265,7 @@ class MenuHelper
                 // Verificar permiso del elemento principal
                 if (
                     isset($item['permission']) &&
-                    !$user->can($item['permission'])
+                    ! $user->can($item['permission'])
                 ) {
                     continue;
                 }
@@ -272,8 +276,7 @@ class MenuHelper
                     $item['subItems'] = array_values(
                         array_filter(
                             $item['subItems'],
-                            fn (array $subItem) =>
-                                !isset($subItem['permission']) ||
+                            fn (array $subItem) => ! isset($subItem['permission']) ||
                                 $user->can($subItem['permission'])
                         )
                     );
@@ -296,7 +299,7 @@ class MenuHelper
         return array_values(
             array_filter(
                 $groups,
-                fn (array $group) => !empty($group['items'])
+                fn (array $group) => ! empty($group['items'])
             )
         );
     }
@@ -305,7 +308,7 @@ class MenuHelper
     {
         return request()->is(ltrim($path, '/'));
     }
-    
+
     public static function getIconSvg($iconName): string
     {
         return IconHelper::get($iconName);

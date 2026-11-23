@@ -12,7 +12,7 @@
         </main>
         <aside class="flex min-h-0 min-w-0 flex-col gap-3">
             @include('livewire.sales-counters.partials.selector-documento')
-            <div class="min-h-0 space-y-3 xl:flex-1 xl:overflow-y-auto">
+            <div class="min-h-0 space-y-3 xl:overflow-y-auto">
                 @include('livewire.sales-counters.partials.cliente')
                 @include('livewire.sales-counters.partials.resumen')
             </div>

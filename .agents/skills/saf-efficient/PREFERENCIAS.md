@@ -9,4 +9,11 @@ RESPUESTA: BREVE
 # RESPUESTA: MINIMA | BREVE | DETALLADA
 
 # Un mensaje de Codex puede reemplazar estas preferencias solo para esa tarea:
-# "$saf-efficient PERFIL: PROFUNDO RESPUESTA: DETALLADA Revisa CreatePayment.php"
+
+
+# $saf-efficient PERFIL: AHORRO RESPUESTA: MINIMA Revisa ....
+
+# "$saf-efficient PERFIL: AHORRO RESPUESTA: BREVE Revisa ...."
+
+# "$saf-efficient PERFIL: PROFUNDO RESPUESTA: DETALLADA Revisa ...."
+

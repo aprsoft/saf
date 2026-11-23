@@ -125,6 +125,11 @@
 
             {{-- Alertas generales --}}
             @include('partials.alert')
+            @auth
+                @if (config('printing.enabled'))
+                    <livewire:printing.printer-settings />
+                @endif
+            @endauth
 
 
             <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">

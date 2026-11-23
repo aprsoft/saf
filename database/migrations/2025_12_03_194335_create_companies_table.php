@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
-            $table->string('rut_emisor',10);
+            $table->string('rut_emisor', 10);
             $table->string('razon_social');
             $table->string('giro_emisor');
             $table->string('direccion_origen');
@@ -22,11 +22,13 @@ return new class extends Migration
             $table->string('url');
             $table->string('url_document_received');
             $table->string('url_document');
-            $table->string('codigo_sii_sucursal'); 
-            $table->string('comuna_origen');    
-            $table->enum('punto_venta',['BASICO','AVANZADO'])->default('BASICO');   
-            $table->string('contacto')->nullable();         
-           
+            $table->string('codigo_sii_sucursal');
+            $table->string('comuna_origen');
+            $table->string('contacto')->nullable();
+            $table->enum('modo_cobro', [
+                'CAJA_CENTRAL',
+                'CAJA_INTEGRADA',
+            ])->default('CAJA_CENTRAL');
         });
     }
 

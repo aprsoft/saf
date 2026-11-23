@@ -1,4 +1,5 @@
 import './bootstrap';
+import printerSettings from './printing/qz.js';
 import salesNotePos from './components/sales-note-pos.js';
 
 // 1. Importar y exponer Livewire PRIMERO
@@ -13,6 +14,8 @@ window.Alpine = Alpine;
 Alpine.data('permissionSelector', permissionSelector);
 Alpine.data('permissionSelector', permissionSelector);
 Alpine.data('salesNotePos', salesNotePos);
+
+Alpine.data('printerSettings', printerSettings);
 
 Livewire.start();
 

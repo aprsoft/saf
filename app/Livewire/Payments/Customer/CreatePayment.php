@@ -401,6 +401,14 @@ final class CreatePayment extends Component
             $this->documentoId, (int) auth()->id(), $this->integrado, $datos, $cliente
         );
 
+        if (config('printing.enabled')) {
+            if ($this->integrado) {
+                $this->dispatch('qz-print-dte', documentId: $this->documentoId);
+            } else {
+                session()->flash('qz_print_document', $this->documentoId);
+            }
+        }
+
         if ($this->integrado) {
             $this->dispatch('sales-counter-payment-completed', folio: $resultado['folio']);
 

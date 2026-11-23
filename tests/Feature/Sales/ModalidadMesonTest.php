@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Helpers\MenuHelper;
 use App\Livewire\Payments\Customer\CreatePayment;
-use App\Livewire\SalesCounters\SalesCounter;
 use App\Livewire\SalesCounters\Notes\CreateSalesNote;
+use App\Livewire\SalesCounters\SalesCounter;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Detail;
@@ -234,7 +235,6 @@ test('guía seleccionable no puede emitirse desde Pagar', function (): void {
         ->assertStatus(422);
 });
 
-
 test('selector del documento se muestra dentro de la columna de cobro', function (): void {
     configurarCaja('CAJA_INTEGRADA');
     $user = User::factory()->create();
@@ -245,7 +245,6 @@ test('selector del documento se muestra dentro de la columna de cobro', function
         ->assertSee('xl:overflow-y-auto')
         ->assertSee('Pagar');
 });
-
 
 test('buscador en el mismo campo inicia con cliente genérico y permite elegir otro cliente', function (): void {
     configurarCaja('CAJA_INTEGRADA');
@@ -294,12 +293,11 @@ test('cliente buscado puede volver al genérico y mantiene la referencia existen
         ->assertSee('Nombre de referencia');
 });
 
-
 test('caja integrada cambia nombre del menú y bloquea cobro separado de notas', function (): void {
     configurarCaja('CAJA_INTEGRADA');
     $usuario = User::factory()->create();
 
-    $items = \App\Helpers\MenuHelper::getManagementItems();
+    $items = MenuHelper::getManagementItems();
     $ventas = collect($items)->firstWhere('name', 'Ventas');
     $caja = collect($items)->firstWhere('name', 'Caja');
 
@@ -324,7 +322,7 @@ test('caja central conserva nombres y ruta de cobro de notas', function (): void
     configurarCaja('CAJA_CENTRAL');
     $usuario = User::factory()->create();
 
-    $items = \App\Helpers\MenuHelper::getManagementItems();
+    $items = MenuHelper::getManagementItems();
     $ventas = collect($items)->firstWhere('name', 'Ventas');
     $caja = collect($items)->firstWhere('name', 'Caja');
 
@@ -355,7 +353,6 @@ test('resumen del mesón distribuye descuento y totales en dos columnas', functi
         ->assertSee('Pagar');
 });
 
-
 test('cliente y nombre de referencia comparten fila sin alterar formulario', function (): void {
     configurarCaja('CAJA_INTEGRADA');
     $usuario = User::factory()->create();
@@ -376,3 +373,45 @@ test('cliente y nombre de referencia comparten fila sin alterar formulario', fun
         ->set('form.nombreReferencia', 'Venta mostrador')
         ->assertSet('form.nombreReferencia', 'Venta mostrador');
 });
+
+test('solo la emisión aceptada activa impresión después del cobro', function (bool $integrado, bool $enabled): void {
+    configurarCaja($integrado ? 'CAJA_INTEGRADA' : 'CAJA_CENTRAL');
+    config(['printing.enabled' => $enabled]);
+    $user = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($user);
+    if (! $integrado) {
+        $nota->update(['condicion_documento' => 'FINALIZADO']);
+    }
+    $manager = Mockery::mock(DtePostManager::class);
+    $manager->shouldReceive('send')->once()->andReturn(new DteResponse(
+        accepted: true, folio: 1234,
+        xml: '<DTE><TED><DD><CAF>prueba</CAF></DD><FRMT>firma</FRMT></TED></DTE>',
+    ));
+    app()->instance(DtePostManager::class, $manager);
+    $component = Livewire::actingAs($user)->test(CreatePayment::class, ['document' => $nota, 'integrado' => $integrado])
+        ->call('revisar')->assertHasNoErrors();
+    $component = $integrado
+        ? $component->call('confirmarPagoIntegrado')
+        : $component->call('confirmarEmitirDte', $nota->id);
+    $component->assertHasNoErrors();
+    expect($nota->fresh()->folio)->toBe(1234);
+    expect(Payment::count())->toBe(1);
+    if ($integrado && $enabled) {
+        $component->assertDispatched('qz-print-dte', documentId: $nota->id);
+    } else {
+        $component->assertNotDispatched('qz-print-dte');
+        expect(session('qz_print_document'))->toBe($enabled ? $nota->id : null);
+    }
+})->with([[true, true], [false, true], [true, false], [false, false]]);
+
+test('no solicita impresión de un DTE rechazado o incierto', function (bool $accepted): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $user = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($user);
+    $manager = Mockery::mock(DtePostManager::class);
+    $manager->shouldReceive('send')->once()->andReturn(new DteResponse(accepted: $accepted, folio: 123, xml: null));
+    app()->instance(DtePostManager::class, $manager);
+    Livewire::actingAs($user)->test(CreatePayment::class, ['document' => $nota, 'integrado' => true])
+        ->call('confirmarPagoIntegrado')->assertHasErrors('documento')->assertNotDispatched('qz-print-dte');
+    expect(session('qz_print_document'))->toBeNull();
+})->with([true, false]);

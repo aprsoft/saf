@@ -54,6 +54,7 @@ class AdminRolePermissionSeeder extends Seeder
 
         // Permisos nuevos: registrar sin asignar automáticamente.
         $newPermissions = [
+            'configuration.edit',
 
             // Documentos comunes
             'documents.index',
@@ -80,26 +81,26 @@ class AdminRolePermissionSeeder extends Seeder
             'cashReports.show',
             'cashReports.export',
 
-             // Pagos cliente
+            // Pagos cliente
             'payments.customer.index',
             'payments.customer.show',
             'payments.customer.create',
             'payments.customer.edit',
             'payments.customer.destroy',
 
-             // Pagos  proveedore
+            // Pagos  proveedore
             'payments.supplier.index',
             'payments.supplier.show',
             'payments.supplier.create',
             'payments.supplier.edit',
             'payments.supplier.destroy',
 
-             // Pagos clientes
+            // Pagos clientes
             'payments.customers.index',
 
-             // Pagos proveedores
+            // Pagos proveedores
             'payments.suppliers.index',
-        
+
         ];
 
         foreach (array_unique(array_merge(
