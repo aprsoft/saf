@@ -405,8 +405,8 @@ final class CreatePayment extends Component
         if (config('printing.enabled')) {
             $printJob = [
                 'documentId' => $this->documentoId,
-                'template' => 'document.dte-thermal',
-                'format' => 'thermal',
+                'template' => 'document.dte',
+                'format' => 'standard',
             ];
 
             if ($this->integrado) {
