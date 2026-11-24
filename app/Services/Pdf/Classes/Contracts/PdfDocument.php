@@ -17,6 +17,9 @@ interface PdfDocument
 
     public function fileName(int $recordId): string;
 
+    /** @return array{format: string}|array{width: int|float, height: int|float, unit: string} */
+    public function paper(): array;
+
     public function subject(int $recordId): string;
 
     public function defaultRecipient(int $recordId): ?string;
