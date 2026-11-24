@@ -10,14 +10,16 @@ final class PdfRegistry
 {
     public function resolve(string $type): PdfDocument
     {
-        // Nunca resolver clases o vistas arbitrarias desde una petición HTTP.
         return match ($type) {
-            'user.profile'         => app(UserProfilePdf::class),
-            'document.dte'         => app(DocumentDtePdf::class),
-            'document.dte-thermal' => app(DocumentDtePdf::class),
-            'document.quotation'   => app(QuotationPdf::class),
+            'user.profile' => app(UserProfilePdf::class),
+
+            'document.dte' => app(DocumentDtePdf::class),
+
+            'document.dte-thermal' => app(DocumentDteThermal::class),
+
+            'document.quotation' => app(QuotationPdf::class),
+
             default => abort(404),
         };
     }
 }
-

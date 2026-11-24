@@ -1,10 +1,6 @@
+
 import qz from 'qz-tray';
 import axios from 'axios';
-
-const PRINTERS = Object.freeze({
-    standard: 'printerStandard',
-    thermal: 'printerThermal',
-});
 
 export function registerQzPrinting(Livewire) {
     const settings = window.safQzPrinting;
@@ -14,19 +10,20 @@ export function registerQzPrinting(Livewire) {
     const { endpoints, userId, pendingDocument } = settings;
     const storageKey = `saf:qz:${userId}`;
 
-    let pending;
+    let pending = [];
     let busy = false;
     let connection = null;
     let ticket = null;
 
-    // Sin seguimiento fiable, no se habilita la impresión.
+    // Recuperar trabajos sin repetir aquellos
+    // cuyo resultado quedó incierto.
     try {
         pending = JSON.parse(
             sessionStorage.getItem(storageKey) || '[]'
         );
 
         if (!Array.isArray(pending)) {
-            throw new Error('Cola inválida');
+            throw new Error('Cola de impresión inválida');
         }
 
         pending.forEach(job => {
@@ -35,12 +32,9 @@ export function registerQzPrinting(Livewire) {
             }
         });
 
-        sessionStorage.setItem(
-            storageKey,
-            JSON.stringify(pending)
-        );
+        remember();
     } catch (error) {
-        console.error('QZ: cola inaccesible', error);
+        console.error('QZ: almacenamiento inaccesible', error);
         return;
     }
 
@@ -54,91 +48,78 @@ export function registerQzPrinting(Livewire) {
     async function connect() {
         if (qz.websocket.isActive()) return;
 
-        if (!connection) {
-            qz.security.setCertificatePromise(
-                (resolve, reject) => {
-                    axios.get(endpoints.certificate, {
-                        responseType: 'text',
-                    })
-                        .then(({ data }) => resolve(data))
-                        .catch(reject);
-                },
-                { rejectOnFailure: true }
-            );
-
-            qz.security.setSignatureAlgorithm('SHA512');
-
-            const messages = new Map();
-
-            qz.api.setSha256Type(async message => {
-                const bytes = new TextEncoder().encode(message);
-                const digest = await crypto.subtle.digest(
-                    'SHA-256',
-                    bytes
-                );
-
-                const hash = Array.from(
-                    new Uint8Array(digest),
-                    byte => byte.toString(16).padStart(2, '0')
-                ).join('');
-
-                messages.set(hash, {
-                    message,
-                    ticket,
-                });
-
-                return hash;
-            });
-
-            qz.security.setSignaturePromise(
-                hash => (resolve, reject) => {
-                    const payload = messages.get(hash);
-                    messages.delete(hash);
-
-                    if (!payload) {
-                        reject(new Error(
-                            'Solicitud QZ no autorizada'
-                        ));
-                        return;
-                    }
-
-                    axios.post(endpoints.sign, payload, {
-                        responseType: 'text',
-                    })
-                        .then(({ data }) => resolve(data))
-                        .catch(reject);
-                }
-            );
-
-            connection = qz.websocket.connect({
-                retries: 0,
-            }).finally(() => {
-                connection = null;
-            });
+        if (connection) {
+            await connection;
+            return;
         }
+
+        qz.security.setCertificatePromise(
+            (resolve, reject) => {
+                axios.get(endpoints.certificate, {
+                    responseType: 'text',
+                })
+                    .then(({ data }) => resolve(data))
+                    .catch(reject);
+            },
+            { rejectOnFailure: true }
+        );
+
+        qz.security.setSignatureAlgorithm('SHA512');
+
+        const messages = new Map();
+
+        qz.api.setSha256Type(async message => {
+            const digest = await crypto.subtle.digest(
+                'SHA-256',
+                new TextEncoder().encode(message)
+            );
+
+            const hash = Array.from(
+                new Uint8Array(digest),
+                byte => byte.toString(16).padStart(2, '0')
+            ).join('');
+
+            messages.set(hash, {
+                message,
+                ticket,
+            });
+
+            return hash;
+        });
+
+        qz.security.setSignaturePromise(
+            hash => (resolve, reject) => {
+                const payload = messages.get(hash);
+                messages.delete(hash);
+
+                if (!payload) {
+                    reject(new Error('Solicitud no autorizada'));
+                    return;
+                }
+
+                axios.post(endpoints.sign, payload, {
+                    responseType: 'text',
+                })
+                    .then(({ data }) => resolve(data))
+                    .catch(reject);
+            }
+        );
+
+        connection = qz.websocket.connect({
+            retries: 0,
+        }).finally(() => {
+            connection = null;
+        });
 
         await connection;
     }
 
     async function send(job) {
-        const printerName = PRINTERS[job.format];
-
-        if (!printerName) {
-            throw new Error('Formato no permitido');
-        }
-
         await connect();
 
-        // No se utiliza otra impresora como alternativa.
-        const installed = await qz.printers.find();
-
-        if (!installed.includes(printerName)) {
-            throw new Error(
-                `No existe la impresora ${printerName} en este puesto`
-            );
-        }
-
-        const { data } = await axios.post(
+        // Laravel valida la plantilla y el formato
+        // y devuelve la impresora autorizada.
+        const { data: response } = await axios.post(
             endpoints.prepare,
             {
                 document_id: job.documentId,
@@ -147,15 +128,35 @@ export function registerQzPrinting(Livewire) {
             }
         );
 
+        const printerName = response.params?.printer?.name;
+
+        if (!printerName) {
+            throw new Error(
+                'Laravel no indicó una impresora válida'
+            );
+        }
+
+        // Comprobar que la impresora exista en el puesto.
+        const installed = await qz.printers.find();
+
+        if (!installed.includes(printerName)) {
+            throw new Error(
+                `La impresora ${printerName} no está instalada`
+            );
+        }
+
         const config = qz.configs.create(
-            data.params.printer,
-            data.params.options
+            response.params.printer,
+            response.params.options
         );
 
-        ticket = data.ticket;
+        ticket = response.ticket;
 
         try {
-            await qz.print(config, data.params.data);
+            await qz.print(
+                config,
+                response.params.data
+            );
         } finally {
             ticket = null;
         }
@@ -174,8 +175,8 @@ export function registerQzPrinting(Livewire) {
                     item => item.state === 'pending'
                 ))
             ) {
-                // Persistir antes de enviar para evitar
-                // reimpresiones automáticas al recargar.
+                // Registrar estado incierto antes del envío
+                // para evitar reimpresiones automáticas.
                 job.state = 'uncertain';
                 remember();
 
@@ -184,21 +185,18 @@ export function registerQzPrinting(Livewire) {
 
                     job.state = 'sent';
                     remember();
-
-                    console.info(
-                        `DTE ${job.documentId} enviado a QZ Tray`
-                    );
                 } catch (error) {
                     console.error(
-                        `QZ Tray - DTE ${job.documentId}`,
+                        'QZ: impresión sin confirmar',
+                        job,
                         error
                     );
 
                     window.alert(
-                        `No se confirmó la impresión del DTE ` +
-                        `${job.documentId}.\n` +
+                        `Impresión sin confirmar.\n` +
+                        `Documento: ${job.documentId}\n` +
                         `${error.message}\n` +
-                        `Comprueba el papel antes de reintentar.`
+                        `Verifica el papel antes de reintentar.`
                     );
                 }
             }
@@ -206,8 +204,8 @@ export function registerQzPrinting(Livewire) {
             console.error('QZ: error de cola', error);
 
             window.alert(
-                'No se pudo registrar el estado de impresión. ' +
-                'No reimprimas sin verificar el documento.'
+                'No se pudo guardar el estado de impresión. ' +
+                'Verifica el documento antes de reintentar.'
             );
         } finally {
             busy = false;
@@ -215,22 +213,32 @@ export function registerQzPrinting(Livewire) {
     }
 
     function enqueue(payload) {
+        if (!payload || typeof payload !== 'object') {
+            console.error('QZ: solicitud inválida', payload);
+            return;
+        }
+
         const documentId = Number(payload.documentId);
         const template = payload.template;
         const format = payload.format;
 
-        if (!Number.isSafeInteger(documentId) ||
+        if (
+            !Number.isSafeInteger(documentId) ||
             documentId <= 0 ||
-            template !== 'document.dte' ||
-            !Object.hasOwn(PRINTERS, format)
+            typeof template !== 'string' ||
+            !template.trim() ||
+            typeof format !== 'string' ||
+            !format.trim()
         ) {
-            console.error('Solicitud QZ inválida', payload);
+            console.error('QZ: solicitud inválida', payload);
             return;
         }
 
-        // Evita repetir automáticamente el mismo DTE.
+        // Evitar reenvíos automáticos del mismo trabajo.
         if (pending.some(job =>
-            job.documentId === documentId
+            job.documentId === documentId &&
+            job.template === template &&
+            job.format === format
         )) {
             return;
         }
@@ -248,27 +256,24 @@ export function registerQzPrinting(Livewire) {
             remember();
         } catch (error) {
             pending.pop();
-            console.error('QZ: no se guardó el trabajo', error);
+
+            console.error(
+                'QZ: no se guardó el trabajo',
+                error
+            );
             return;
         }
 
         void drain();
     }
 
+    // Registrar el listener antes de Livewire.start().
     Livewire.on('qz-print-dte', payload => {
         enqueue(payload);
     });
 
+    // Procesar un trabajo recibido tras una redirección.
     if (pendingDocument) {
-        // Compatibilidad con el flash anterior basado en ID.
-        const payload = typeof pendingDocument === 'object'
-            ? pendingDocument
-            : {
-                documentId: pendingDocument,
-                template: 'document.dte',
-                format: 'standard',
-            };
-
-        enqueue(payload);
+        enqueue(pendingDocument);
     }
 }

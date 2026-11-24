@@ -12,62 +12,57 @@ use Spatie\LaravelPdf\PdfBuilder;
 
 final class PdfGenerator
 {
-    public function __construct(private readonly PdfRegistry $registry)
-    {
-    }
+    public function __construct(
+        private readonly PdfRegistry $registry
+    ) {}
 
     public function document(string $type): PdfDocument
     {
         return $this->registry->resolve($type);
     }
 
-    public function authorize(string $type, int $recordId, User $actor, string $action): void
-    {
-        $this->document($type)->authorize($actor, $recordId, $action);
+    public function authorize(
+        string $type,
+        int $recordId,
+        User $actor,
+        string $action
+    ): void {
+        $this->document($type)->authorize(
+            $actor,
+            $recordId,
+            $action
+        );
     }
 
-    // public function make(string $type, int $recordId, User $actor, string $action): PdfBuilder
-    // {
-    //     $document = $this->document($type);
-    //     $document->authorize($actor, $recordId, $action);
-
-    //     return Pdf::view($document->view(), $document->data($recordId))
-    //         ->format('a4')
-    //         ->name($document->fileName($recordId));
-    // }
-
     public function make(
-    string $type,
-    int $recordId,
-    User $actor,
-    string $action,
-    string $format = 'standard'
+        string $type,
+        int $recordId,
+        User $actor,
+        string $action
     ): PdfBuilder {
-        abort_unless(
-            in_array($format, ['standard', 'thermal'], true),
-            422
-        );
-
         $document = $this->document($type);
 
-        $document->authorize($actor, $recordId, $action);
+        $document->authorize(
+            $actor,
+            $recordId,
+            $action
+        );
 
-        if ($format === 'thermal') {
-            abort_unless($type === 'document.dte', 422);
-
-            return Pdf::view(
-                'pdf.documents.dte-thermal',
-                $document->data($recordId)
-            )
-                ->paperSize(80, 300, 'mm')
-                ->name($document->fileName($recordId));
-        }
-
-        return Pdf::view(
+        $pdf = Pdf::view(
             $document->view(),
             $document->data($recordId)
-        )
-            ->format('a4')
-            ->name($document->fileName($recordId));
+        )->name($document->fileName($recordId));
+
+        $paper = config("printing.paper.{$type}");
+
+        if (is_array($paper)) {
+            return $pdf->paperSize(
+                $paper['width'],
+                $paper['height'],
+                $paper['unit']
+            );
+        }
+
+        return $pdf->format('a4');
     }
 }
