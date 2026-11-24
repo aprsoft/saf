@@ -50,6 +50,11 @@ final class DocumentDtePdf implements PdfDocument
         }
     }
 
+    public function paper(): array
+    {
+        return ['format' => 'a4'];
+    }
+
     public function view(): string
     {
         return 'pdf.documents.dte';
