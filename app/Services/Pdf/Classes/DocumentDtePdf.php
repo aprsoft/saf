@@ -10,6 +10,7 @@ use App\Services\Dte\Get\DteApiCompanieGet;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 final class DocumentDtePdf implements PdfDocument
@@ -20,13 +21,29 @@ final class DocumentDtePdf implements PdfDocument
         string $action
     ): void {
         abort_unless(
-            in_array($action, ['view', 'download', 'email'], true),
+            in_array($action, ['view', 'download', 'email', 'print'], true),
             404
         );
 
         $document = Document::query()->findOrFail($recordId);
 
         Gate::forUser($actor)->authorize('view', $document);
+
+        if ($action === 'print') {
+            $confirmed = DB::table('dte_emission_attempts')
+                ->where('document_id', $recordId)
+                ->where('estado', 'CONFIRMADA')
+                ->where('folio', $document->folio)
+                ->exists();
+
+            abort_unless(
+                $confirmed &&
+                (int) $document->folio > 0 &&
+                filled($document->ted),
+                409,
+                'El DTE no tiene una emisión confirmada.'
+            );
+        }
 
         if ($action === 'email') {
             Gate::forUser($actor)->authorize('email', $document);
