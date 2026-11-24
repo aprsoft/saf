@@ -396,11 +396,19 @@ test('solo la emisión aceptada activa impresión después del cobro', function 
     $component->assertHasNoErrors();
     expect($nota->fresh()->folio)->toBe(1234);
     expect(Payment::count())->toBe(1);
+    $printJob = [
+        'documentId' => $nota->id,
+        'template' => 'document.dte',
+        'format' => 'standard',
+    ];
+
     if ($integrado && $enabled) {
-        $component->assertDispatched('qz-print-dte', documentId: $nota->id);
+        $component->assertDispatched('qz-print', ...$printJob);
     } else {
-        $component->assertNotDispatched('qz-print-dte');
-        expect(session('qz_print_document'))->toBe($enabled ? $nota->id : null);
+        $component->assertNotDispatched('qz-print');
+        expect(session('qz_print_document'))->toBe(
+            $enabled && ! $integrado ? $printJob : null
+        );
     }
 })->with([[true, true], [false, true], [true, false], [false, false]]);
 
@@ -412,6 +420,6 @@ test('no solicita impresión de un DTE rechazado o incierto', function (bool $ac
     $manager->shouldReceive('send')->once()->andReturn(new DteResponse(accepted: $accepted, folio: 123, xml: null));
     app()->instance(DtePostManager::class, $manager);
     Livewire::actingAs($user)->test(CreatePayment::class, ['document' => $nota, 'integrado' => true])
-        ->call('confirmarPagoIntegrado')->assertHasErrors('documento')->assertNotDispatched('qz-print-dte');
+        ->call('confirmarPagoIntegrado')->assertHasErrors('documento')->assertNotDispatched('qz-print');
     expect(session('qz_print_document'))->toBeNull();
 })->with([true, false]);
