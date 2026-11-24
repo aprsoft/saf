@@ -411,7 +411,7 @@ final class CreatePayment extends Component
 
             if ($this->integrado) {
                 // Evento que lo escucha el navegador 
-                $this->dispatch('qz-print-dte', ...$printJob);
+                $this->dispatch('qz-print', ...$printJob);
             } else {
                 session()->flash('qz_print_document', $printJob);
             }
