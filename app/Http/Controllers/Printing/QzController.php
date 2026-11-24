@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Printing;
 
 use App\Http\Controllers\Controller;
-use App\Models\Document;
 use App\Services\Pdf\PdfGenerator;
 use App\Services\Printing\QzSigningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +30,6 @@ final class QzController extends Controller
         abort_unless(config('printing.enabled'), 409);
 
         $printers = config('printing.printers', []);
-        $templates = config('printing.templates', []);
 
         $input = $request->validate([
             'document_id' => [
@@ -44,7 +40,7 @@ final class QzController extends Controller
             'template' => [
                 'required',
                 'string',
-                Rule::in(array_keys($templates)),
+                'max:100',
             ],
             'format' => [
                 'required',
@@ -57,17 +53,6 @@ final class QzController extends Controller
         $template = $input['template'];
         $format = $input['format'];
 
-        // No se permite cualquier combinación.
-        abort_unless(
-            in_array(
-                $format,
-                $templates[$template] ?? [],
-                true
-            ),
-            422,
-            'Plantilla y formato incompatibles.'
-        );
-
         $printerName = $printers[$format];
 
         abort_unless(
@@ -77,32 +62,12 @@ final class QzController extends Controller
             'Impresora no configurada.'
         );
 
-        $document = Document::query()
-            ->findOrFail($documentId);
-
-        Gate::authorize('view', $document);
-
-        // Solo imprimir DTE efectivamente confirmados.
-        $confirmed = DB::table('dte_emission_attempts')
-            ->where('document_id', $documentId)
-            ->where('estado', 'CONFIRMADA')
-            ->where('folio', $document->folio)
-            ->exists();
-
-        abort_unless(
-            $confirmed &&
-            (int) $document->folio > 0 &&
-            filled($document->ted),
-            409,
-            'El DTE no tiene una emisión confirmada.'
-        );
-
-        // PdfRegistry resuelve la clase correspondiente.
+        // Cada representación PDF valida el permiso y sus reglas particulares.
         $pdfBase64 = $pdfs->make(
             $template,
             $documentId,
             $request->user(),
-            'view'
+            'print'
         )->base64();
 
         $data = [[
@@ -148,7 +113,8 @@ final class QzController extends Controller
             'qz:'.$request->user()->id.':'.$ticket,
             [
                 'params' => $params,
-                'document_id' => $documentId,
+                'record_id' => $documentId,
+                'template' => $template,
             ],
             now()->addMinutes(5)
         );
@@ -161,7 +127,7 @@ final class QzController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
-    public function sign(Request $request, QzSigningService $signer): Response 
+    public function sign(Request $request, QzSigningService $signer, PdfGenerator $pdfs): Response 
     {
         abort_unless(config('printing.enabled'), 409);
 
@@ -226,13 +192,17 @@ final class QzController extends Controller
                 403
             );
 
-            if ($job['document_id'] !== null) {
-                Gate::authorize(
-                    'view',
-                    Document::query()
-                        ->findOrFail($job['document_id'])
-                );
-            }
+            abort_unless(
+                isset($job['template'], $job['record_id']),
+                403
+            );
+
+            $pdfs->authorize(
+                $job['template'],
+                (int) $job['record_id'],
+                $request->user(),
+                'print'
+            );
 
             // Solo una firma por trabajo.
             abort_unless(
