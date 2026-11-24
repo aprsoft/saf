@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Document;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\Permission\Models\Permission;
 
@@ -118,6 +119,27 @@ test('impresión universal prepara PDF de usuario sin exigir DTE', function (): 
 
     expect($response->json('ticket'))->toBeString();
     Pdf::assertViewIs('pdf.users.profile');
+});
+
+test('caché guarda la huella y no el PDF completo', function (): void {
+    $user = qzTestUser();
+    $document = qzTestDocument($user, 'CONFIRMADA');
+    Pdf::fake();
+
+    $job = $this->actingAs($user)
+        ->postJson(route('printing.qz.prepare'), qzRequest($document->id))
+        ->assertOk()
+        ->json();
+
+    $cached = Cache::get('qz:'.$user->id.':'.$job['ticket']);
+
+    expect($cached)->toHaveKeys(['params_hash', 'template', 'record_id'])
+        ->not->toHaveKey('params');
+
+    expect($cached['params_hash'])->toBe(hash(
+        'sha256',
+        json_encode($job['params'], JSON_THROW_ON_ERROR)
+    ));
 });
 
 test('firma rechaza comandos arbitrarios y mensajes vencidos', function (): void {
