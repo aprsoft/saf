@@ -22,6 +22,11 @@ final class UserProfilePdf implements PdfDocument
         }
     }
 
+    public function paper(): array
+    {
+        return ['format' => 'a4'];
+    }
+
     public function view(): string
     {
         return 'pdf.users.profile';
