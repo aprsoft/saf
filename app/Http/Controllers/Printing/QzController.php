@@ -112,7 +112,10 @@ final class QzController extends Controller
         Cache::put(
             'qz:'.$request->user()->id.':'.$ticket,
             [
-                'params' => $params,
+                'params_hash' => hash(
+                    'sha256',
+                    json_encode($params, JSON_THROW_ON_ERROR)
+                ),
                 'record_id' => $documentId,
                 'template' => $template,
             ],
@@ -188,7 +191,15 @@ final class QzController extends Controller
 
             abort_unless(
                 is_array($job) &&
-                $message['params'] === $job['params'],
+                isset($job['params_hash']) &&
+                is_array($message['params']) &&
+                hash_equals(
+                    $job['params_hash'],
+                    hash('sha256', json_encode(
+                        $message['params'],
+                        JSON_THROW_ON_ERROR
+                    ))
+                ),
                 403
             );
 
