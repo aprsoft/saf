@@ -6,6 +6,7 @@ namespace App\Services\Pdf;
 
 use App\Models\User;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
+use App\Services\Pdf\Classes\Contracts\CustomPaperSize;
 use App\Services\Pdf\Classes\PdfRegistry;
 use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\LaravelPdf\PdfBuilder;
@@ -53,9 +54,8 @@ final class PdfGenerator
             $document->data($recordId)
         )->name($document->fileName($recordId));
 
-        $paper = config("printing.paper.{$type}");
-
-        if (is_array($paper)) {
+        if ($document instanceof CustomPaperSize) {
+            $paper = $document->paperSize();
             return $pdf->paperSize(
                 $paper['width'],
                 $paper['height'],
