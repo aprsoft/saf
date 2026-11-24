@@ -28,12 +28,6 @@ return [
         'thermal' => 'printerThermal',
     ],
 
-    // Representaciones que se permite enviar a cada formato.
-    'templates' => [
-        'document.dte' => ['standard'],
-        'document.dte-thermal' => ['thermal'],
-    ],
-
     // Dimensiones especiales de las representaciones PDF.
     'paper' => [
         'document.dte-thermal' => [
