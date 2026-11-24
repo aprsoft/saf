@@ -134,7 +134,6 @@
                                 'prepare' => route('printing.qz.prepare'),
                                 'sign' => route('printing.qz.sign'),
                             ],
-                            'userId' => auth()->id(),
                             'pendingDocument' => session('qz_print_document'),
                         ]) }};
                     </script>
