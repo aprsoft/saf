@@ -10,8 +10,9 @@ use App\Services\Dte\Get\DteApiCompanieGet;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
 use Illuminate\Support\Facades\Gate;
+use RuntimeException;
 
-final class DocumentDtePdf implements PdfDocument
+final class DocumentDteThermal implements PdfDocument
 {
     public function authorize(
         User $actor,
@@ -48,32 +49,42 @@ final class DocumentDtePdf implements PdfDocument
             ])
             ->findOrFail($recordId);
 
-            
-            $ted = $document->ted;
+        $timbreService = app(TimbrePdf417Service::class);
 
-            if (! is_string($ted) || trim($ted) === '') {
+        // 1. Buscar el TED almacenado en documents.
+        $ted = $document->ted;
+        
 
-                $response = DteApiCompanieGet::get($document, 'xml');
+        // 2. Consultar la API solamente si no existe TED.
+        if (! is_string($ted) || trim($ted) === '') {
 
-                if (
-                    ! is_array($response) ||
-                    ! is_string($response['xml'] ?? null) ||
-                    trim($response['xml']) === ''
-                ) {
-                    throw new \RuntimeException(
-                        "No fue posible recuperar el XML del DTE ID {$document->id} desde la API."
-                    );
-                }
+            $response = DteApiCompanieGet::get(
+                $document,
+                'xml'
+            );
 
-                $ted = $response['xml'];
+            if (
+                ! is_array($response) ||
+                ! is_string($response['xml'] ?? null) ||
+                trim($response['xml']) === ''
+            ) {
+                throw new RuntimeException(
+                    "La API no entregó el XML del DTE ID {$document->id}."
+                );
             }
 
-            $stamp = app(TimbrePdf417Service::class)->generar($ted);
+            // 3. Recuperar TED desde el XML completo.
+            $ted = $timbreService->extraerTed(
+                $response['xml']
+            );
+        }
 
+        // 4. Crear PNG directamente desde el TED.
+        $stamp = $timbreService->generarDesdeTed($ted);
 
         return [
             'document' => $document,
-            'stamp'    =>  $stamp,
+            'stamp' => $stamp,
         ];
     }
 

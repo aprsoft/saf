@@ -405,11 +405,12 @@ final class CreatePayment extends Component
         if (config('printing.enabled')) {
             $printJob = [
                 'documentId' => $this->documentoId,
-                'template' => 'document.dte',
-                'format' => 'standard',
+                'template' => 'document.dte-thermal',
+                'format' => 'thermal',
             ];
 
             if ($this->integrado) {
+                // Evento que lo escucha el navegador 
                 $this->dispatch('qz-print-dte', ...$printJob);
             } else {
                 session()->flash('qz_print_document', $printJob);

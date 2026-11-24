@@ -29,9 +29,15 @@ final class QzController extends Controller
     {
         abort_unless(config('printing.enabled'), 409);
         $input = $request->validate([
-            'document_id' => ['nullable', 'integer'],
-            'printer' => ['required', 'string', 'max:255', 'not_regex:/[\\\\\/\x00-\x1F]/'],
+            'document_id' => ['required', 'integer', 'min:1'],
+            'template' => ['required', 'in:document.dte'],
+            'format' => ['required', 'in:standard,thermal'],
         ]);
+
+        $printerName = match ($input['format']) {
+            'standard' => 'printerStandard',
+            'thermal' => 'printerThermal',
+        };
 
         $documentId = $input['document_id'] ?? null;
         if ($documentId !== null) {
@@ -40,8 +46,18 @@ final class QzController extends Controller
             abort_unless(DB::table('dte_emission_attempts')->where('document_id', $documentId)
                 ->where('estado', 'CONFIRMADA')->where('folio', $document->folio)->exists()
                 && (int) $document->folio > 0 && filled($document->ted), 409, 'El DTE no tiene una emisión aceptada y confirmada.');
-            $data = [['type' => 'pixel', 'format' => 'pdf', 'flavor' => 'base64',
-                'data' => $pdfs->make('document.dte', $documentId, $request->user(), 'view')->base64()]];
+            $data = [[
+                'type' => 'pixel',
+                'format' => 'pdf',
+                'flavor' => 'base64',
+                'data' => $pdfs->make(
+                    $input['template'],
+                    $documentId,
+                    $request->user(),
+                    'view',
+                    $input['format']
+                )->base64(),
+            ]];       
         } else {
             $data = [['type' => 'pixel', 'format' => 'html', 'flavor' => 'plain',
                 'data' => '<html><body><h1>SAF — Prueba de impresión</h1><p>Conexión con QZ Tray correcta.</p></body></html>']];
@@ -55,7 +71,7 @@ final class QzController extends Controller
             'rasterize' => false, 'rotation' => 0, 'scaleContent' => true, 'size' => null,
             'units' => 'in', 'forceRaw' => false, 'encoding' => null, 'spool' => null,
         ];
-        $params = ['printer' => ['name' => $input['printer']], 'options' => $options, 'data' => $data];
+        $params = ['printer' => ['name' => $printerName], 'options' => $options, 'data' => $data];
         $ticket = (string) Str::uuid();
         Cache::put('qz:'.$request->user()->id.':'.$ticket, [
             'params' => $params, 'document_id' => $documentId,
