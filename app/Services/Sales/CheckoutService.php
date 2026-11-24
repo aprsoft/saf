@@ -11,7 +11,6 @@ use App\Models\ErrorDte;
 use App\Models\Payment;
 use App\Models\Typedocument;
 use App\Services\Dte\Post\Classes\DteApiFactory;
-use App\Services\Dte\Post\Classes\DteResponse;
 use App\Services\Dte\Post\DtePostManager;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use Illuminate\Support\Carbon;
@@ -120,21 +119,17 @@ final class CheckoutService
 
         try {
             $respuesta = app(DtePostManager::class)->send($preparado['dte']);
-            $r = $respuesta instanceof DteResponse ? $respuesta->toArray() : $respuesta;
-
-            if (! is_array($r) || ($r['accepted'] ?? false) !== true) {
+            if (! $respuesta->accepted) {
                 $estadoError = 'RECHAZADA';
                 throw new RuntimeException(
-                    'La API rechazó el DTE: '.(is_array($r)
-                        ? (string) ($r['message'] ?? 'Sin detalle')
-                        : 'Respuesta inesperada')
+                    'La API rechazó el DTE: '.($respuesta->message ?? 'Sin detalle')
                 );
             }
 
-            $folio = filter_var($r['folio'] ?? null, FILTER_VALIDATE_INT, [
+            $folio = filter_var($respuesta->folio, FILTER_VALIDATE_INT, [
                 'options' => ['min_range' => 1],
             ]);
-            $xml = $r['xml'] ?? null;
+            $xml = $respuesta->xml;
 
             if ($folio === false || ! is_string($xml) || trim($xml) === '') {
                 throw new RuntimeException('La API no confirmó folio y XML válidos.');
