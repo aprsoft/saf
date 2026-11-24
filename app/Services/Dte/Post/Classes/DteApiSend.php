@@ -39,7 +39,7 @@ final class DteApiSend
 
             $response = curl_exec($curl);
             
-
+// dd($response);
             $httpStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
             if ($response === false) {

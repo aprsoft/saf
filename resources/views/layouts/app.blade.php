@@ -125,9 +125,19 @@
 
             {{-- Alertas generales --}}
             @include('partials.alert')
-            @auth
+           @auth
                 @if (config('printing.enabled'))
-                    <livewire:printing.printer-settings />
+                    <script>
+                        window.safQzPrinting = {{ Illuminate\Support\Js::from([
+                            'endpoints' => [
+                                'certificate' => route('printing.qz.certificate'),
+                                'prepare' => route('printing.qz.prepare'),
+                                'sign' => route('printing.qz.sign'),
+                            ],
+                            'userId' => auth()->id(),
+                            'pendingDocument' => session('qz_print_document'),
+                        ]) }};
+                    </script>
                 @endif
             @endauth
 

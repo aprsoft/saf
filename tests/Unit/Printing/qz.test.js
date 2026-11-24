@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import printerSettings from '../../../resources/js/printing/qz.js';
+import { createPrinterController } from '../../../resources/js/printing/qz.js';
 
 function panel() {
-    const state = printerSettings({}, 1, null);
+    const state = createPrinterController({}, 1, null);
     state.remember = () => {};
     return state;
 }
@@ -49,9 +49,7 @@ test('un almacenamiento bloqueado impide enviar sin seguimiento local', async ()
 test('firma presenta el JSON original y el ticket al servidor, no un hash arbitrario', async () => {
     const { default: qz } = await import('qz-tray');
     const { default: axios } = await import('axios');
-    const { webcrypto, createHash } = await import('node:crypto');
-    const originalCrypto = globalThis.crypto;
-    globalThis.crypto = webcrypto;
+    const { createHash } = await import('node:crypto');
     const originals = [qz.websocket.isActive, qz.websocket.connect, qz.api.setSha256Type,
         qz.security.setCertificatePromise, qz.security.setSignatureAlgorithm, qz.security.setSignaturePromise, axios.post];
     let hasher, signer, payload;
@@ -75,6 +73,13 @@ test('firma presenta el JSON original y el ticket al servidor, no un hash arbitr
     } finally {
         [qz.websocket.isActive, qz.websocket.connect, qz.api.setSha256Type,
             qz.security.setCertificatePromise, qz.security.setSignatureAlgorithm, qz.security.setSignaturePromise, axios.post] = originals;
-        globalThis.crypto = originalCrypto;
     }
+});
+
+test('un evento sin impresora configurada queda incierto sin reemitir DTE', async () => {
+    const state = panel();
+    state.pending = [{ id: 20, state: 'pending' }];
+    await state.drain();
+    assert.equal(state.pending[0].state, 'uncertain');
+    assert.match(state.notice, /impresión sin confirmar/);
 });

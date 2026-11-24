@@ -1,23 +1,22 @@
 import './bootstrap';
-import printerSettings from './printing/qz.js';
+import { registerQzPrinting } from './printing/qz.js';
 import salesNotePos from './components/sales-note-pos.js';
 
 // 1. Importar y exponer Livewire PRIMERO
 import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm.js';
+
 import permissionSelector from './components/permission-selector.js';
+
 window.Livewire = Livewire;
 window.Alpine = Alpine;
-
-
 
 // 2. Iniciar Livewire (esto también inicia Alpine automáticamente)
 Alpine.data('permissionSelector', permissionSelector);
 Alpine.data('salesNotePos', salesNotePos);
 
-Alpine.data('printerSettings', printerSettings);
-
 Livewire.start();
 
+registerQzPrinting(Livewire);
 
 // 3. Importar PowerGrid (ya encontrará window.Livewire y window.Alpine)
 import './../../vendor/power-components/livewire-powergrid/dist/powergrid';
