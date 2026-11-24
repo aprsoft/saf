@@ -17,7 +17,7 @@ final class QuotationPdf implements PdfDocument
 {
     public function authorize(User $actor, int $recordId, string $action): void
     {
-        abort_unless(in_array($action, ['view', 'download', 'email'], true), 404);
+        abort_unless(in_array($action, ['view', 'download', 'email', 'print'], true), 404);
 
         $cotizacion = Document::query()
             ->whereKey($recordId)
