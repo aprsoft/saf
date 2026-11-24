@@ -28,12 +28,5 @@ return [
         'thermal' => 'printerThermal',
     ],
 
-    // Dimensiones especiales de las representaciones PDF.
-    'paper' => [
-        'document.dte-thermal' => [
-            'width' => 80,
-            'height' => 300,
-            'unit' => 'mm',
-        ],
     ],
 ];
