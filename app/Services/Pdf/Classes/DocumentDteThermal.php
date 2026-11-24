@@ -6,12 +6,18 @@ namespace App\Services\Pdf\Classes;
 
 use App\Models\User;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
+use App\Services\Pdf\Classes\Contracts\CustomPaperSize;
 
-final class DocumentDteThermal implements PdfDocument
+final class DocumentDteThermal implements PdfDocument, CustomPaperSize
 {
     public function __construct(
         private readonly DocumentDtePdf $dte
     ) {}
+
+    public function paperSize(): array
+    {
+        return ['width' => 80, 'height' => 300, 'unit' => 'mm'];
+    }
 
     public function authorize(
         User $actor,
