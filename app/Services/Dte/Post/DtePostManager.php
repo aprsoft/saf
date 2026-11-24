@@ -10,7 +10,7 @@ use App\Services\Dte\Post\Classes\DteApiResponse;
 use App\Services\Dte\Post\Classes\DteApiSend;
 use App\Services\Dte\Post\Classes\DteResponse;
 
-final class DtePostManager
+class DtePostManager
 {
     public function send(Document $document): DteResponse
     {
