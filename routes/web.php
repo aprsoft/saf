@@ -122,6 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::get('suppliers', 'index')->name('suppliers.index');
         Route::get('customer/create', 'create')->name('customer.create');
         Route::get('supplier/create', 'create')->name('supplier.create');
+         Route::get('customer/show', 'show')->name('customer.show');
 
     });
 

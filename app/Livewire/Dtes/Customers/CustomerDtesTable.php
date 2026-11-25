@@ -144,7 +144,7 @@ final class CustomerDtesTable extends PowerGridComponent
                 '<a href="%s" class="text-blue-600 hover:underline font-semibold">
                     %s
                 </a>',
-                route('payments.show', $payment->id),
+                route('payments.customer.show', $payment->id),
                 $payment->id
             );
 

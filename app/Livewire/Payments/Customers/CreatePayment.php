@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Payments\Customer;
+namespace App\Livewire\Payments\Customers;
 
 use App\Livewire\Payments\Customer\Forms\PaymentForm;
 use App\Models\Company;
@@ -428,6 +428,6 @@ final class CreatePayment extends Component
 
     public function render(): View
     {
-        return view($this->integrado ? 'livewire.payments.customer.confirm-payment' : 'livewire.payments.customer.create-payment');
+        return view($this->integrado ? 'livewire.payments.customers.confirm-payment' : 'livewire.payments.customers.create-payment');
     }
 }

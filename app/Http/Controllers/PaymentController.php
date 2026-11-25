@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Document;
+use App\Models\Payment;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -24,6 +25,24 @@ class PaymentController extends Controller
             };
 
         return view('payments.'.$entity.'.index'); 
+    }
+
+    public function show(Request $request, Payment $payment)
+    {
+
+        $route      = $request->route();
+        $hasParams  = ! empty($route->parameters());
+
+
+        $entity = $hasParams
+            ? null
+            : match ($route->getName()) {
+                'payments.customer.show'   => 'customer',
+                'payments.supplier.show'   => 'supplier',            
+                default                    => 'all',
+            };
+    
+        return view('payments.'.$entity.'.show',compact('payment'));
     }
 
      
