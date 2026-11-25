@@ -1,0 +1,140 @@
+<?php
+
+namespace App\Livewire\SalesNotes\Customers;
+
+use App\Models\Document;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Number;
+use Livewire\Attributes\On;
+use PowerComponents\LivewirePowerGrid\Button;
+use PowerComponents\LivewirePowerGrid\Column;
+use PowerComponents\LivewirePowerGrid\Components\SetUp\Responsive;
+use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
+use PowerComponents\LivewirePowerGrid\PowerGridComponent;
+use PowerComponents\LivewirePowerGrid\PowerGridFields;
+
+
+
+final class CustomerSalesNotesTable extends PowerGridComponent
+{
+    public string $tableName = 'customerSalesNotesTable';  
+
+    public function setUp(): array
+    {
+        $header = PowerGrid::header()
+            ->showSearchInput()
+            ->showToggleColumns();
+   
+
+        return [
+            $header,
+            PowerGrid::footer()
+                ->showPerPage(perPage: 10, perPageValues: [10, 20, 50, 100])
+                ->showRecordCount(),
+            PowerGrid::responsive()
+                ->fixedColumns('id', 'total_format', 'actions'),
+        ];
+    }
+
+
+    public function datasource(): Builder
+    {
+        return Document::query()   
+            ->vigente()
+            ->where('typedocument_id',2)
+            ->where('estado_documento','VIGENTE')
+            ->where('condicion_documento','FINALIZADO')
+            ->orderBy('id','desc');   
+    }
+
+    public function fields(): PowerGridFields
+    {
+        return PowerGrid::fields()
+            ->add('id')
+            ->add('rut', fn ($doc) => $doc->rut)
+            ->add('razon_social', fn ($doc) =>$doc->fullNameEntity)            
+            ->add('fecha')
+            ->add('total_format', fn ($doc) =>Number::currency($doc->total, in: 'CLP', locale: 'es_CL'));  
+    }     
+   
+
+    public function columns(): array
+    {     
+    
+        return array_filter([
+            Column::make('ID', 'id')
+                ->sortable()
+                ->searchable(),
+            Column::make('RUT', 'rut')
+                ->sortable()
+                ->searchableRaw('customers.rut LIKE ?'),
+            Column::make('Razón Social', 'razon_social')
+                ->sortable()
+                ->searchableRaw("
+                    CONCAT_WS(
+                        ' ',
+                        COALESCE(customers.nombres, suppliers.nombres),
+                        COALESCE(customers.apellido_paterno, suppliers.apellido_paterno),
+                        COALESCE(customers.apellido_materno, suppliers.apellido_materno)
+                    ) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')
+                "),             
+                    
+            Column::make('Fecha', 'fecha')
+                ->sortable()
+                ->searchable(),           
+            Column::make('Total', 'total_format'),
+            Column::action('Acciones')
+        ]);
+    }
+
+    #[On('restore-sales-note-pos')]
+    public function edit(int $id): void
+    {
+        $salesNote = Document::query()
+            ->where('typedocument_id', 2)
+            ->where('estado_documento', 'VIGENTE')
+            ->where('condicion_documento', 'FINALIZADO')
+            ->findOrFail($id);
+
+        $salesNote->update([
+            'condicion_documento' => 'EN PROCESO',
+        ]);
+    }
+
+    public function actions($row): array
+    {
+        return [
+            Button::add('payment')
+                ->icon('default-cash')               
+                ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
+                ->route('payments.customer.create', ['document' => $row->id]), 
+
+             Button::add('show')
+                ->icon('default-eye')               
+                ->class('px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center')
+                ->route('payments.customer.create', ['document' => $row->id]), 
+
+           Button::add('edit')
+                // ->slot('Edit: '.$row->id)
+                ->id()
+                ->icon('default-restore')
+                ->class('px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center justify-center')
+                // ->dispatch('edit', ['rowId' => $row->id]),
+                ->dispatch(
+                    'open-confirm-modal',
+                    [
+                        'id'           => $row->id,
+                        'name'         => 'Nota de Venta N° '.$row->id,
+                        'confirmEvent' => 'restore-sales-note-pos',
+                        'title'        => 'Restaurar Nota de Vneta',
+                        'message'      => '¿Está seguro de que desea devolver esta Nota de Venta?',
+                       
+                    ]
+                ),
+                    
+        ];
+    }
+
+
+   
+}

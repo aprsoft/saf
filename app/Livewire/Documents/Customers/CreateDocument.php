@@ -184,11 +184,6 @@ class CreateDocument extends Component
             'fecha' => today(),
             'estado_documento' => 'VIGENTE',
             'condicion_documento' => 'EN PROCESO',
-            'monto_exento' => 0,
-            'monto_neto' => 0,
-            'monto_iva' => 0,
-            'monto_total' => 0,
-            'valor_pagar' => 0,
         ]));
     }
 
@@ -252,7 +247,6 @@ class CreateDocument extends Component
             ]);
             $detalle->save();
             $documento->update($this->cabecera());
-            $this->actualizarTotales($documento);
 
             return [
                 'id' => $producto->id,
@@ -270,26 +264,11 @@ class CreateDocument extends Component
         return $resultado;
     }
 
-    private function actualizarTotales(Document $documento): void
-    {
-        $totales = $documento->details()->selectRaw(
-            'COALESCE(SUM(MontoNetoItem),0) AS neto, COALESCE(SUM(ivaItem),0) AS iva, COALESCE(SUM(MontoExeItem),0) AS exento, COALESCE(SUM(MontoItem),0) AS total'
-        )->first();
-        $documento->update([
-            'monto_neto' => (int) $totales->neto,
-            'monto_iva' => (int) $totales->iva,
-            'monto_exento' => (int) $totales->exento,
-            'monto_total' => (int) $totales->total,
-            'valor_pagar' => (int) $totales->total,
-        ]);
-    }
-
     public function eliminarItem(int $detalleId): void
     {
         DB::transaction(function () use ($detalleId): void {
             $documento = $this->notaEditable(true);
             $documento->details()->whereKey($detalleId)->firstOrFail()->delete();
-            $this->actualizarTotales($documento);
         });
     }
 

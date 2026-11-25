@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-    <x-common.page-breadcrumb pageTitle="Clientes" />
+    <x-common.page-breadcrumb pageTitle="Documento Tributario Electronico" />
 
     <div class="space-y-6">
         
-        <livewire:customers.customer-table
-            :routeName="$routeName"
+        <livewire:dtes.customers.show-dte
+            :document="$document"
         />
     
     </div>

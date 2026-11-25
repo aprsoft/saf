@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-// use Illuminate\Http\Request;
+use App\Models\Company;
 
 class CashController extends Controller
 {
     public function index()
     {
-        return view('cashs.index');
+        abort_if(Company::query()->first()?->cajaIntegrada(), 404);
+
+        return view('cashs.customers.index');
     }
 }

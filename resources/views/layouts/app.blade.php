@@ -125,6 +125,20 @@
 
             {{-- Alertas generales --}}
             @include('partials.alert')
+           @auth
+                @if (config('printing.enabled'))
+                    <script>
+                        window.safQzPrinting = {{ Illuminate\Support\Js::from([
+                            'endpoints' => [
+                                'certificate' => route('printing.qz.certificate'),
+                                'prepare' => route('printing.qz.prepare'),
+                                'sign' => route('printing.qz.sign'),
+                            ],
+                            'pendingDocument' => session('qz_print_document'),
+                        ]) }};
+                    </script>
+                @endif
+            @endauth
 
 
             <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">

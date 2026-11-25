@@ -5,11 +5,14 @@ use App\Http\Controllers\CashReportController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DteController;
 use App\Http\Controllers\ErrorController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\Printing\QzController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesCounterController;
 use App\Http\Controllers\SalesNoteController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnpaidController;
@@ -33,6 +36,16 @@ Route::get('/', fn () => view('welcome'))->name('home');
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+
+    Route::prefix('printing/qz')->name('printing.qz.')
+        ->middleware('throttle:60,1')->controller(QzController::class)->group(function () {
+            Route::get('certificate', 'certificate')->name('certificate');
+            Route::post('prepare', 'prepare')->name('prepare');
+            Route::post('sign', 'sign')->name('sign');
+        });
+
+    Route::view('configuration', 'companies.configuration')
+        ->middleware('can:configuration.edit')->name('configuration.edit');
 
     // Dashboard
     Route::get('dashboard', DashboardController::class)->name('dashboard');
@@ -80,24 +93,23 @@ Route::middleware('auth')->group(function () {
     | Clientes
     |----------------------------------------------------------------------
     */
-        Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('create', 'create')->name('create');
-            Route::get('{customer}', 'show')->name('show');            
-        });
+    Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('create', 'create')->name('create');
+        Route::get('{customer}', 'show')->name('show');
+        Route::get('edit/{customer}', 'edit')->name('edit');
+    });
 
     /*
     |----------------------------------------------------------------------
     | Proveedores
     |----------------------------------------------------------------------
     */
-        Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::get('create', 'create')->name('create');
-            Route::get('{supplier}', 'show')->name('show');         
-        });
-   
-
+    Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('create', 'create')->name('create');
+        Route::get('{supplier}', 'show')->name('show');
+    });
 
     /*
     |----------------------------------------------------------------------
@@ -105,81 +117,108 @@ Route::middleware('auth')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::prefix('payments')->name('payments.')->controller(PaymentController::class)->group(function () {
-        
+
         Route::get('customers', 'index')->name('customers.index');
         Route::get('suppliers', 'index')->name('suppliers.index');
         Route::get('customer/create', 'create')->name('customer.create');
         Route::get('supplier/create', 'create')->name('supplier.create');
+         Route::get('customer/show', 'show')->name('customer.show');
 
-     });
+    });
 
     /*
     |----------------------------------------------------------------------
     | Documentos
     |----------------------------------------------------------------------
     */
-        Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
+    Route::prefix('documents')->name('documents.')->controller(DocumentController::class)->group(function () {
 
-            Route::get('customer', 'index')->name('customer.index');
-            Route::get('customer/create', 'create')->name('customer.create');       
-            Route::get('{document}', 'show')->name('show');
-        });
-
+        Route::get('customer', 'index')->name('customer.index');
+        Route::get('customer/create', 'create')->name('customer.create');
+        Route::get('{document}', 'show')->name('show');
+    });
 
     /*
     |----------------------------------------------------------------------
     | Documentos Tributarios Electronicos
     |----------------------------------------------------------------------
     */
-        Route::prefix('dtes')->name('dtes.')->controller(DocumentController::class)->group(function () {
+    Route::prefix('dtes')->name('dtes.')->controller(DteController::class)->group(function () {
 
-            Route::get('customer', 'index')->name('customers.index');
-            Route::get('supplier', 'index')->name('suppliers.index');
-            Route::get('customer/create', 'create')->name('customer.create');
-            Route::get('supplier/create', 'create')->name('supplier.create');
-            Route::get('customer/{document}', 'show')->name('customer.show');
-            Route::get('supplier/{document}', 'show')->name('supplier.show');      
-        
-        });
+        Route::get('customers', 'index')->name('customers.index');
+        Route::get('customer/{document}', 'show')->name('customer.show');
+
+        // Route::get('supplier', 'index')->name('suppliers.index');
+        // Route::get('customer/create', 'create')->name('customer.create');
+        // Route::get('supplier/create', 'create')->name('supplier.create');
+        // Route::get('supplier/{document}', 'show')->name('supplier.show');
+
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Documentos Tributarios Electronicos (Guis de despacho)
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('dispatchs')->name('dispatchs.')->controller(DteController::class)->group(function () {
+
+        Route::get('customers', 'index')->name('customers.index');
+        Route::get('customer/{document}', 'show')->name('customer.show');
+
+        // Route::get('supplier', 'index')->name('suppliers.index');
+        // Route::get('customer/create', 'create')->name('customer.create');
+        // Route::get('supplier/create', 'create')->name('supplier.create');
+        // Route::get('supplier/{document}', 'show')->name('supplier.show');
+
+    });
 
     /*
     |----------------------------------------------------------------------
     | Notas de venta
     |----------------------------------------------------------------------
     */
-        Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
+    Route::prefix('sales-notes')->name('sales-notes.')->controller(SalesNoteController::class)->group(function () {
 
-            Route::get('/', 'index')->name('index');      
-            Route::get('/customer/create', 'create')->name('customer.create');   
-            Route::get('/customer/{document}', 'show')->name('customer.show');    
- 
-        });
+        Route::get('/', 'index')->name('index');
+
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Meson de Ventas
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('sales-counters')->name('sales-counters.')->controller(SalesCounterController::class)->group(function () {
+
+        Route::get('/', 'show')->name('show');
+
+    });
 
     /*
     |----------------------------------------------------------------------
     | Caja
     |----------------------------------------------------------------------
     */
-        Route::prefix('cashs')->name('cashs.')->controller(CashController::class)->group(function () {
+    Route::prefix('cashs')->name('cashs.')->controller(CashController::class)->group(function () {
 
-            Route::get('/customer', 'index')->name('customer.index');    
-        });
+        Route::get('customers/sales-note', 'index')->name('customers.sales-note.index');
+    });
 
     /*
     |----------------------------------------------------------------------
     | Documentos Impagos
     |----------------------------------------------------------------------
     */
-        Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
-        Route::get('/', 'index')->name('index');       
-        });
+    // Route::prefix('unpaids')->name('unpaids.')->controller(UnpaidController::class)->group(function () {
+    // Route::get('/', 'index')->name('index');
+    // });
 
     /*
     |----------------------------------------------------------------------
     | Reportes de caja
     |----------------------------------------------------------------------
     */
-        Route::prefix('CashReport')->name('cashReports.')->controller(CashReportController::class)->group(function () {
+    Route::prefix('CashReport')->name('cashReports.')->controller(CashReportController::class)->group(function () {
         Route::get('/', 'show')->name('show');
     });
 
@@ -198,11 +237,11 @@ Route::middleware('auth')->group(function () {
     | Registro de errores - ErrorLogPolicy
     |----------------------------------------------------------------------
     */
-        Route::prefix('errors')->name('errors.')->controller(ErrorController::class)->group(function () {
+    Route::prefix('errors')->name('errors.')->controller(ErrorController::class)->group(function () {
         Route::get('/', 'index')->middleware('can:viewAny,'.ErrorLog::class)->name('index');
         Route::get('{id}', 'show')->middleware('can:errors.show')->name('show');
     });
-    
+
 });
 
 /*

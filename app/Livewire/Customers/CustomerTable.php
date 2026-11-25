@@ -3,23 +3,20 @@
 namespace App\Livewire\Customers;
 
 use App\Models\Customer;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\On;
 use PowerComponents\LivewirePowerGrid\Button;
 use PowerComponents\LivewirePowerGrid\Column;
-use PowerComponents\LivewirePowerGrid\Components\SetUp\Responsive;
 use PowerComponents\LivewirePowerGrid\Facades\PowerGrid;
-use PowerComponents\LivewirePowerGrid\PowerGridFields;
-use PowerComponents\LivewirePowerGrid\PowerGridComponent;
 use PowerComponents\LivewirePowerGrid\Facades\Rule;
-
-
+use PowerComponents\LivewirePowerGrid\PowerGridComponent;
+use PowerComponents\LivewirePowerGrid\PowerGridFields;
 
 final class CustomerTable extends PowerGridComponent
 {
     public string $tableName = 'customerTable';
+
     public ?string $routeName = null;
-    
 
     public function setUp(): array
     {
@@ -29,21 +26,21 @@ final class CustomerTable extends PowerGridComponent
                 ->showSearchInput(),
             PowerGrid::footer()
                 ->showPerPage()
-                ->showRecordCount(),           
+                ->showRecordCount(),
             PowerGrid::responsive()
-                ->fixedColumns('razon_social')
-        ];        
+                ->fixedColumns('razon_social'),
+        ];
     }
 
     public function datasource(): Builder
     {
-        return Customer::query();
+        return Customer::query()->where('nombres', '!=', 'CLIENTE GENERICO');
     }
-  
+
     public function fields(): PowerGridFields
     {
-        return PowerGrid::fields()            
-            ->add('fullName') //razon_social es un accesor
+        return PowerGrid::fields()
+            ->add('fullName') // razon_social es un accesor
             ->add('tipo_cliente')
             ->add('condicion_cliente');
     }
@@ -51,8 +48,8 @@ final class CustomerTable extends PowerGridComponent
     public function columns(): array
     {
         return [
-            
-            Column::make('Razon Social','fullName')
+
+            Column::make('Razon Social', 'fullName')
                 ->searchableRaw("
                         CONCAT_WS(
                             ' ',
@@ -60,16 +57,16 @@ final class CustomerTable extends PowerGridComponent
                             customers.apellido_paterno,
                             customers.apellido_materno
                         ) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')
-                    "),            
-            Column::make('Tipo','tipo_cliente')
+                    "),
+            Column::make('Tipo', 'tipo_cliente')
                 ->hidden(isHidden: true, isForceHidden: false),
-            Column::make('Condicion','condicion_cliente')
+            Column::make('Condicion', 'condicion_cliente')
                 ->hidden(isHidden: true, isForceHidden: false),
             Column::action('Action'),
         ];
-    }    
+    }
 
-    #[\Livewire\Attributes\On('edit')]
+    #[On('edit')]
     public function edit($rowId): void
     {
         $this->js('alert('.$rowId.')');
@@ -79,43 +76,42 @@ final class CustomerTable extends PowerGridComponent
     {
         return [
             Button::add('show')
-                ->icon('default-eye')               
+                ->icon('default-eye')
                 ->class('px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center')
-                ->route('customers.show', ['customer' => $row->id]), 
+                ->route('customers.show', ['customer' => $row->id]),
             Button::add('edit')
-                ->icon('default-pencil')               
+                ->icon('default-pencil')
                 ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
-                ->route('customers.edit', ['customer' => $row->id]),   
+                ->route('customers.edit', ['customer' => $row->id]),
             Button::add('documents')
-                ->icon('default-files')     
+                ->icon('default-files')
                 ->class('px-2 py-1 bg-gray-600 text-white rounded hover:bg-gray-600 flex items-center justify-center')
                 ->route('documents.customer.index', ['customer' => $row->id]),
-            Button::add('toPay')
-                ->icon('default-cash') 
-                ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
-                ->route('payments.create.customer', ['customer' => $row->id])
+            // Button::add('toPay')
+            //     ->icon('default-cash')
+            //     ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
+            //     ->route('payments.create.customer', ['customer' => $row->id])
         ];
     }
 
-    
-    public function actionRules(): array
-    {   
-       
-       return [
-            // Hide button edit for ID 1
-            Rule::button('show')
-                ->hide()
-                ->when(fn() => $this->routeName === 'payments.index.create'),                
-            Rule::button('documents')
-                ->hide()
-                ->when(fn() => $this->routeName === 'payments.index.create'),     
-            Rule::button('toPay')
-                ->hide()
-                ->when(fn() => $this->routeName === 'customers.index'),  
-            Rule::button('edit')
-                ->hide()
-                ->when(fn() => $this->routeName === 'payments.index.create'),                
-        ];
-    }
-    
+    // public function actionRules(): array
+    // {
+
+    //    return [
+    //         // Hide button edit for ID 1
+    //         Rule::button('show')
+    //             ->hide()
+    //             ->when(fn() => $this->routeName === 'payments.index.create'),
+    //         Rule::button('documents')
+    //             ->hide()
+    //             ->when(fn() => $this->routeName === 'payments.index.create'),
+    //         Rule::button('toPay')
+    //             ->hide()
+    //             ->when(fn() => $this->routeName === 'customers.index'),
+    //         Rule::button('edit')
+    //             ->hide()
+    //             ->when(fn() => $this->routeName === 'payments.index.create'),
+    //     ];
+    // }
+
 }

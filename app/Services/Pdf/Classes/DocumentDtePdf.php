@@ -10,6 +10,8 @@ use App\Services\Dte\Get\DteApiCompanieGet;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 final class DocumentDtePdf implements PdfDocument
 {
@@ -19,7 +21,7 @@ final class DocumentDtePdf implements PdfDocument
         string $action
     ): void {
         abort_unless(
-            in_array($action, ['view', 'download', 'email'], true),
+            in_array($action, ['view', 'download', 'email', 'print'], true),
             404
         );
 
@@ -27,9 +29,30 @@ final class DocumentDtePdf implements PdfDocument
 
         Gate::forUser($actor)->authorize('view', $document);
 
+        if ($action === 'print') {
+            $confirmed = DB::table('dte_emission_attempts')
+                ->where('document_id', $recordId)
+                ->where('estado', 'CONFIRMADA')
+                ->where('folio', $document->folio)
+                ->exists();
+
+            abort_unless(
+                $confirmed &&
+                (int) $document->folio > 0 &&
+                filled($document->ted),
+                409,
+                'El DTE no tiene una emisión confirmada.'
+            );
+        }
+
         if ($action === 'email') {
             Gate::forUser($actor)->authorize('email', $document);
         }
+    }
+
+    public function paper(): array
+    {
+        return ['format' => 'a4'];
     }
 
     public function view(): string
@@ -48,13 +71,42 @@ final class DocumentDtePdf implements PdfDocument
             ])
             ->findOrFail($recordId);
 
-            $dteApiCompanieGet = new DteApiCompanieGet;
-            $response          = $dteApiCompanieGet->get($document,'xml');
-            $stamp             = app(TimbrePdf417Service::class)->generar($response['xml']);
+        $timbreService = app(TimbrePdf417Service::class);
+
+        // 1. Buscar el TED almacenado en documents.
+        $ted = $document->ted;
+        
+
+        // 2. Consultar la API solamente si no existe TED.
+        if (! is_string($ted) || trim($ted) === '') {
+
+            $response = DteApiCompanieGet::get(
+                $document,
+                'xml'
+            );
+
+            if (
+                ! is_array($response) ||
+                ! is_string($response['xml'] ?? null) ||
+                trim($response['xml']) === ''
+            ) {
+                throw new RuntimeException(
+                    "La API no entregó el XML del DTE ID {$document->id}."
+                );
+            }
+
+            // 3. Recuperar TED desde el XML completo.
+            $ted = $timbreService->extraerTed(
+                $response['xml']
+            );
+        }
+
+        // 4. Crear PNG directamente desde el TED.
+        $stamp = $timbreService->generarDesdeTed($ted);
 
         return [
             'document' => $document,
-            'stamp'    =>  $stamp,
+            'stamp' => $stamp,
         ];
     }
 

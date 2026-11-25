@@ -15,8 +15,8 @@ return new class extends Migration {
             $table->unsignedInteger('user_id')->nullable();
             $table->enum('estado_pago', ['VIGENTE','NO VIGENTE'])->default('VIGENTE');
             $table->enum('forma_pago', [
-                'EFECTIVO','TRANSFERENCIA BANCARIA','CREDITO','CHEQUE',
-                'DEPOSITO BANCARIO','TARJETA DEBITO','TARJETA CREDITO','CONDONACION','SIN INFORMACION','INCOBRABLE'
+                'EFECTIVO','TARJETA DEBITO','TARJETA CREDITO','TRANSFERENCIA BANCARIA','CREDITO','CHEQUE',
+                'DEPOSITO BANCARIO','CONDONACION','SIN INFORMACION','INCOBRABLE'
             ])->nullable();
             $table->unsignedBigInteger('numero_comprobante')->nullable();
             $table->string('nombre_completo', 191)->nullable();

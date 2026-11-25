@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documento tributario {{ data_get($document, 'folio', data_get($document, 'Folio', '')) }}</title>
-    @vite('resources/css/app.css')
+    
+    <style>
+        {!! Vite::content('resources/css/app.css') !!}
+    </style>
+
     <style>
         @page { size: A4 portrait; margin: 0; }
         @media print {

@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:dtes.customers.customer-documents-table/>
+        <livewire:dtes.customers.customer-dtes-table/>
     
     </div>
 @endsection

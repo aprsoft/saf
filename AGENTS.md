@@ -1,0 +1,317 @@
+<laravel-boost-guidelines>
+=== foundation rules ===
+
+# Laravel Boost Guidelines
+
+## Foundational Context
+
+This application is a Laravel application running on PHP 8.4. Always use the APIs that match the installed major version of each package — do not assume a version.
+
+Before relying on a package's API, confirm its installed version:
+- PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
+- JS packages: check `package.json` for the installed versions.
+
+## Skills Activation
+
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+
+## Conventions
+
+- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
+- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
+- Check for existing components to reuse before writing a new one.
+
+## Verification Scripts
+
+- Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+
+## Application Structure & Architecture
+
+- Stick to existing directory structure; don't create new base folders without approval.
+- Do not change the application's dependencies without approval.
+
+## Frontend Bundling
+
+- If a frontend change doesn't show in the UI or you get a "Unable to locate file in Vite manifest" error, run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+
+## Documentation Files
+
+- You must only create documentation files if explicitly requested by the user.
+
+=== boost rules ===
+
+# Laravel Boost
+
+## Tools
+
+- Laravel Boost is an MCP server with tools designed specifically for this application. Prefer Boost tools over manual alternatives like shell commands or file reads.
+- Use `database-query` to run read-only queries against the database instead of writing raw SQL in tinker.
+- Use `database-schema` to inspect table structure before writing migrations or models.
+- Use `get-absolute-url` to resolve the correct scheme, domain, and port for project URLs. Always use this before sharing a URL with the user.
+- Use `browser-logs` to read browser logs, errors, and exceptions. Only recent logs are useful, ignore old entries.
+
+## Searching Documentation (IMPORTANT)
+
+- Use `search-docs` before changes that depend on Laravel ecosystem APIs, behavior, configuration, or version-specific syntax. Skip it for copy-only edits and other changes where package documentation is irrelevant. Reuse sufficient results already in context instead of searching again.
+- Pass a `packages` array to scope results when you know which packages are relevant.
+- Use multiple broad, topic-based queries: `['rate limiting', 'routing rate limiting', 'routing']`. Expect the most relevant results first.
+- Do not add package names to queries because package info is already shared. Use `test resource table`, not `filament 4 test resource table`.
+
+### Search Syntax
+
+1. Use words for auto-stemmed AND logic: `rate limit` matches both "rate" AND "limit".
+2. Use `"quoted phrases"` for exact position matching: `"infinite scroll"` requires adjacent words in order.
+3. Combine words and phrases for mixed queries: `middleware "rate limit"`.
+4. Use multiple queries for OR logic: `queries=["authentication", "middleware"]`.
+
+## Project Rules
+
+- This project contains committed, area-grouped rules in `.ai/rules` when that directory exists, including path-scoped framework guidelines under `.ai/rules/boost`. Before you enter plan mode or create/edit any file, you MUST first: open @.ai/rules/index.md (it maps file globs to rule files), read every rule file whose globs cover the path(s) in scope, and run `grep -rin 'keyword' .ai/rules` to catch what a path match alone misses. Do not write code until you have read and are following every matching rule. If `.ai/rules` does not exist, continue without it.
+
+## Artisan
+
+- Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
+- Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
+- Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
+
+## Tinker
+
+- Execute PHP in app context for debugging and testing code. Do not create models without user approval, prefer tests with factories instead. Prefer existing Artisan commands over custom tinker code.
+- Always use single quotes to prevent shell expansion: `php artisan tinker --execute 'Your::code();'`
+  - Double quotes for PHP strings inside: `php artisan tinker --execute 'User::where("active", true)->count();'`
+
+=== php rules ===
+
+# PHP
+
+- Always use curly braces for control structures, even for single-line bodies.
+- Use PHP 8 constructor property promotion: `public function __construct(public GitHub $github) { }`. Do not leave empty zero-parameter `__construct()` methods unless the constructor is private.
+- Use explicit return type declarations and type hints for all method parameters: `function isAccessible(User $user, ?string $path = null): bool`
+- Use TitleCase for Enum keys: `FavoritePerson`, `BestLake`, `Monthly`.
+- Prefer PHPDoc blocks over inline comments. Only add inline comments for exceptionally complex logic.
+- Use array shape type definitions in PHPDoc blocks.
+
+=== deployments rules ===
+
+# Deployment
+
+- Laravel can be deployed using [Laravel Cloud](https://cloud.laravel.com/), which is the fastest way to deploy and scale production Laravel applications.
+- Activate the `deploying-to-cloud` skill whenever deploying to Laravel Cloud, configuring Cloud environments or resources, using the Cloud CLI, or troubleshooting Cloud deployments.
+
+=== tests rules ===
+
+# Test Enforcement
+
+- Add or update tests for behavior and logic changes when a test provides meaningful regression coverage.
+- Pure copy, styling, and layout-only changes do not require new or updated tests.
+- When test coverage applies, run the affected tests and ensure they pass.
+- Test the changed behavior and its important failure modes, but do not add tests beyond them.
+- Read the `testing-best-practices` skill before writing tests.
+
+=== laravel/core rules ===
+
+# Do Things the Laravel Way
+
+- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using `php artisan list` and check their parameters with `php artisan [command] --help`.
+- If you're creating a generic PHP class, use `php artisan make:class`.
+- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
+
+### Model Creation
+
+- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `php artisan make:model --help` to check the available options.
+
+## APIs & Eloquent Resources
+
+- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+
+## URL Generation
+
+- When generating links to other pages, prefer named routes and the `route()` function.
+
+## Testing
+
+- When creating models for tests, use the factories for the models. Check if the factory has custom states that can be used before manually setting up the model.
+- Faker: Use methods such as `$this->faker->word()` or `fake()->randomDigit()`. Follow existing conventions whether to use `$this->faker` or `fake()`.
+- When creating tests, make use of `php artisan make:test [options] {name}` to create a feature test, and pass `--unit` to create a unit test. Most tests should be feature tests.
+
+=== laravel/v12 rules ===
+
+# Laravel 12
+
+- CRITICAL: ALWAYS use `search-docs` tool for version-specific Laravel documentation and updated code examples.
+- This project uses the streamlined Laravel 11+ structure: register middleware, exceptions, and routing in `bootstrap/app.php` and service providers in `bootstrap/providers.php`. There is no `app/Http/Kernel.php` or `app/Console/Kernel.php`, and commands in `app/Console/Commands/` auto-register.
+
+## Database
+
+- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
+
+- Laravel 12 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
+
+### Models
+
+- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
+
+=== livewire/core rules ===
+
+# Livewire
+
+- Livewire allows you to build dynamic, reactive interfaces in PHP without writing JavaScript.
+- You can use Alpine.js for client-side interactions instead of JavaScript frameworks.
+- Keep state server-side so the UI reflects it. Validate and authorize in actions as you would in HTTP requests.
+
+=== pint/core rules ===
+
+# Laravel Pint Code Formatter
+
+- If you have modified any PHP files, you must run `vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `vendor/bin/pint --test --format agent`, simply run `vendor/bin/pint --format agent` to fix any formatting issues.
+
+=== pest/core rules ===
+
+# Pest
+
+- This project uses Pest. Create tests with `php artisan make:test --pest {name}`.
+- Do not include the test suite directory in `{name}`. Use `SomeFeatureTest`, not `Feature/SomeFeatureTest`.
+- Read the `testing-best-practices` skill for guidance on coverage, naming, structure, dependency isolation, and review.
+- Do not delete tests or test files without approval. They are part of the application.
+
+## Running Tests
+
+- Run the narrowest set of tests that covers the change. Pass a file path or `--filter=testName` to `php artisan test --compact`.
+- Rerun a test after each change to it.
+- Run `vendor/bin/pest` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
+
+</laravel-boost-guidelines>
+
+<!-- SAF-PROJECT-RULES:BEGIN -->
+
+## Contexto específico de SAF
+
+SAF es una plataforma de gestión comercial independiente del rubro, concebida para servir a múltiples empresas y sucursales. **Multiempresa y multisucursal son objetivos de arquitectura, no capacidades que se deban dar por terminadas.** Verifica el estado real antes de diseñar o modificar funciones.
+
+### Modelo operativo de ventas
+
+- Existe **un único motor comercial**. «Caja integrada» y «mesón y caja separados» describen **dónde se atiende y se cobra**, no dos sistemas ni dos lógicas de venta independientes.
+- **Caja integrada:** la misma estación registra la venta y cobra.
+- **Puestos separados:** el mesón registra la venta; caja cobra; despacho puede entregar posteriormente.
+- Reutiliza documentos, detalles, cálculo, descuentos, pagos y emisión tributaria en ambos casos. Las diferencias de interfaz y transiciones necesarias deben mantenerse explícitas, sin duplicar reglas de negocio.
+- Hoy el código usa `companies.modo_cobro` (`CAJA_INTEGRADA` / `CAJA_CENTRAL`). No asumas que existe una configuración de sucursales o un aislamiento multiempresa completo.
+
+### Estado actual verificable (rama `feature/sales-counter-v2`, 22-11-2026)
+
+- Laravel 12, PHP 8.4, Livewire 4, PowerGrid 6, Spatie Permission 8, Pest 4 y Laravel Boost; verifica versiones instaladas si una API depende de ellas.
+- `app/Services/Sales/DocumentItemService.php`: documentos, ítems y operaciones compartidas de venta; no emite DTE ni descuenta inventario.
+- `app/Services/Sales/GlobalDiscountService.php`: cálculos y descuentos globales.
+- `app/Services/Sales/CheckoutService.php`: servicio común de cobro y emisión DTE.
+- `app/Livewire/SalesCounters/` y `app/Livewire/Payments/Customer/`: componentes de mesón/caja.
+- `app/Models/Company.php`: configuración actual del modo de cobro. En varias rutas y servicios se usa `Company::firstOrFail()`; esta selección **no es una resolución multiempresa segura**.
+- Tablas/modelos de productos, bodegas e inventario presentes; no presupongas que el descuento de stock se ejecuta al vender.
+
+### Reglas para cualquier cambio
+
+1. Inspecciona **solo los archivos relacionados con la tarea** y las convenciones de sus vecinos; utiliza las skills pertinentes y Laravel Boost MCP cuando aporte información necesaria. Evita analizar todo SAF sin motivo.
+2. Indica brevemente qué existe, qué falta y qué propones. No presentes un objetivo futuro como funcionalidad implementada.
+3. No generes un segundo motor de venta o cobro. Reutiliza servicios y componentes existentes.
+4. Al ampliar a multiempresa/multisucursal, diseña y verifica el contexto explícito de empresa/sucursal en acceso, documentos, pagos, inventario, precios, cajas y emisión DTE; nunca selecciones silenciosamente la primera empresa como solución definitiva.
+5. Protege integridad y trazabilidad: validaciones/autorización del lado servidor, transacciones y bloqueos donde proceda, cálculos consistentes e idempotencia en emisión DTE. Una respuesta externa incierta exige conciliación; nunca reemitir automáticamente a ciegas.
+6. No ejecutes migraciones destructivas, `migrate:fresh`, borrados, cambios de datos reales ni emisiones DTE reales sin autorización explícita. No expongas secretos ni credenciales.
+7. Agrega o actualiza pruebas enfocadas cuando cambie la lógica; ejecuta las pertinentes si es posible. Explica cuando no las hayas ejecutado.
+8. Respeta las reglas generales de Laravel Boost que anteceden esta sección. La skill `.agents/skills/saf-development/SKILL.md` complementa estas instrucciones.
+
+<!-- SAF-PROJECT-RULES:END -->
+
+## Preferencia de eficiencia de Codex (SAF)
+- Por defecto, responder en español, de forma breve y directa; leer únicamente los archivos relevantes para la tarea.
+- Para ajustar nivel de análisis o de respuesta, utilizar la skill `saf-efficient` y su archivo `PREFERENCIAS.md`.
+- Respetar las reglas de seguridad, precisión y verificación de este `AGENTS.md`; ahorrar contexto no implica omitir comprobaciones necesarias.
+
+
+
+
+## SAF — Eficiencia y nivel de respuesta
+
+### Optimización del contexto
+- Minimizar el consumo innecesario de tokens.
+- Leer primero los archivos relacionados con la tarea.
+- No explorar todo el repositorio salvo necesidad justificada.
+- Reutilizar información ya obtenida.
+- Evitar consultas repetidas a herramientas MCP.
+- No repetir código ni explicaciones innecesarias.
+- No ejecutar pruebas completas si bastan pruebas específicas.
+- Priorizar precisión y seguridad sobre ahorro de tokens.
+
+### Niveles de respuesta
+
+Nivel predeterminado: NORMAL.
+
+RAPIDO:
+- Respuestas directas y breves.
+- Sin explicaciones extensas.
+- Código mínimo necesario.
+
+NORMAL:
+- Solución concreta.
+- Explicación técnica breve.
+- Mostrar solo los cambios relevantes.
+
+PROFUNDO:
+- Análisis detallado.
+- Evaluación de arquitectura y dependencias.
+- Riesgos, alternativas y pruebas pertinentes.
+
+El usuario puede cambiar el nivel escribiendo:
+RAPIDO, NORMAL o PROFUNDO.
+
+### Reglas de ejecución
+- No realizar refactorizaciones fuera del alcance.
+- No modificar archivos innecesarios.
+- No duplicar funcionalidades existentes.
+- Informar brevemente los archivos modificados.
+- Indicar las pruebas ejecutadas y sus resultados.
+- Si hay incertidumbre, verificar antes de asumir.
+- Respetar siempre las reglas de Laravel Boost
+  y las skills correspondientes.
+
+
+## Pensamiento crítico y criterio profesional
+
+Actúa como un ingeniero de software senior,
+arquitecto de sistemas y revisor técnico independiente.
+
+### Reglas obligatorias
+
+- No dar la razón al usuario automáticamente.
+- No buscar complacer al usuario por encima de la precisión.
+- Evaluar críticamente cada propuesta técnica.
+- Si una idea es incorrecta, insegura o ineficiente,
+  indicarlo claramente y explicar por qué.
+- Proponer alternativas mejores cuando existan.
+- Cuestionar decisiones que comprometan la arquitectura,
+  escalabilidad, mantenibilidad o seguridad.
+- Identificar contradicciones y supuestos incorrectos.
+- Distinguir hechos comprobados, inferencias y opiniones.
+- No inventar respuestas ni afirmar algo sin evidencia.
+- Reconocer errores propios y corregirlos.
+- No generar desacuerdos artificiales: si una propuesta
+  es correcta, confirmarlo con fundamentos.
+- Priorizar la calidad técnica por encima de la
+  complacencia y la rapidez.
+
+### Comportamiento esperado
+
+Cuando el usuario proponga una solución:
+
+1. Evaluar su viabilidad técnica.
+2. Identificar riesgos o errores reales.
+3. Expresar desacuerdo cuando corresponda.
+4. Fundamentar brevemente la evaluación.
+5. Recomendar la alternativa más conveniente.
+
+### Principio fundamental
+
+El objetivo no es estar de acuerdo con el usuario,
+sino ayudarlo a tomar las mejores decisiones técnicas.
+
+Ser directo, objetivo, crítico y constructivo.
+Evitar elogios automáticos y respuestas complacientes.
+
