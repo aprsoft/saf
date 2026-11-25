@@ -49,7 +49,7 @@ if ($company->url !== 'https://dev-api.haulmer.com/v2/dte/document' || blank($co
     stopProbe('Se exige endpoint exacto de desarrollo, API Key configurada y caja integrada.');
 }
 
-$cases = ['sin-dte', 'sin-rut', 'rut-invalido', 'tipo-invalido', 'sin-detalle', 'cantidad-invalida'];
+$cases = ['sin-dte', 'sin-rut', 'rut-invalido', 'tipo-invalido', 'sin-detalle', 'cantidad-invalida', 'fecha-invalida', 'total-invalido', 'descuento-invalido', 'esquema-invalido', 'pdf-invalido', 'json-invalido'];
 $case = $options['case'] ?? null;
 if ($case !== null && ! in_array($case, $cases, true)) {
     stopProbe('Caso desconocido. Disponibles: '.implode(', ', $cases));
@@ -110,13 +110,35 @@ final class RealDteProbeManager extends DtePostManager
             case 'cantidad-invalida':
                 $payload['dte']['Detalle'][0]['QtyItem'] = 'NO-NUMERICO';
                 break;
+            case 'fecha-invalida':
+                $payload['dte']['Encabezado']['IdDoc']['FchEmis'] = '2026-99-99';
+                break;
+            case 'total-invalido':
+                $payload['dte']['Encabezado']['Totales']['MntTotal'] = 999999;
+                break;
+            case 'descuento-invalido':
+                $payload['dte']['Detalle'][0]['DescuentoPct'] = 150;
+                break;
+            case 'esquema-invalido':
+                $payload['dte']['Detalle'] = 'INVALIDO';
+                break;
+            case 'pdf-invalido':
+                $payload['response'] = ['FORMATO_INVALIDO'];
+                break;
         }
 
-        $this->response = DteApiSend::send(
-            json_encode($payload, JSON_THROW_ON_ERROR),
+        $transport = DteApiSend::send(
+            $this->scenario === 'json-invalido' ? '{"dte":' : json_encode($payload, JSON_THROW_ON_ERROR),
             (int) $document->id,
-            $this->httpStatus,
         );
+        $this->httpStatus = $transport['httpStatus'];
+        $this->response = is_string($transport['body'])
+            ? json_decode($transport['body'], true)
+            : null;
+        if (! is_array($this->response) || $transport['curlErrno'] !== 0) {
+            $this->unsafe = true;
+            throw new RuntimeException('Respuesta de transporte no verificable; conciliar en desarrollo.');
+        }
 
         $code = $this->response['error']['code'] ?? null;
         foreach (['TOKEN', 'FOLIO', 'XML', 'TIMBRE', 'PDF'] as $key) {
@@ -124,11 +146,11 @@ final class RealDteProbeManager extends DtePostManager
                 $this->unsafe = true;
             }
         }
-        if ($this->unsafe || $code === 'OF-06' || ! in_array($code, ['OF-01', 'OF-02', 'OF-05', 'OF-08', 'OF-09', 'OF-10', 'OF-20'], true)) {
+        if ($this->unsafe || $code === 'OF-06' || ! in_array($code, ['OF-01', 'OF-02', 'OF-05', 'OF-08', 'OF-09', 'OF-10', 'OF-11', 'OF-20'], true)) {
             $this->unsafe = true;
             throw new RuntimeException('Respuesta no reconocida como rechazo de validación; conciliar en desarrollo.');
         }
-        $result = DteApiResponse::manager($this->response, $document);
+        $result = DteApiResponse::manager($transport, $document);
         if ($result->accepted) {
             $this->unsafe = true;
             throw new RuntimeException('Aceptación inesperada; conciliar en desarrollo.');
