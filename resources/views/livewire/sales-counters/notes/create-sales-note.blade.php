@@ -17,6 +17,7 @@
                 @include('livewire.sales-counters.partials.resumen')
             </div>
             <div class="shrink-0">
+                
                 @include('livewire.sales-counters.partials.acciones-nota')
             </div>
         </aside>

@@ -25,7 +25,7 @@
                 :key="'counter-quotation-editor'" />
         @endif
     </div>
-    @if ($cajaIntegrada && $pagoDocumentoId !== null)
+    @if ($cajaIntegrada && $pagoDocumentoId !== null)bnk
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60" aria-hidden="true"></div>
             <section role="dialog" aria-modal="true" aria-label="Confirmar pago y tipo de DTE"

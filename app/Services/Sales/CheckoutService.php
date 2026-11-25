@@ -20,13 +20,8 @@ use Throwable;
 
 final class CheckoutService
 {
-    public function cobrar(
-        int $documentoId,
-        int $usuarioId,
-        bool $integrado,
-        array $datos,
-        Customer $cliente
-    ): array {
+    public function cobrar(int $documentoId, int $usuarioId, bool $integrado, array $datos, Customer $cliente): array 
+    {
         abort_unless(
             $integrado === Company::query()
                 ->firstOrFail()

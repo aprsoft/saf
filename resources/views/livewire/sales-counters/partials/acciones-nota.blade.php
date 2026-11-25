@@ -32,7 +32,7 @@
             @endif
         </div>
     @endif
-    <div class="grid grid-cols-2 gap-2 text-sm">
+    <div class="grid grid-cols-2 gap-2 text-sm"> 
         <button type="button" wire:click="abrirRecuperar" @disabled($documentoId !== null)
                 class="rounded-lg border px-3 py-2 disabled:opacity-40">Recuperar</button>
         <button type="button" wire:click="dejarEnEspera" @disabled($documentoId === null || $this->documentoBloqueado)

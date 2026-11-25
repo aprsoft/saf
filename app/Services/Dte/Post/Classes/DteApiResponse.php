@@ -12,10 +12,10 @@ final class DteApiResponse
     public static function manager(array $response, Document $document): DteResponse
     {
         $httpStatus = $response['httpStatus'];
-        $body = $response['body'];
-        $json = is_string($body) ? json_decode($body, true) : null;
-        $folio = filter_var($json['FOLIO'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
-        $xml = $json['XML'] ?? null;
+        $body       = $response['body'];
+        $json       = is_string($body) ? json_decode($body, true) : null;
+        $folio      = filter_var($json['FOLIO'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $xml        = $json['XML'] ?? null;
 
         if ($httpStatus === 200 && $response['curlErrno'] === 0
             && $folio !== false && is_string($xml) && trim($xml) !== '') {
@@ -39,6 +39,7 @@ final class DteApiResponse
         }
 
         $errors = is_array($json) ? $json : ['body' => $body];
+        
         if (! is_array($json) || $response['curlErrno'] !== 0) {
             $errors['httpStatus'] = $httpStatus;
             $errors['curlErrno'] = $response['curlErrno'];

@@ -43,7 +43,7 @@ final class BoletaAfecta
                     'CmnaOrigen' => $company->comuna_origen,
                 ],
                 'Receptor' => [
-                    'RUTRecep' => $customer->rutDte,
+                    'RUTRecep' => $customer->rut,
                     'RznSocRecep' => $customer->fullName,
                     'DirRecep' => $customer->direccion_cliente,
                     'CmnaRecep' => $customer->comuna,
