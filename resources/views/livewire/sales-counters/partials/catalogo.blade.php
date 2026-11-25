@@ -31,7 +31,7 @@
                         <td class="p-2 text-right">{{ $precio ? '$'.number_format((float) $precio->precio, 0, ',', '.') : 'Sin precio' }}</td>
                         <td class="p-2 text-right">
                             <button type="button" wire:click="abrirProducto({{ $producto->id }})"
-                                    wire:loading.attr="disabled" @disabled(! $precio || $seleccionado)
+                                    wire:loading.attr="disabled" @disabled(! $precio || $seleccionado || $this->documentoBloqueado)
                                     class="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40">
                                 {{ $seleccionado ? 'Agregado' : 'Agregar' }}
                             </button>

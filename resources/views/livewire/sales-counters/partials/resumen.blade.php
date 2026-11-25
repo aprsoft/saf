@@ -21,7 +21,7 @@
                     <label for="meson-descuento-tipo" class="mb-1 block text-xs font-medium">Tipo</label>
                     <select id="meson-descuento-tipo"
                             wire:model.change="form.descuentoTipo"
-                            @disabled(! $documento)
+                            @disabled(! $documento || $this->documentoBloqueado)
                             class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800">
                         <option value="porcentaje">Porcentaje (%)</option>
                         <option value="monto">Monto fijo ($)</option>
@@ -38,7 +38,7 @@
                            type="number" min="0" step="1"
                            @if ($form->descuentoTipo === 'porcentaje') max="99" @endif
                            wire:model.blur="form.descuentoValor"
-                           @disabled(! $documento)
+                           @disabled(! $documento || $this->documentoBloqueado)
                            class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs dark:border-gray-600 dark:bg-gray-800">
                     @error('form.descuentoValor')
                         <p role="alert" class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -48,7 +48,7 @@
                         wire:click="guardarDescuentoGlobal"
                         wire:loading.attr="disabled"
                         wire:target="guardarDescuentoGlobal"
-                        @disabled(! $documento)
+                        @disabled(! $documento || $this->documentoBloqueado)
                         class="w-full rounded-lg bg-blue-700 px-2 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50">
                     Aplicar descuento
                 </button>

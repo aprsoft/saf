@@ -1,6 +1,6 @@
 <section class="shrink-0 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
     <label for="sales-counter-tipo" class="mb-1 block text-sm font-semibold">Tipo de documento</label>
-    <select id="sales-counter-tipo"
+    <select id="sales-counter-tipo" @disabled($this->documentoBloqueado)
             x-on:change="$dispatch('sales-counter-select-type', { tipo: Number($event.target.value) })"
             x-on:sales-counter-type-reset.window="$el.value = $event.detail.tipo"
             class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">

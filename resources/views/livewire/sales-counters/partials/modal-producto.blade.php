@@ -1,4 +1,4 @@
-@if ($mostrarProducto && $this->productoModal)
+@if ($mostrarProducto && ! $this->documentoBloqueado && $this->productoModal)
     <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4"
          role="dialog" aria-modal="true" aria-label="Editar ítem">
         <div class="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-800">

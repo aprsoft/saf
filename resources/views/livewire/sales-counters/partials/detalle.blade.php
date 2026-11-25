@@ -28,10 +28,10 @@
                         <td class="p-2 text-right font-semibold">${{ number_format((int) $detalle->MontoItem, 0, ',', '.') }}</td>
                         <td class="p-2 text-right">
                             <div class="flex justify-end gap-2 whitespace-nowrap">
-                                <button type="button" wire:click="editarItem({{ $detalle->id }})"
-                                        class="rounded-lg border border-blue-400 px-2 py-1 text-xs text-blue-600">Editar</button>
-                                <button type="button" wire:click="solicitarEliminarItem({{ $detalle->id }})"
-                                        class="rounded-lg border border-red-400 px-2 py-1 text-xs text-red-600">Quitar</button>
+                                <button type="button" wire:click="editarItem({{ $detalle->id }})" @disabled($this->documentoBloqueado)
+                                        class="rounded-lg border border-blue-400 px-2 py-1 text-xs text-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">Editar</button>
+                                <button type="button" wire:click="solicitarEliminarItem({{ $detalle->id }})" @disabled($this->documentoBloqueado)
+                                        class="rounded-lg border border-red-400 px-2 py-1 text-xs text-red-600 disabled:opacity-40 disabled:cursor-not-allowed">Quitar</button>
                             </div>
                         </td>
                     </tr>

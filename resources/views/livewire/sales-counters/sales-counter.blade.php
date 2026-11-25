@@ -27,8 +27,7 @@
     </div>
     @if ($cajaIntegrada && $pagoDocumentoId !== null)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <button type="button" class="absolute inset-0 bg-black/60"
-                    aria-label="Cerrar pago" wire:click="cerrarPago"></button>
+            <div class="absolute inset-0 bg-black/60" aria-hidden="true"></div>
             <section role="dialog" aria-modal="true" aria-label="Confirmar pago y tipo de DTE"
                      class="relative z-10 w-full max-w-md rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
                 <div class="mb-2 flex justify-end">

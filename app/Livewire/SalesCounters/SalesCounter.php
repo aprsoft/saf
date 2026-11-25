@@ -124,6 +124,8 @@ public ?int $ultimoFolioPago = null;
     public function cerrarPago(): void
     {
         $this->pagoDocumentoId = null;
+        unset($this->documentoPago);
+        $this->dispatch('sales-counter-refresh-document');
     }
 
     #[On('sales-counter-payment-completed')]

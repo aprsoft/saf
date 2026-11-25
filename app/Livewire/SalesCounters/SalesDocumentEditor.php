@@ -14,6 +14,7 @@ use App\Services\Sales\DocumentItemService;
 use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -145,6 +146,23 @@ abstract class SalesDocumentEditor extends Component
     }
 
     #[Computed]
+    public function documentoBloqueado(): bool
+    {
+        return $this->documentoId !== null
+            && DB::table('dte_emission_attempts')
+                ->where('document_id', $this->documentoId)
+                ->exists();
+    }
+
+    #[On('sales-counter-refresh-document')]
+    public function actualizarDocumento(): void
+    {
+        $this->cerrarBusquedaCliente();
+        $this->cerrarProducto();
+        unset($this->documento, $this->documentoBloqueado, $this->totales, $this->recuperables);
+    }
+
+    #[Computed]
     public function documento(): ?Document
     {
         if ($this->documentoId === null) {
@@ -186,6 +204,8 @@ abstract class SalesDocumentEditor extends Component
 
     public function abrirBusquedaCliente(): void
     {
+        abort_if($this->documentoBloqueado, 409);
+
         $this->buscandoCliente = true;
         $this->busquedaCliente = '';
         unset($this->clientes);
@@ -200,6 +220,8 @@ abstract class SalesDocumentEditor extends Component
 
     public function seleccionarCliente(int $id): void
     {
+        abort_if($this->documentoBloqueado, 409);
+
         abort_unless($this->buscandoCliente, 409);
 
         $cliente = Customer::query()->findOrFail($id);
@@ -213,6 +235,8 @@ abstract class SalesDocumentEditor extends Component
 
     public function limpiarCliente(): void
     {
+        abort_if($this->documentoBloqueado, 409);
+
         // Volver al cliente genérico, que también existe en customers.
         $this->form->clienteGenerico = true;
         $this->form->clienteId = null;
@@ -259,6 +283,8 @@ abstract class SalesDocumentEditor extends Component
 
     public function abrirProducto(int $id): void
     {
+        abort_if($this->documentoBloqueado, 409);
+
         if ($this->documento?->details->contains('product_service_id', $id)) {
             throw ValidationException::withMessages([
                 'producto' => 'El producto o servicio ya está seleccionado en este documento.',
@@ -434,6 +460,6 @@ abstract class SalesDocumentEditor extends Component
         $this->mostrarProducto = false;
         $this->productoId = null;
         $this->detalleId = null;
-        unset($this->documento, $this->totales, $this->recuperables, $this->clienteSeleccionado, $this->clienteEnPantalla);
+        unset($this->documento, $this->documentoBloqueado, $this->totales, $this->recuperables, $this->clienteSeleccionado, $this->clienteEnPantalla);
     }
 }

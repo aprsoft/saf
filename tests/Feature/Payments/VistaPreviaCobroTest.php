@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Payments\Customer\CreatePayment;
+use App\Livewire\Payments\Customers\CreatePayment;
 use App\Models\Customer;
 use App\Models\Detail;
 use App\Models\Document;

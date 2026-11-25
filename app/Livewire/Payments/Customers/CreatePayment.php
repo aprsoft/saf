@@ -15,6 +15,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -386,11 +387,23 @@ final class CreatePayment extends Component
         $this->emitirDte();
     }
 
+    #[Computed]
+    public function estadoEmision(): ?string
+    {
+        return DB::table('dte_emission_attempts')
+            ->where('document_id', $this->documentoId)
+            ->value('estado');
+    }
+
     public function confirmarPagoIntegrado(): void
     {
         abort_unless($this->integrado, 403);
         $this->mostrarConfirmacion = false;
-        $this->emitirDte();
+        try {
+            $this->emitirDte();
+        } finally {
+            unset($this->estadoEmision);
+        }
     }
 
     private function emitirDte(): void

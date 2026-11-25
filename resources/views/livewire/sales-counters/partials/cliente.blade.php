@@ -14,9 +14,9 @@
             <h2 class="mb-1 block h-5 text-sm font-semibold leading-5">Cliente</h2>
             {{-- El cliente genérico es un registro real de customers, no una casilla. --}}
             <div class="relative">
-                @if (! $buscandoCliente)
+                @if (! $buscandoCliente || $this->documentoBloqueado)
                     <button type="button"
-                            wire:click="abrirBusquedaCliente"
+                            wire:click="abrirBusquedaCliente" @disabled($this->documentoBloqueado)
                             aria-label="Cambiar cliente"
                             aria-haspopup="listbox"
                             aria-expanded="false"
@@ -27,7 +27,7 @@
                                 {{ trim($this->clienteEnPantalla?->fullName ?? 'CLIENTE GENERICO') }}
                             </span>
                             <span class="shrink-0 whitespace-nowrap text-xs text-gray-500">
-                                · {{ $this->clienteEnPantalla?->rut_dte ?? '6666666-6' }}
+                                · {{ $this->clienteEnPantalla?->rut_dte ?? '66666666-6' }}
                             </span>
                         </span>
                         <svg class="size-4 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none"
@@ -61,7 +61,7 @@
                             @forelse ($this->clientes as $cliente)
                                 <button type="button" role="option" aria-selected="false"
                                         wire:key="busqueda-cliente-{{ $cliente->id }}"
-                                        wire:click="seleccionarCliente({{ $cliente->id }})"
+                                        wire:click="seleccionarCliente({{ $cliente->id }})" @disabled($this->documentoBloqueado)
                                         class="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none dark:border-gray-700 dark:hover:bg-gray-800">
                                     <span class="block font-semibold">{{ trim($cliente->fullName) }}</span>
                                     <span class="block text-xs text-gray-500">{{ $cliente->rut_dte }}@if ($cliente->giro) · {{ $cliente->giro }}@endif</span>
@@ -71,7 +71,7 @@
                             @endforelse
                         @endif
                         @if (! $form->clienteGenerico)
-                            <button type="button" wire:click="limpiarCliente"
+                            <button type="button" wire:click="limpiarCliente" @disabled($this->documentoBloqueado)
                                     class="block w-full border-t border-gray-200 px-3 py-2 text-left text-sm text-blue-700 hover:bg-blue-50 dark:border-gray-700 dark:text-blue-400">
                                 Usar CLIENTE GENERICO (66666666-6)
                             </button>
@@ -85,7 +85,7 @@
             <div class="min-w-0">
                 <label for="v2-referencia" class="mb-1 block h-5 text-sm font-semibold leading-5">Nombre de referencia <span class="text-red-600">*</span></label>
                 <input id="v2-referencia" type="text" maxlength="191" required aria-required="true"
-                       wire:model.blur="form.nombreReferencia"
+                       wire:model.blur="form.nombreReferencia" @disabled($this->documentoBloqueado)
                        placeholder="Referencia para caja"
                        class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
                 @error('form.nombreReferencia')

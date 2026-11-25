@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Helpers\MenuHelper;
-use App\Livewire\Payments\Customer\CreatePayment;
+use App\Livewire\Payments\Customers\CreatePayment;
 use App\Livewire\SalesCounters\Notes\CreateSalesNote;
 use App\Livewire\SalesCounters\SalesCounter;
 use App\Models\Company;
@@ -197,7 +197,11 @@ test('la caja integrada confirma el tipo elegido en un modal compacto', function
         ->assertSet('tipoActual', 15)
         ->call('abrirPago', $nota->id)
         ->assertSet('pagoDocumentoId', $nota->id)
-        ->assertSee('Confirmar pago');
+        ->assertSee('Confirmar pago')
+        ->assertDontSee('aria-label="Cerrar pago"', false)
+        ->call('cerrarPago')
+        ->assertSet('pagoDocumentoId', null)
+        ->assertDispatched('sales-counter-refresh-document');
 
     Livewire::actingAs($vendedor)
         ->test(CreatePayment::class, ['document' => $nota, 'integrado' => true, 'tipoDocumento' => 15])
@@ -420,6 +424,37 @@ test('no solicita impresión de un DTE rechazado o incierto', function (bool $ac
     $manager->shouldReceive('send')->once()->andReturn(new DteResponse(accepted: $accepted, folio: 123, xml: null));
     app()->instance(DtePostManager::class, $manager);
     Livewire::actingAs($user)->test(CreatePayment::class, ['document' => $nota, 'integrado' => true])
-        ->call('confirmarPagoIntegrado')->assertHasErrors('documento')->assertNotDispatched('qz-print');
+        ->call('confirmarPagoIntegrado')
+        ->assertHasErrors('documento')
+        ->assertDontSee('Confirmar y emitir')
+        ->assertDontSee('Cancelar')
+        ->assertNotDispatched('qz-print');
     expect(session('qz_print_document'))->toBeNull();
 })->with([true, false]);
+
+test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $user = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($user);
+
+    $editor = Livewire::actingAs($user)->test(CreateSalesNote::class, [
+        'tipoDocumentoSeleccionado' => 17,
+        'cajaIntegrada' => true,
+    ])->call('abrirRecuperar')->call('recuperar', $nota->id)
+        ->assertSet('documentoId', $nota->id);
+
+    DB::table('dte_emission_attempts')->insert([
+        'document_id' => $nota->id,
+        'idempotency_key' => 'saf-dte-'.$nota->id,
+        'estado' => 'INCIERTA',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $editor->dispatch('sales-counter-refresh-document')
+        ->assertSee('Este documento tiene un intento de emisión DTE.')
+        ->assertSet('documentoId', $nota->id)
+        ->call('abrirBusquedaCliente')->assertStatus(409);
+
+    expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO');
+});

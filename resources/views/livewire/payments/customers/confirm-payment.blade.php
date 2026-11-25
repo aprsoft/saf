@@ -22,8 +22,12 @@
     @error('form.tipoDocumento') <p role="alert" class="text-sm text-red-600">{{ $message }}</p> @enderror
     @error('form.formaPago') <p role="alert" class="text-sm text-red-600">{{ $message }}</p> @enderror
     @error('form.montoRecibido') <p role="alert" class="text-sm text-red-600">{{ $message }}</p> @enderror
+    @if ($this->estadoEmision === null)
     <div class="grid grid-cols-2 gap-2">
         <button type="button" wire:click="$dispatch('sales-counter-close-payment')" class="rounded-lg border px-3 py-2">Cancelar</button>
         <button type="button" wire:click="confirmarPagoIntegrado" wire:loading.attr="disabled" wire:target="confirmarPagoIntegrado" class="rounded-lg bg-blue-700 px-3 py-2 font-semibold text-white disabled:opacity-50">Confirmar y emitir</button>
     </div>
+    @else
+        <p class="text-sm text-gray-600">Intento de emisión: {{ $this->estadoEmision }}. Cierre esta ventana para revisar el documento.</p>
+    @endif
 </div>
