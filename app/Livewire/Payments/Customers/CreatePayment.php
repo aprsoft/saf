@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\Payments\Customers;
 
-use App\Livewire\Payments\Customer\Forms\PaymentForm;
+use App\Livewire\Payments\Customers\Forms\PaymentForm;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Document;

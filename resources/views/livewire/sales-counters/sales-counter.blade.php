@@ -34,7 +34,7 @@
                 <div class="mb-2 flex justify-end">
                     <button type="button" wire:click="cerrarPago" class="rounded-lg border px-3 py-1.5 text-sm">Cerrar</button>
                 </div>
-                <livewire:payments.customer.create-payment :document="$this->documentoPago"
+                <livewire:payments.customers.create-payment :document="$this->documentoPago"
                     :integrado="true"
                     :tipo-documento="$tipoActual"
                     :forma-pago="$pagoFormaPago"

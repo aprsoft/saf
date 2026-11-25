@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Freshwork\ChileanBundle\Rut;
+use Freshwork\ChileanBundle\RutFormat;
+use Illuminate\Database\Eloquent\Model;
 
 
 class Customer extends Model
@@ -12,22 +13,6 @@ class Customer extends Model
 	// protected $with = ['meter'];
 
 //------------------ Relaciones --------------------//
-
-	public function meter() {
-
-		return $this->belongsToMany(Meter::class)
-			->withPivot('id','estado_contrato')
-			->wherePivot('estado_contrato','VIGENTE')
-			->orderBy('id','desc')
-			->withTimestamps();
-    }
-
-	public function meters() {
-		return $this->belongsToMany(Meter::class)
-			->withPivot('id','estado_contrato')
-			->wherePivot('estado_contrato','VIGENTE')						
-			->withTimestamps();
-    }
 
 	public function documents() {
         return $this->hasMany(Document::class);		
@@ -42,13 +27,13 @@ class Customer extends Model
 
 	public function getRutFormatAttribute()
 	{
-        return Rut::parse($this->rut)->format();
+        return Rut::parse($this->rut)->validate();
     }
 
-	public function getRutDteAttribute()
+	public function getRutDteAttribute(): string
 	{
-        return Rut::parse($this->rut)->format(Rut::FORMAT_WITH_DASH);
-    }	
+		return Rut::parse($this->rut)->format();
+	}
 
 	public function setRutAttribute($value)
 	{

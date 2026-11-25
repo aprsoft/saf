@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Payments\Customer\Forms;
+namespace App\Livewire\Payments\Customers\Forms;
 
 use App\Models\Document;
 use App\Services\Sales\GlobalDiscountService;
