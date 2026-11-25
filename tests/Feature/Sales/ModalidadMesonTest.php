@@ -433,7 +433,7 @@ test('no solicita impresión de un DTE rechazado o incierto', function (bool $ac
     $this->assertDatabaseCount('error_logs', $accepted ? 1 : 0);
 })->with([true, false]);
 
-test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): void {
+test('el mesón limpia solo los rechazos y conserva bloqueados los resultados inciertos', function (string $estado): void {
     configurarCaja('CAJA_INTEGRADA');
     $user = User::factory()->create();
     [$nota] = notaParaCajaIntegrada($user);
@@ -447,7 +447,7 @@ test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): 
     DB::table('dte_emission_attempts')->insert([
         'document_id' => $nota->id,
         'idempotency_key' => 'saf-dte-'.$nota->id,
-        'estado' => 'INCIERTA',
+        'estado' => $estado,
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -455,12 +455,45 @@ test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): 
     $editor->dispatch('sales-counter-refresh-document')
         ->assertDispatched('app-alert',
             type: 'error',
-            message: 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
+            message: $estado === 'RECHAZADA'
+                ? 'DTE rechazado. La nota se conserva para revisión; el mesón está disponible para otra venta.'
+                : 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
             duration: 5000,
-        )
-        ->assertDontSee('Este documento tiene un intento de emisión DTE.')
-        ->assertSet('documentoId', $nota->id)
-        ->call('abrirBusquedaCliente')->assertStatus(409);
+        );
 
-    expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO');
+    if ($estado === 'RECHAZADA') {
+        $editor->assertSet('documentoId', null)
+            ->assertSet('formaPago', 'EFECTIVO')
+            ->assertSet('montoRecibido', '')
+            ->assertDispatched('sales-counter-document-status', activo: false)
+            ->assertSee('Nuevo documento')
+            ->assertSee('0 ítems')
+            ->call('abrirRecuperar')
+            ->assertSee('No hay documentos recuperables.')
+            ->call('recuperar', $nota->id)->assertStatus(409);
+    } else {
+        $editor->assertSet('documentoId', $nota->id)
+            ->call('abrirBusquedaCliente')->assertStatus(409);
+    }
+
+    expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO')
+        ->and($nota->details()->count())->toBe(1)
+        ->and(DB::table('dte_emission_attempts')->where('document_id', $nota->id)->value('estado'))->toBe($estado)
+        ->and(Payment::count())->toBe(0);
+})->with(['RECHAZADA', 'INCIERTA']);
+
+test('cerrar el cobro sin intento conserva la nota activa', function (): void {
+    configurarCaja('CAJA_INTEGRADA');
+    $user = User::factory()->create();
+    [$nota] = notaParaCajaIntegrada($user);
+
+    Livewire::actingAs($user)->test(CreateSalesNote::class, [
+        'tipoDocumentoSeleccionado' => 17,
+        'cajaIntegrada' => true,
+    ])->call('abrirRecuperar')->call('recuperar', $nota->id)
+        ->dispatch('sales-counter-refresh-document')
+        ->assertSet('documentoId', $nota->id)
+        ->assertNotDispatched('app-alert')
+        ->call('abrirBusquedaCliente')
+        ->assertSet('buscandoCliente', true);
 });

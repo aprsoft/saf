@@ -118,6 +118,13 @@ final class CreateSalesNote extends SalesDocumentEditor
         $this->mensaje = 'Nota enviada a caja.';
     }
 
+    protected function limpiarFormulario(): void
+    {
+        parent::limpiarFormulario();
+
+        $this->reset('formaPago', 'montoRecibido');
+    }
+
     public function render(): View
     {
         return view('livewire.sales-counters.notes.create-sales-note');

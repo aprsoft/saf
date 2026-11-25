@@ -161,14 +161,28 @@ abstract class SalesDocumentEditor extends Component
         $this->cerrarProducto();
         unset($this->documento, $this->documentoBloqueado, $this->totales, $this->recuperables);
 
-        if ($this->documentoBloqueado) {
-            $this->dispatch(
-                'app-alert',
-                type: 'error',
-                message: 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
-                duration: 5000,
-            );
+        if (! $this->documentoBloqueado) {
+            return;
         }
+
+        $estado = DB::table('dte_emission_attempts')
+            ->where('document_id', $this->documentoId)
+            ->value('estado');
+
+        if ($estado === 'RECHAZADA') {
+            $this->limpiarFormulario();
+            $this->mensaje = '';
+            $this->resetValidation();
+        }
+
+        $this->dispatch(
+            'app-alert',
+            type: 'error',
+            message: $estado === 'RECHAZADA'
+                ? 'DTE rechazado. La nota se conserva para revisión; el mesón está disponible para otra venta.'
+                : 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
+            duration: 5000,
+        );
     }
 
     #[Computed]
@@ -205,6 +219,7 @@ abstract class SalesDocumentEditor extends Component
             ->where('user_id', (int) auth()->id())
             ->where('estado_documento', 'VIGENTE')
             ->whereIn('condicion_documento', ['PENDIENTE', 'EN PROCESO'])
+            ->whereNotIn('id', DB::table('dte_emission_attempts')->select('document_id'))
             ->with('customer')
             ->latest('updated_at')
             ->limit(100)

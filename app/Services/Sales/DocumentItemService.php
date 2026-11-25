@@ -324,6 +324,12 @@ final class DocumentItemService
                 ->whereIn('condicion_documento', ['PENDIENTE', 'EN PROCESO'])
                 ->lockForUpdate()->firstOrFail();
 
+            abort_if(
+                DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(),
+                409,
+                'Existe un intento de emisión DTE. Debe conciliarse antes de recuperar.'
+            );
+
             $documento->update(['condicion_documento' => 'EN PROCESO']);
 
             return $documento->load('customer');
