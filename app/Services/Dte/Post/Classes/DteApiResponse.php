@@ -6,160 +6,74 @@ namespace App\Services\Dte\Post\Classes;
 
 use App\Models\Document;
 use App\Models\ErrorDte;
-use RuntimeException;
 
 final class DteApiResponse
 {
-    public static function manager(
-        array $response,
-        Document $document
-    ): DteResponse {
-
-        $body = $response['body'];
+    public static function manager(array $response, Document $document): DteResponse
+    {
         $httpStatus = $response['httpStatus'];
-        $curlErrno = $response['curlErrno'];
-        $curlError = $response['curlError'];
-
-        // 1. Fallo de comunicación.
-
-        if ($body === false || $curlErrno !== 0) {
-            throw new RuntimeException(
-                'Error de comunicación con la API: '.$curlError,
-                $curlErrno
-            );
-        }
-
-        // 2. Decodificar la respuesta.
-
-        $json = json_decode($body, true);
-
-        if (! is_array($json) || json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException(
-                'API no entregó un JSON válido. HTTP '.$httpStatus
-            );
-        }
-
-        // 3. Obtener los errores del proveedor.
-
-        $error = $json['error'] ?? null;
-
-        $message = $error['message']
-            ?? $json['message']
-            ?? 'API respondió HTTP '.$httpStatus;
-
-        $code = $error['code'] ?? null;
-
-        // 4. Obtener evidencia de emisión.
-
-        $hasEvidence = isset($json['TOKEN'])
-            || isset($json['FOLIO'])
-            || isset($json['XML'])
-            || isset($json['TIMBRE'])
-            || isset($json['PDF']);
-
-        // 5. Procesar errores del proveedor.
-
-        if (
-            $httpStatus < 200
-            || $httpStatus >= 300
-            || array_key_exists('error', $json)
-            || isset($json['statusCode'])
-        ) {
-            ErrorDte::create([
-                'document_id' => $document->id,
-                'error' => json_encode(
-                    $json,
-                    JSON_UNESCAPED_UNICODE
-                    | JSON_INVALID_UTF8_SUBSTITUTE
-                    | JSON_THROW_ON_ERROR
-                ),
-            ]);
-
-            $rechazoConfirmado = $httpStatus === 400
-                && $code === 'OF-02'
-                && ! $hasEvidence;
-
-            return new DteResponse(
-                accepted: false,
-                message: is_string($message)
-                    ? $message
-                    : 'Error devuelto por API.',
-                errors: $json,
-                httpStatus: $httpStatus,
-                requiresReconciliation: ! $rechazoConfirmado,
-            );
-        }
-
-        // 6. Validar respuesta de emisión.
-
-        $folio = filter_var(
-            $json['FOLIO'] ?? null,
-            FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1]]
-        );
-
+        $body = $response['body'];
+        $json = is_string($body) ? json_decode($body, true) : null;
+        $folio = filter_var($json['FOLIO'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
         $xml = $json['XML'] ?? null;
-        $timbre = $json['TIMBRE'] ?? null;
-        $warnings = $json['WARNING'] ?? null;
 
-        if (
-            $folio === false
-            || ! is_string($xml)
-            || trim($xml) === ''
-            || ! is_string($timbre)
-            || trim($timbre) === ''
-            || (
-                $warnings !== null
-                && ! is_array($warnings)
-                && ! is_string($warnings)
-            )
-        ) {
-            ErrorDte::create([
-                'document_id' => $document->id,
-                'error' => json_encode(
-                    $json,
-                    JSON_UNESCAPED_UNICODE
-                    | JSON_INVALID_UTF8_SUBSTITUTE
-                    | JSON_THROW_ON_ERROR
-                ),
-            ]);
+        if ($httpStatus === 200 && $response['curlErrno'] === 0
+            && $folio !== false && is_string($xml) && trim($xml) !== '') {
+            $warnings = isset($json['WARNING']) ? (array) $json['WARNING'] : null;
+
+            if ($warnings !== null) {
+                ErrorDte::create([
+                    'document_id' => $document->id,
+                    'warning' => self::encode($warnings),
+                ]);
+            }
 
             return new DteResponse(
-                accepted: false,
-                message: 'Respuesta DTE incompleta o ambigua.',
-                errors: $json,
+                accepted: true,
+                folio: $folio,
+                xml: $xml,
+                warnings: $warnings,
                 httpStatus: $httpStatus,
-                requiresReconciliation: true,
+                requiresReconciliation: false,
             );
         }
 
-        // 7. Procesar advertencias.
-
-        $warnings = is_string($warnings)
-            ? [$warnings]
-            : $warnings;
-
-        if ($warnings !== null) {
-            ErrorDte::create([
-                'document_id' => $document->id,
-                'warning' => json_encode(
-                    $warnings,
-                    JSON_UNESCAPED_UNICODE
-                    | JSON_INVALID_UTF8_SUBSTITUTE
-                    | JSON_THROW_ON_ERROR
-                ),
-            ]);
+        $errors = is_array($json) ? $json : ['body' => $body];
+        if (! is_array($json) || $response['curlErrno'] !== 0) {
+            $errors['httpStatus'] = $httpStatus;
+            $errors['curlErrno'] = $response['curlErrno'];
+            $errors['curlError'] = $response['curlError'];
         }
 
-        // 8. Retornar emisión aceptada.
+        ErrorDte::create([
+            'document_id' => $document->id,
+            'error' => self::encode($errors),
+        ]);
+
+        $message = $errors['error']['message'] ?? $errors['message'] ?? match (true) {
+            $response['curlErrno'] !== 0 => 'Error de comunicación con la API.',
+            $httpStatus === 200 => 'La API no confirmó folio y XML válidos.',
+            default => 'API respondió HTTP '.$httpStatus,
+        };
+
+        // Solo los rechazos comprobados sin evidencia permiten otro intento.
+        $rechazoConfirmado = $httpStatus === 400
+            && $response['curlErrno'] === 0
+            && in_array($errors['error']['code'] ?? null, ['OF-01', 'OF-02'], true)
+            && ! isset($errors['TOKEN']) && ! isset($errors['FOLIO'])
+            && ! isset($errors['XML']) && ! isset($errors['TIMBRE']) && ! isset($errors['PDF']);
 
         return new DteResponse(
-            accepted: true,
-            folio: (int) $folio,
-            xml: $xml,
-            warnings: $warnings,
+            accepted: false,
+            message: is_string($message) ? $message : 'Error devuelto por API.',
+            errors: $errors,
             httpStatus: $httpStatus,
-            requiresReconciliation: false,
+            requiresReconciliation: ! $rechazoConfirmado,
         );
+    }
+
+    private static function encode(array $data): string
+    {
+        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
     }
 }
