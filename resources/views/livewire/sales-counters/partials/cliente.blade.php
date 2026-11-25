@@ -27,7 +27,7 @@
                                 {{ trim($this->clienteEnPantalla?->fullName ?? 'CLIENTE GENERICO') }}
                             </span>
                             <span class="shrink-0 whitespace-nowrap text-xs text-gray-500">
-                                · {{ $this->clienteEnPantalla?->rut ?? '6666666-6' }}
+                                · {{ $this->clienteEnPantalla?->rut_dte ?? '6666666-6' }}
                             </span>
                         </span>
                         <svg class="size-4 shrink-0 text-blue-600" viewBox="0 0 24 24" fill="none"
@@ -64,7 +64,7 @@
                                         wire:click="seleccionarCliente({{ $cliente->id }})"
                                         class="block w-full border-b border-gray-100 px-3 py-2 text-left text-sm hover:bg-blue-50 focus:bg-blue-50 focus:outline-none dark:border-gray-700 dark:hover:bg-gray-800">
                                     <span class="block font-semibold">{{ trim($cliente->fullName) }}</span>
-                                    <span class="block text-xs text-gray-500">{{ $cliente->rut }}@if ($cliente->giro) · {{ $cliente->giro }}@endif</span>
+                                    <span class="block text-xs text-gray-500">{{ $cliente->rut_dte }}@if ($cliente->giro) · {{ $cliente->giro }}@endif</span>
                                 </button>
                             @empty
                                 <p class="px-3 py-3 text-sm text-gray-500">No se encontraron clientes.</p>
