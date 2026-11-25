@@ -76,7 +76,7 @@ test('HTTP distinto de 200 conserva íntegramente el error OpenFactura', functio
         ->and($result->requiresReconciliation)->toBe(! in_array($code, ['OF-01', 'OF-02'], true));
 
     $stored = DB::table('error_dtes')->where('document_id', $document->id)->sole();
-    expect(json_decode($stored->error, true))->toBe($body);
+    expect(json_decode($stored->error, true))->toEqual($body);
 })->with([
     'OF-01', 'OF-02', 'OF-03', 'OF-04', 'OF-05', 'OF-06', 'OF-07',
     'OF-08', 'OF-09', 'OF-10', 'OF-11', 'OF-12', 'OF-13',
@@ -117,7 +117,7 @@ test('respuesta de transporte no JSON también se registra', function (array $tr
     expect($result->accepted)->toBeFalse()
         ->and($result->requiresReconciliation)->toBeTrue();
     $stored = DB::table('error_dtes')->where('document_id', $document->id)->sole();
-    expect(json_decode($stored->error, true))->toBe($transport);
+    expect(json_decode($stored->error, true))->toEqual($transport);
 })->with([
     [['body' => false, 'httpStatus' => 0, 'curlErrno' => 28, 'curlError' => 'Timeout']],
     [['body' => 'Service unavailable', 'httpStatus' => 503, 'curlErrno' => 0, 'curlError' => '']],
