@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Detail;
 use App\Models\Document;
+use App\Models\ErrorDte;
 use App\Models\User;
 use App\Services\Dte\Post\Classes\DteApiFactory;
 use App\Services\Dte\Post\Classes\DteApiResponse;
@@ -21,7 +22,7 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-$options = getopt('', ['user:', 'case:', 'run']);
+$options = getopt('', ['user:', 'case:', 'run', 'simulated']);
 $root = dirname(__DIR__, 2);
 require $root.'/vendor/autoload.php';
 $app = require $root.'/bootstrap/app.php';
@@ -49,7 +50,9 @@ if ($company->url !== 'https://dev-api.haulmer.com/v2/dte/document' || blank($co
     stopProbe('Se exige endpoint exacto de desarrollo, API Key configurada y caja integrada.');
 }
 
-$cases = ['sin-dte', 'sin-rut', 'rut-invalido', 'tipo-invalido', 'sin-detalle', 'cantidad-invalida', 'fecha-invalida', 'total-invalido', 'descuento-invalido', 'esquema-invalido', 'pdf-invalido', 'json-invalido'];
+$simulated = array_key_exists('simulated', $options);
+$codes = ['OF-01', 'OF-02', 'OF-03', 'OF-04', 'OF-05', 'OF-06', 'OF-07', 'OF-08', 'OF-09', 'OF-10', 'OF-11', 'OF-12', 'OF-13', 'OF-20', 'OF-21', 'OF-22', 'OF-23'];
+$cases = $simulated ? $codes : ['aceptado', 'sin-dte', 'sin-rut', 'rut-invalido', 'tipo-invalido', 'sin-detalle', 'cantidad-invalida', 'fecha-invalida', 'total-invalido', 'descuento-invalido', 'esquema-invalido', 'pdf-invalido', 'json-invalido'];
 $case = $options['case'] ?? null;
 if ($case !== null && ! in_array($case, $cases, true)) {
     stopProbe('Caso desconocido. Disponibles: '.implode(', ', $cases));
@@ -69,6 +72,7 @@ foreach (['documents', 'details', 'dte_emission_attempts', 'error_dtes', 'error_
 }
 
 echo "Base efectiva: MySQL / ".$actual->db." | API: desarrollo\n";
+echo 'Origen: '.($simulated ? 'SIMULADO - sin llamada HTTP' : 'API REAL DE DESARROLLO').PHP_EOL;
 echo 'Casos: '.implode(', ', $case === null ? $cases : [$case]).PHP_EOL;
 if (! array_key_exists('run', $options)) {
     echo "Preflight correcto. Sin escrituras ni llamadas HTTP. Agregue --run para ejecutar.\n";
@@ -83,7 +87,9 @@ final class RealDteProbeManager extends DtePostManager
 
     public bool $unsafe = false;
 
-    public function __construct(private string $scenario) {}
+    public ?DteResponse $result = null;
+
+    public function __construct(private string $scenario, private bool $simulated) {}
 
     public function send(Document $document): DteResponse
     {
@@ -127,45 +133,62 @@ final class RealDteProbeManager extends DtePostManager
                 break;
         }
 
-        $transport = DteApiSend::send(
-            $this->scenario === 'json-invalido' ? '{"dte":' : json_encode($payload, JSON_THROW_ON_ERROR),
-            (int) $document->id,
-        );
+        $transport = $this->simulated
+            ? [
+                'body' => json_encode([
+                    'error' => [
+                        'code' => $this->scenario,
+                        'message' => 'Error SIMULADO para verificar persistencia en SAF',
+                        'details' => [],
+                    ],
+                ], JSON_THROW_ON_ERROR),
+                'httpStatus' => 400,
+                'curlErrno' => 0,
+                'curlError' => '',
+            ]
+            : DteApiSend::send(
+                $this->scenario === 'json-invalido' ? '{"dte":' : json_encode($payload, JSON_THROW_ON_ERROR),
+                (int) $document->id,
+            );
         $this->httpStatus = $transport['httpStatus'];
         $this->response = is_string($transport['body'])
             ? json_decode($transport['body'], true)
             : null;
-        if (! is_array($this->response) || $transport['curlErrno'] !== 0) {
-            $this->unsafe = true;
-            throw new RuntimeException('Respuesta de transporte no verificable; conciliar en desarrollo.');
+        $this->result = DteApiResponse::manager($transport, $document);
+        $evidence = array_intersect(['TOKEN', 'FOLIO', 'XML', 'TIMBRE', 'PDF'], array_keys(array_filter($this->response ?? [], static fn ($value) => $value !== null)));
+        $unexpectedEmission = $this->scenario !== 'aceptado' && $this->result->accepted;
+
+        if ($unexpectedEmission) {
+            // Conservar evidencia externa sin convertir un payload alterado en una venta válida.
+            ErrorDte::create([
+                'document_id' => $document->id,
+                'error' => json_encode($this->response, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
+            ]);
+            $this->result = new DteResponse(
+                accepted: false,
+                message: 'El proveedor aceptó un payload alterado. Conciliar antes de continuar.',
+                errors: $this->response,
+                httpStatus: $this->httpStatus,
+                requiresReconciliation: true,
+            );
         }
 
-        $code = $this->response['error']['code'] ?? null;
-        foreach (['TOKEN', 'FOLIO', 'XML', 'TIMBRE', 'PDF'] as $key) {
-            if (isset($this->response[$key])) {
-                $this->unsafe = true;
-            }
-        }
-        if ($this->unsafe || $code === 'OF-06' || ! in_array($code, ['OF-01', 'OF-02', 'OF-05', 'OF-08', 'OF-09', 'OF-10', 'OF-11', 'OF-20'], true)) {
-            $this->unsafe = true;
-            throw new RuntimeException('Respuesta no reconocida como rechazo de validación; conciliar en desarrollo.');
-        }
-        $result = DteApiResponse::manager($transport, $document);
-        if ($result->accepted) {
-            $this->unsafe = true;
-            throw new RuntimeException('Aceptación inesperada; conciliar en desarrollo.');
-        }
+        $this->unsafe = ! $this->simulated && (
+            $transport['curlErrno'] !== 0
+            || ! is_array($this->response)
+            || ($this->result->requiresReconciliation && ($evidence !== [] || ($this->response['error']['code'] ?? null) === 'OF-06' || $this->httpStatus >= 500))
+        );
 
-        return $result;
+        return $this->result;
     }
 }
 
 $batch = bin2hex(random_bytes(6));
 foreach ($case === null ? $cases : [$case] as $scenario) {
-    $manager = new RealDteProbeManager($scenario);
+    $manager = new RealDteProbeManager($scenario, $simulated);
     $app->instance(DtePostManager::class, $manager);
     $baseline = (int) DB::table('error_logs')->max('id');
-    $note = DB::transaction(function () use ($customer, $userId, $batch, $scenario): Document {
+    $note = DB::transaction(function () use ($customer, $userId, $batch, $scenario, $simulated): Document {
         $note = Document::query()->create([
             'user_id' => $userId,
             'customer_id' => $customer->id,
@@ -173,7 +196,7 @@ foreach ($case === null ? $cases : [$case] as $scenario) {
             'fecha' => today('America/Santiago')->toDateString(),
             'estado_documento' => 'VIGENTE',
             'condicion_documento' => 'EN PROCESO',
-            'nombre_referencia' => "PRUEBA API DTE {$batch} {$scenario}",
+            'nombre_referencia' => ($simulated ? 'PRUEBA SIMULADA DTE' : 'PRUEBA API DTE')." {$batch} {$scenario}",
         ]);
         Detail::query()->create([
             'document_id' => $note->id,
@@ -210,25 +233,50 @@ foreach ($case === null ? $cases : [$case] as $scenario) {
     $errors = DB::table('error_dtes')->where('document_id', $note->id)->get();
     $logs = DB::table('error_logs')->where('id', '>', $baseline)->get(['id', 'exception', 'file', 'line']);
     $payments = DB::table('document_payment')->where('document_id', $note->id)->count();
-    $stored = $errors->map(fn ($row) => json_decode((string) $row->error, true));
-    $matches = $manager->response !== null && $stored->contains(fn ($error) => $error == $manager->response);
+    $stored = $errors->whereNotNull('error')->map(fn ($row) => json_decode((string) $row->error, true));
+    $matches = $manager->result?->errors !== null && $stored->contains(fn ($error) => $error == $manager->result->errors);
     $fresh = $note->fresh();
-    $ok = ! $manager->unsafe && $attempt?->estado === 'RECHAZADA'
-        && $matches && $errors->count() === 1 && $logs->isEmpty()
-        && $payments === 0 && $fresh?->condicion_documento === 'EN PROCESO'
-        && $fresh->details()->count() === 1;
+    $accepted = $manager->result?->accepted === true;
+    $expectedState = $accepted ? 'CONFIRMADA' : ($manager->result?->requiresReconciliation === false ? 'RECHAZADA' : 'INCIERTA');
+
+    $ok = $manager->result !== null
+        && $attempt?->estado === $expectedState
+        && $logs->isEmpty()
+        && $fresh?->details()->count() === 1
+        && ($accepted
+            ? $fresh->condicion_documento === 'PAGADO'
+                && (int) $fresh->typedocument_id === 17
+                && (int) $fresh->folio === $manager->result->folio
+                && (int) $attempt->folio === $manager->result->folio
+                && filled($fresh->ted)
+                && $payments === 1
+                && $stored->isEmpty()
+            : $fresh->condicion_documento === 'EN PROCESO'
+                && $payments === 0
+                && $matches);
+
+    $expectedOutcome = $scenario === 'aceptado' ? $accepted : ! $accepted;
+    $summary = $manager->response ?? [];
+    foreach (['XML', 'PDF', 'TIMBRE', 'TOKEN'] as $field) {
+        if (isset($summary[$field])) {
+            $summary[$field] = '[presente]';
+        }
+    }
 
     echo json_encode([
+        'origen' => $simulated ? 'SIMULADO' : 'API_DESARROLLO',
         'http_status' => $manager->httpStatus,
-        'respuesta' => $manager->unsafe ? '[requiere conciliación]' : $manager->response,
+        'respuesta' => $summary,
         'estado_intento' => $attempt?->estado,
+        'folio' => $fresh?->folio,
         'error_dtes_ids' => $errors->pluck('id'),
-        'json_original_conservado' => $matches,
+        'json_original_conservado' => $accepted ? null : $matches,
         'error_logs_nuevos_en_intervalo' => $logs,
         'pagos_asociados' => $payments,
-        'verificacion' => $ok ? 'OK' : 'REVISAR',
+        'verificacion' => $ok && $expectedOutcome && ! $manager->unsafe ? 'OK' : 'REVISAR',
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE).PHP_EOL;
-    if (! $ok) {
+
+    if (! $ok || $manager->unsafe || ! $expectedOutcome) {
         stopProbe('Lote detenido. Los registros permanecen en MySQL. Revise antes de continuar.');
     }
     sleep(1);
