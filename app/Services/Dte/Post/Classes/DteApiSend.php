@@ -9,7 +9,7 @@ use RuntimeException;
 
 final class DteApiSend
 {
-    public static function send(string $payload, int $documentoId): array
+    public static function send(string $payload, int $documentoId, ?int &$httpStatus = null): array
     {
 // dd($payload);
         $company = Company::query()->firstOrFail();
@@ -25,8 +25,9 @@ final class DteApiSend
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_FOLLOWLOCATION => false,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => 'POST',
                 CURLOPT_POSTFIELDS => $payload,
