@@ -11,7 +11,7 @@ final class DteApiSend
 {
     public static function send(string $payload, int $documentoId): array
     {
-dd($payload);
+// dd($payload);
         $company = Company::query()->firstOrFail();
         $curl = curl_init();
 

@@ -66,7 +66,7 @@ final class FacturaAfecta
                     'CmnaOrigen' => $company->comuna_origen,
                 ],
                 'Receptor' => [
-                    'RUTRecep' => $customer->rutDte,
+                    'RUTRecep' => $customer->rut,
                     'RznSocRecep' => $customer->fullName,
                     'GiroRecep' => $customer->giro,
                     'DirRecep' => $customer->direccion_cliente,
