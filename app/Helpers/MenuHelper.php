@@ -85,16 +85,16 @@ class MenuHelper
                 'icon' => 'file',
                 'name' => 'Punto de venta (POS)',
                 'subItems' => [
-                    [
-                        'name' => 'Mesón central',
-                        'path' => route('point-of-sale.show', ['type' => 'central'], absolute: false),
-                        'permission' => 'sales-counters.show',
+                     [
+                        'name' => $cajaIntegrada ? 'Punto de venta' : 'Mesón de ventas',
+                        'path' => route('point-of-sale.show', absolute: false),
+                        'permission' => 'point-of-sale.show',
                         'pro' => false,
                     ],
                     [
-                        'name' => 'Mesón integrado',
-                        'path' => route('point-of-sale.show', ['type' => 'integrated'], absolute: false),
-                        'permission' => 'sales-counters.show',
+                        'name' => 'Listado de Ventas',
+                        'path' => route('dtes.customers.index', absolute: false),
+                        'permission' => 'dtes.customers.index',
                         'pro' => false,
                     ],
                 ],

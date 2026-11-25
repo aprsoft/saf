@@ -17,7 +17,7 @@ final class PointOfSale extends Component
     public function mount(string $type): void
     {
         Gate::authorize('sales-counters.show');
-        abort_unless(in_array($type, ['central', 'integrated'], true), 404);
+        abort_unless(in_array($type, ['CAJA_CENTRAL', 'CAJA_INTEGRADA'], true), 404);
 
         $this->type = $type;
     }

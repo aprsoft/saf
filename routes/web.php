@@ -196,10 +196,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('point-of-sale')->name('point-of-sale.')->controller(PointOfSaleController::class)->group(function () {
-        Route::get('{type}', 'show')
-            ->whereIn('type', ['central', 'integrated'])
-            ->middleware('can:sales-counters.show')
-            ->name('show');
+        Route::get('/', 'show')->name('show');
     });
 
     /*

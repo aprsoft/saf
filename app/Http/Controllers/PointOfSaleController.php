@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use Illuminate\Contracts\View\View;
 
 final class PointOfSaleController extends Controller
 {
-    public function show(string $type): View
+    public function show(): View
     {
-        $titulo = $type === 'integrated' ? 'Mesón integrado' : 'Mesón central';
+        $titulo = Company::query()->first()?->cajaIntegrada()
+            ? 'Punto de venta'
+            : 'Mesón de ventas';
 
-        return view('point-of-sale.show', compact('titulo', 'type'));
+        $type = Company::query()->first()?->modo_cobro;
+
+        return view('point-of-sale.show', compact('titulo','type'));
     }
 }
