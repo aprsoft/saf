@@ -83,7 +83,7 @@ final class DteApiResponse
                 accepted: false,
                 message: is_string($message)
                     ? $message
-                    : 'Error devuelto por OpenFactura.',
+                    : 'Error devuelto por API.',
                 errors: $json,
                 httpStatus: $httpStatus,
                 requiresReconciliation: ! $rechazoConfirmado,
