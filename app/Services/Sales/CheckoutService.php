@@ -207,15 +207,7 @@ final class CheckoutService
                         'mensaje' => mb_substr($exception->getMessage(), 0, 500),
                         'updated_at' => now(),
                     ]);
-
-                ErrorDte::query()->create([
-                    'document_id' => $documentoId,
-                    'error' => json_encode([
-                        'estado' => $estadoError,
-                        'folio' => $folioConfirmado,
-                        'message' => $exception->getMessage(),
-                    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-                ]);
+             
             } catch (Throwable $logError) {
                 report($logError);
             }

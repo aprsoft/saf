@@ -37,25 +37,44 @@ final class DteApiSend
                 ],
             ]);
 
-            $response = curl_exec($curl);
-            
+            $response = curl_exec($curl);          
 
-            $httpStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        
+
+            $httpStatus = (int) curl_getinfo(
+                $curl,
+                CURLINFO_HTTP_CODE
+            );
 
             if ($response === false) {
-                 
-                throw new RuntimeException('No fue posible confirmar la respuesta de la API DTE.');
-            }
-
-            if ($httpStatus < 200 || $httpStatus >= 300) {
-             
-                throw new RuntimeException('La API DTE respondió HTTP '.$httpStatus.'. Requiere conciliación.');
+                throw new RuntimeException(
+                    'No fue posible confirmar la respuesta de la API DTE.'
+                );
             }
 
             $json = json_decode($response, true);
+
             if (! is_array($json)) {
-                 dd(3);
-                throw new RuntimeException('La API DTE no entregó un JSON válido.');
+                throw new RuntimeException(
+                    'La API DTE no entregó un JSON válido.'
+                );
+            }
+
+            if (
+                $httpStatus === 400
+                && is_string($json['error']['message'] ?? null)
+                && trim($json['error']['message']) !== ''
+                && ! isset($json['FOLIO'])
+                && ! isset($json['XML'])
+                && ! isset($json['TIMBRE'])
+            ) {
+                return $json;
+            }
+
+            if ($httpStatus < 200 || $httpStatus >= 300) {
+                throw new RuntimeException(
+                    'La API DTE respondió HTTP '.$httpStatus.'. Requiere conciliación.'
+                );
             }
 
             return $json;
