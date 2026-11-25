@@ -396,6 +396,7 @@ final class CreatePayment extends Component
     private function emitirDte(): void
     {
         ['datos' => $datos, 'cliente' => $cliente] = $this->validarCobro();
+        
 
         $resultado = app(CheckoutService::class)->cobrar(
             $this->documentoId, (int) auth()->id(), $this->integrado, $datos, $cliente

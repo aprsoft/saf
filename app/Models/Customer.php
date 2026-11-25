@@ -41,6 +41,14 @@ class Customer extends Model
 		// Rut::parse('12.345.678-5')->normalize(); //return '123456785'
     }
 
+	// protected function casts(): array
+    // {
+    //     return [
+    //         'rut' => Rut::parse($this->rut)->format(RutFormat::WithDash),
+          
+    //     ];
+    // }
+
 
 //-------------------------- functions --------------------------//
 
