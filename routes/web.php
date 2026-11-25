@@ -8,6 +8,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\DteController;
 use App\Http\Controllers\ErrorController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PointOfSaleController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Printing\QzController;
@@ -192,6 +193,13 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/', 'show')->name('show');
 
+    });
+
+    Route::prefix('point-of-sale')->name('point-of-sale.')->controller(PointOfSaleController::class)->group(function () {
+        Route::get('{type}', 'show')
+            ->whereIn('type', ['central', 'integrated'])
+            ->middleware('can:sales-counters.show')
+            ->name('show');
     });
 
     /*
