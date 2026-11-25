@@ -28,7 +28,7 @@ return new class extends Migration
             $table->enum('modo_cobro', [
                 'CAJA_CENTRAL',
                 'CAJA_INTEGRADA',
-            ])->default('CAJA_CENTRAL');
+            ])->default('CAJA_INTEGRADA');
         });
     }
 

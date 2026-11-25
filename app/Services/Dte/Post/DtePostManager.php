@@ -15,8 +15,15 @@ class DtePostManager
     public function send(Document $document): DteResponse
     {
         $payload = DteApiFactory::resolve($document)->mapJsonDte();
-        $response = DteApiSend::send($payload, $document->id);
 
-        return DteApiResponse::manager($response, $document);
+        $response = DteApiSend::send(
+            $payload,
+            $document->id
+        );
+
+        return DteApiResponse::manager(
+            $response,
+            $document
+        );
     }
 }

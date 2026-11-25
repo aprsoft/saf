@@ -9,78 +9,54 @@ use RuntimeException;
 
 final class DteApiSend
 {
-    public static function send(string $payload, int $documentoId, ?int &$httpStatus = null): array
-    {
-// dd($payload);
+    public static function send(
+        string $payload,
+        int $documentoId
+    ): array {
         $company = Company::query()->firstOrFail();
+
         $curl = curl_init();
 
         if ($curl === false) {
-            throw new RuntimeException('No fue posible iniciar la conexión con la API DTE.');
+            throw new RuntimeException(
+                'No fue posible inicializar cURL.'
+            );
         }
 
-        try {
-            curl_setopt_array($curl, [
-                CURLOPT_URL => $company->url,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_TIMEOUT => 60,
-                CURLOPT_FOLLOWLOCATION => false,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => [
-                    'apikey: '.$company->apikey,
-                    'Idempotency-Key: saf-dte-'.$documentoId,
-                    'Content-Type: application/json',
-                ],
-            ]);
+        $configured = curl_setopt_array($curl, [
+            CURLOPT_URL => $company->url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_FAILONERROR => false,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'apikey: '.$company->apikey,
+                'Idempotency-Key: saf-dte-'.$documentoId,
+                'Content-Type: application/json',
+            ],
+        ]);
 
-            $response = curl_exec($curl);          
+        if (! $configured) {
+            throw new RuntimeException(
+                'No fue posible configurar cURL.'
+            );
+        }
 
-        
+        $response = curl_exec($curl);
 
-            $httpStatus = (int) curl_getinfo(
+        return [
+            'body' => $response,
+            'httpStatus' => (int) curl_getinfo(
                 $curl,
                 CURLINFO_HTTP_CODE
-            );
-
-            if ($response === false) {
-                throw new RuntimeException(
-                    'No fue posible confirmar la respuesta de la API DTE.'
-                );
-            }
-
-            $json = json_decode($response, true);
-
-            if (! is_array($json)) {
-                throw new RuntimeException(
-                    'La API DTE no entregó un JSON válido.'
-                );
-            }
-
-            if (
-                $httpStatus === 400
-                && is_string($json['error']['message'] ?? null)
-                && trim($json['error']['message']) !== ''
-                && ! isset($json['FOLIO'])
-                && ! isset($json['XML'])
-                && ! isset($json['TIMBRE'])
-            ) {
-                return $json;
-            }
-
-            if ($httpStatus < 200 || $httpStatus >= 300) {
-                throw new RuntimeException(
-                    'La API DTE respondió HTTP '.$httpStatus.'. Requiere conciliación.'
-                );
-            }
-
-            return $json;
-        } finally {
-            curl_close($curl);
-        }
+            ),
+            'curlErrno' => curl_errno($curl),
+            'curlError' => curl_error($curl),
+        ];
     }
 }

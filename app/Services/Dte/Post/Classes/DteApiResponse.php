@@ -10,70 +10,156 @@ use RuntimeException;
 
 final class DteApiResponse
 {
-    public static function manager(array $response, Document $document): DteResponse
-    {
-        $hasEvidence = isset($response['TIMBRE'])
-            || isset($response['FOLIO'])
-            || isset($response['XML']);
+    public static function manager(
+        array $response,
+        Document $document
+    ): DteResponse {
 
-        // Un rechazo explícito sin evidencia de emisión es distinguible
-        // de una respuesta ambigua. Nunca clasificar esta última como rechazo.
-        $error = $response['error'] ?? null;
-        $rejectionMessage = is_array($error) ? ($error['message'] ?? null) : null;
+        $body = $response['body'];
+        $httpStatus = $response['httpStatus'];
+        $curlErrno = $response['curlErrno'];
+        $curlError = $response['curlError'];
 
-        if (! $hasEvidence && is_string($rejectionMessage) && trim($rejectionMessage) !== '') {
-            ErrorDte::create([
-                'document_id' => $document->id,
-                'error' => json_encode($response, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-            ]);
+        // 1. Fallo de comunicación.
 
-            return new DteResponse(
-                accepted: false,
-                message: $rejectionMessage,
+        if ($body === false || $curlErrno !== 0) {
+            throw new RuntimeException(
+                'Error de comunicación con la API: '.$curlError,
+                $curlErrno
             );
         }
 
+        // 2. Decodificar la respuesta.
+
+        $json = json_decode($body, true);
+
+        if (! is_array($json) || json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException(
+                'API no entregó un JSON válido. HTTP '.$httpStatus
+            );
+        }
+
+        // 3. Obtener los errores del proveedor.
+
+        $error = $json['error'] ?? null;
+
+        $message = $error['message']
+            ?? $json['message']
+            ?? 'API respondió HTTP '.$httpStatus;
+
+        $code = $error['code'] ?? null;
+
+        // 4. Obtener evidencia de emisión.
+
+        $hasEvidence = isset($json['TOKEN'])
+            || isset($json['FOLIO'])
+            || isset($json['XML'])
+            || isset($json['TIMBRE'])
+            || isset($json['PDF']);
+
+        // 5. Procesar errores del proveedor.
+
+        if (
+            $httpStatus < 200
+            || $httpStatus >= 300
+            || array_key_exists('error', $json)
+            || isset($json['statusCode'])
+        ) {
+            ErrorDte::create([
+                'document_id' => $document->id,
+                'error' => json_encode(
+                    $json,
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_INVALID_UTF8_SUBSTITUTE
+                    | JSON_THROW_ON_ERROR
+                ),
+            ]);
+
+            $rechazoConfirmado = $httpStatus === 400
+                && $code === 'OF-02'
+                && ! $hasEvidence;
+
+            return new DteResponse(
+                accepted: false,
+                message: is_string($message)
+                    ? $message
+                    : 'Error devuelto por OpenFactura.',
+                errors: $json,
+                httpStatus: $httpStatus,
+                requiresReconciliation: ! $rechazoConfirmado,
+            );
+        }
+
+        // 6. Validar respuesta de emisión.
+
         $folio = filter_var(
-            $response['FOLIO'] ?? null,
+            $json['FOLIO'] ?? null,
             FILTER_VALIDATE_INT,
             ['options' => ['min_range' => 1]]
         );
-        $xml = $response['XML'] ?? null;
-        $timbre = $response['TIMBRE'] ?? null;
+
+        $xml = $json['XML'] ?? null;
+        $timbre = $json['TIMBRE'] ?? null;
+        $warnings = $json['WARNING'] ?? null;
 
         if (
-            $error !== null
-            || $folio === false
+            $folio === false
             || ! is_string($xml)
             || trim($xml) === ''
             || ! is_string($timbre)
             || trim($timbre) === ''
+            || (
+                $warnings !== null
+                && ! is_array($warnings)
+                && ! is_string($warnings)
+            )
         ) {
-            throw new RuntimeException(
-                'Respuesta DTE ambigua: no se confirmó folio, XML y timbre válidos. Requiere conciliación.'
+            ErrorDte::create([
+                'document_id' => $document->id,
+                'error' => json_encode(
+                    $json,
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_INVALID_UTF8_SUBSTITUTE
+                    | JSON_THROW_ON_ERROR
+                ),
+            ]);
+
+            return new DteResponse(
+                accepted: false,
+                message: 'Respuesta DTE incompleta o ambigua.',
+                errors: $json,
+                httpStatus: $httpStatus,
+                requiresReconciliation: true,
             );
         }
 
-        $warnings = $response['WARNING'] ?? null;
+        // 7. Procesar advertencias.
 
-        if ($warnings !== null && ! is_array($warnings) && ! is_string($warnings)) {
-            throw new RuntimeException('Respuesta DTE ambigua: advertencias con formato inválido.');
-        }
-
-        $warnings = is_string($warnings) ? [$warnings] : $warnings;
+        $warnings = is_string($warnings)
+            ? [$warnings]
+            : $warnings;
 
         if ($warnings !== null) {
             ErrorDte::create([
                 'document_id' => $document->id,
-                'warning' => json_encode($warnings, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+                'warning' => json_encode(
+                    $warnings,
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_INVALID_UTF8_SUBSTITUTE
+                    | JSON_THROW_ON_ERROR
+                ),
             ]);
         }
+
+        // 8. Retornar emisión aceptada.
 
         return new DteResponse(
             accepted: true,
             folio: (int) $folio,
             xml: $xml,
             warnings: $warnings,
+            httpStatus: $httpStatus,
+            requiresReconciliation: false,
         );
     }
 }

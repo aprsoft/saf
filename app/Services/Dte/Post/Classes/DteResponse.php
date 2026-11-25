@@ -16,6 +16,8 @@ final class DteResponse implements Arrayable
         public readonly ?string $message = null,
         public readonly ?array $warnings = null,
         public readonly ?array $errors = null,
+        public readonly ?int $httpStatus = null,
+        public readonly ?bool $requiresReconciliation = null,
     ) {}
 
     /** @return array<string, mixed> */
@@ -29,6 +31,8 @@ final class DteResponse implements Arrayable
             'message' => $this->message,
             'warnings' => $this->warnings,
             'errors' => $this->errors,
+            'httpStatus' => $this->httpStatus,
+            'requiresReconciliation' => $this->requiresReconciliation,
         ], static fn (mixed $value): bool => $value !== null);
     }
 }
