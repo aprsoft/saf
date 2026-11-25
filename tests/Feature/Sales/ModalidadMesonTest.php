@@ -430,6 +430,7 @@ test('no solicita impresión de un DTE rechazado o incierto', function (bool $ac
         ->assertDontSee('Cancelar')
         ->assertNotDispatched('qz-print');
     expect(session('qz_print_document'))->toBeNull();
+    $this->assertDatabaseCount('error_logs', $accepted ? 1 : 0);
 })->with([true, false]);
 
 test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): void {
@@ -452,7 +453,12 @@ test('el mesón refleja el bloqueo persistido al cerrar el cobro', function (): 
     ]);
 
     $editor->dispatch('sales-counter-refresh-document')
-        ->assertSee('Este documento tiene un intento de emisión DTE.')
+        ->assertDispatched('app-alert',
+            type: 'error',
+            message: 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
+            duration: 5000,
+        )
+        ->assertDontSee('Este documento tiene un intento de emisión DTE.')
         ->assertSet('documentoId', $nota->id)
         ->call('abrirBusquedaCliente')->assertStatus(409);
 

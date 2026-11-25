@@ -160,6 +160,15 @@ abstract class SalesDocumentEditor extends Component
         $this->cerrarBusquedaCliente();
         $this->cerrarProducto();
         unset($this->documento, $this->documentoBloqueado, $this->totales, $this->recuperables);
+
+        if ($this->documentoBloqueado) {
+            $this->dispatch(
+                'app-alert',
+                type: 'error',
+                message: 'Este documento tiene un intento de emisión DTE. Debe revisar su estado antes de continuar.',
+                duration: 5000,
+            );
+        }
     }
 
     #[Computed]

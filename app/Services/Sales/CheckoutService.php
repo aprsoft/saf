@@ -212,7 +212,10 @@ final class CheckoutService
                 report($logError);
             }
 
-            report($exception);
+            if ($estadoError !== 'RECHAZADA') {
+                report($exception);
+            }
+
             throw ValidationException::withMessages([
                 'documento' => $estadoError === 'RECHAZADA'
                     ? 'DTE rechazado. Revise el intento antes de emitir nuevamente.'

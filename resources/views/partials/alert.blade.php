@@ -15,7 +15,7 @@
         message: '',
         timer: null,
 
-        show(type, message) {
+        show(type, message, duration = null) {
             if (
                 ! ['success', 'error', 'warning', 'info'].includes(type)
                 || typeof message !== 'string'
@@ -29,16 +29,18 @@
             this.type = type;
             this.message = message;
 
-            const duration = type === 'error' ? 8000 : 7000;
+            const timeout = Number.isFinite(duration) && duration > 0
+                ? duration
+                : (type === 'error' ? 8000 : 7000);
 
             this.timer = setTimeout(() => {
                 this.type = null;
                 this.message = '';
-            }, duration);
+            }, timeout);
         }
     }"
     x-on:app-alert.window="
-        show($event.detail.type, $event.detail.message)
+        show($event.detail.type, $event.detail.message, $event.detail.duration)
     "
     x-on:app-job-notification.window="
         show($event.detail.type, $event.detail.message)
