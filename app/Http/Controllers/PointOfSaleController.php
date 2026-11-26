@@ -11,12 +11,13 @@ final class PointOfSaleController extends Controller
 {
     public function show(): View
     {
-        $titulo = Company::query()->first()?->cajaIntegrada()
+        $company = Company::query()->firstOrFail();
+        $titulo = $company->cajaIntegrada()
             ? 'Punto de venta'
             : 'Mesón de ventas';
 
-        $type = Company::query()->first()?->modo_cobro;
+        $type = $company->modo_cobro;
 
-        return view('point-of-sale.show', compact('titulo','type'));
+        return view('point-of-sale.show', compact('titulo', 'type'));
     }
 }

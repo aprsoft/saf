@@ -55,6 +55,7 @@ class AdminRolePermissionSeeder extends Seeder
         // Permisos nuevos: registrar sin asignar automáticamente.
         $newPermissions = [
             'configuration.edit',
+            'point-of-sale.show',
 
             // Documentos comunes
             'documents.index',

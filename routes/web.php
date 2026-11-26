@@ -196,7 +196,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('point-of-sale')->name('point-of-sale.')->controller(PointOfSaleController::class)->group(function () {
-        Route::get('/', 'show')->name('show');
+        Route::get('/', 'show')->middleware('can:point-of-sale.show')->name('show');
     });
 
     /*
