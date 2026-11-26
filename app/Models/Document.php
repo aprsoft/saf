@@ -11,6 +11,28 @@ class Document extends Model
 {
     protected $guarded = ['id'];
 
+    public function errorDtes()
+    {
+        return $this->hasMany(ErrorDte::class);
+    }
+
+    public function emisionPendienteDeConciliar(): bool
+    {
+        return $this->errorDtes()
+            ->whereIn('error->saf_emision', ['ENVIANDO', 'INCIERTA'])
+            ->exists();
+    }
+
+    public function puedePagar(): bool
+    {
+        return (int) $this->typedocument_id === 2
+            && $this->estado_documento === 'VIGENTE'
+            && $this->condicion_documento === 'EN PROCESO'
+            && $this->folio === null
+            && ! DB::table('document_payment')->where('document_id', $this->id)->exists()
+            && ! $this->emisionPendienteDeConciliar();
+    }
+
     
     public function getExentoAttribute(): int
     {

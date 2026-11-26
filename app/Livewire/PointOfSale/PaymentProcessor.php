@@ -14,6 +14,7 @@ use App\Services\Dte\Post\DtePostManager;
 use App\Services\Dte\Stamp\TimbrePdf417Service;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Reactive;
@@ -52,10 +53,8 @@ final class PaymentProcessor extends Component
     public function intentoExistente(): bool
     {
         return $this->documentoId !== null
-            && DB::table('dte_emission_attempts')
-                ->join('documents', 'documents.id', '=', 'dte_emission_attempts.document_id')
-                ->where('documents.user_id', auth()->id())
-                ->where('dte_emission_attempts.document_id', $this->documentoId)->exists();
+            && (Document::query()->whereKey($this->documentoId)
+                ->where('user_id', auth()->id())->first()?->emisionPendienteDeConciliar() ?? false);
     }
 
     public function pagar(): void
@@ -68,6 +67,23 @@ final class PaymentProcessor extends Component
             'montoRecibido' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
         ]);
 
+        $lock = Cache::lock('pos-pago:'.$this->documentoId, 120);
+        if (! $lock->get()) {
+            $this->addError('documento', 'El documento se está procesando.');
+
+            return;
+        }
+
+        try {
+            $this->procesarPago($datos);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function procesarPago(array $datos): void
+    {
+        $this->resetValidation();
         $preparado = $this->prepararEmision($datos);
         $folio = null;
         $estado = 'INCIERTA';
@@ -88,13 +104,13 @@ final class PaymentProcessor extends Component
             $this->registrarPago($preparado, $folio, $ted);
         } catch (Throwable $exception) {
             try {
-                DB::table('dte_emission_attempts')->where('document_id', $this->documentoId)
-                    ->where('estado', 'ENVIANDO')->update([
-                        'estado' => $estado,
+                $preparado['registro']->update([
+                    'error' => json_encode($preparado['contexto'] + [
+                        'saf_emision' => $estado,
                         'folio' => $folio,
                         'mensaje' => mb_substr($exception->getMessage(), 0, 500),
-                        'updated_at' => now(),
-                    ]);
+                    ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR),
+                ]);
             } catch (Throwable $error) {
                 report($error);
             }
@@ -102,7 +118,7 @@ final class PaymentProcessor extends Component
             unset($this->intentoExistente);
             report($exception);
             $this->addError('documento', $estado === 'RECHAZADA'
-                ? 'DTE rechazado. El dinero ya recibido debe conciliarse. No vuelva a cobrar.'
+                ? 'DTE rechazado: '.($respuesta->message ?? 'Sin detalle').'. Corrija el error y vuelva a emitir sin recibir dinero nuevamente.'
                 : 'Resultado incierto. Concilie la emisión y el dinero recibido antes de reintentar.');
 
             return;
@@ -123,8 +139,7 @@ final class PaymentProcessor extends Component
                 ->where('estado_documento', 'VIGENTE')->where('condicion_documento', 'EN PROCESO')
                 ->lockForUpdate()->firstOrFail();
 
-            if ($nota->folio !== null || DB::table('document_payment')->where('document_id', $nota->id)->exists()
-                || DB::table('dte_emission_attempts')->where('document_id', $nota->id)->exists()) {
+            if (! $nota->puedePagar()) {
                 throw ValidationException::withMessages(['documento' => 'Existe un pago o intento previo. Concilie antes de continuar.']);
             }
 
@@ -149,19 +164,22 @@ final class PaymentProcessor extends Component
             $dte->setRelation('typedocument', Typedocument::query()->findOrFail($this->tipoDocumento));
             DteApiFactory::resolve($dte)->mapJsonDte();
 
-            DB::table('dte_emission_attempts')->insert([
-                'document_id' => $nota->id,
+            $contexto = [
                 'idempotency_key' => 'saf-dte-'.$nota->id,
-                'estado' => 'ENVIANDO',
                 'forma_pago' => $datos['formaPago'],
                 'monto' => $total,
                 'monto_recibido' => $recibido,
                 'tipo_documento_id' => $this->tipoDocumento,
-                'created_at' => now(),
-                'updated_at' => now(),
+            ];
+
+            // Registro durable previo al envío: también protege si PHP termina
+            // inesperadamente o expira el bloqueo de caché.
+            $registro = $nota->errorDtes()->create([
+                'error' => json_encode($contexto + ['saf_emision' => 'ENVIANDO'], JSON_THROW_ON_ERROR),
             ]);
 
-            return ['dte' => $dte, 'total' => $total, 'forma' => $datos['formaPago']];
+            return ['dte' => $dte, 'total' => $total, 'forma' => $datos['formaPago'],
+                'registro' => $registro, 'contexto' => $contexto];
         }, 1);
     }
 
@@ -173,8 +191,8 @@ final class PaymentProcessor extends Component
                 ->where('typedocument_id', 2)->where('estado_documento', 'VIGENTE')
                 ->where('condicion_documento', 'EN PROCESO')->lockForUpdate()->firstOrFail();
 
-            abort_unless(DB::table('dte_emission_attempts')->where('document_id', $documento->id)
-                ->lockForUpdate()->value('estado') === 'ENVIANDO', 409);
+            abort_unless($documento->errorDtes()->whereKey($preparado['registro']->id)
+                ->where('error->saf_emision', 'ENVIANDO')->lockForUpdate()->first() !== null, 409);
             abort_if(DB::table('document_payment')->where('document_id', $documento->id)->exists(), 409);
 
             $documento->update([
@@ -203,9 +221,8 @@ final class PaymentProcessor extends Component
                 'forma_pago' => $preparado['forma'],
             ]);
 
-            DB::table('dte_emission_attempts')->where('document_id', $documento->id)->update([
-                'estado' => 'CONFIRMADA', 'folio' => $folio, 'updated_at' => now(),
-            ]);
+            // El registro provisional no es un error cuando la emisión concluye.
+            $preparado['registro']->delete();
         }, 1);
     }
 

@@ -50,7 +50,8 @@ final class DocumentActions extends Component
         return Document::query()->where('user_id', auth()->id())
             ->where('typedocument_id', $this->esCotizacion ? 19 : 2)
             ->where('estado_documento', 'VIGENTE')->whereIn('condicion_documento', ['PENDIENTE', 'EN PROCESO'])
-            ->whereNotIn('id', DB::table('dte_emission_attempts')->select('document_id'))
+            ->whereDoesntHave('errorDtes', fn ($query) => $query
+                ->whereIn('error->saf_emision', ['ENVIANDO', 'INCIERTA']))
             ->latest('updated_at')->limit(30)->get();
     }
 
@@ -99,7 +100,7 @@ final class DocumentActions extends Component
                 ->where('estado_documento', 'VIGENTE')->where('condicion_documento', 'EN PROCESO')
                 ->lockForUpdate()->firstOrFail();
             abort_if($documento->folio !== null
-                || DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists()
+                || $documento->emisionPendienteDeConciliar()
                 || DB::table('document_payment')->where('document_id', $documento->id)->exists()
                 || Document::query()->where('parent_id', $documento->id)->exists(), 409);
             if ($estado !== 'ANULADO') {

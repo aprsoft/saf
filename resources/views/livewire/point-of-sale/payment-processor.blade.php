@@ -23,7 +23,7 @@
         <span wire:loading wire:target="pagar">Emitiendo…</span>
     </button>
     @if ($this->intentoExistente)
-        <p class="order-last col-span-2 text-xs text-amber-700">Existe un intento de emisión. No vuelva a cobrar sin conciliar.</p>
+        <p class="order-last col-span-2 text-xs text-amber-700">Existe una emisión sin confirmar. Concilie antes de reemitir.</p>
     @endif
     @error('cliente') <p role="alert" class="order-last col-span-2 text-sm text-red-600">{{ $message }}</p> @enderror
     @error('documento') <p role="alert" class="order-last col-span-2 text-sm text-red-600">{{ $message }}</p> @enderror

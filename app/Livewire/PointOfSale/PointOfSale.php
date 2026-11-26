@@ -65,7 +65,7 @@ final class PointOfSale extends Component
                 ->lockForUpdate()->firstOrFail();
             abort_if($documento->folio !== null
                 || DB::table('document_payment')->where('document_id', $id)->exists()
-                || DB::table('dte_emission_attempts')->where('document_id', $id)->exists(), 409);
+                || $documento->emisionPendienteDeConciliar(), 409);
             $documento->update(['condicion_documento' => 'EN PROCESO']);
 
             return $documento;
@@ -108,7 +108,7 @@ final class PointOfSale extends Component
                     ->where('condicion_documento', 'EN PROCESO')
                     ->lockForUpdate()->firstOrFail();
 
-                abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
+                abort_if($documento->emisionPendienteDeConciliar(), 409);
                 $documento->update([
                     'customer_id' => $id,
                     'nombre_referencia' => $referencia !== '' ? $referencia : null,
@@ -163,7 +163,7 @@ final class PointOfSale extends Component
 
                 abort_if($documento->folio !== null
                     || DB::table('document_payment')->where('document_id', $documento->id)->exists()
-                    || DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists()
+                    || $documento->emisionPendienteDeConciliar()
                     || Document::query()->where('parent_id', $documento->id)->exists(), 409,
                     'El documento tiene operaciones asociadas y no puede cambiar de tipo.');
 

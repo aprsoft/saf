@@ -126,7 +126,7 @@ final class SalesItemSelector extends Component
         $documento = ($bloquear ? $query->lockForUpdate() : $query)->firstOrFail();
 
         if (! $soloLectura) {
-            abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
+            abort_if($documento->emisionPendienteDeConciliar(), 409);
         }
 
         return $documento;

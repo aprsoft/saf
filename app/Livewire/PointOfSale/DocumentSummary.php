@@ -106,7 +106,7 @@ final class DocumentSummary extends Component
             $documento = $this->consultarDocumento(true);
             abort_if($documento->folio !== null
                 || DB::table('document_payment')->where('document_id', $documento->id)->exists()
-                || DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists()
+                || $documento->emisionPendienteDeConciliar()
                 || Document::query()->where('parent_id', $documento->id)->exists(), 409);
 
             $documento->fill([

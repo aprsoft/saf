@@ -367,6 +367,23 @@ test('el procesador rechaza efectivo insuficiente sin reservar una emisión', fu
     Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\PaymentProcessor::class, [
         'documentoId' => $documento->id, 'tipoDocumento' => 17,
     ])->set('montoRecibido', '100')->call('pagar')->assertHasErrors(['montoRecibido']);
-    expect(DB::table('dte_emission_attempts')->count())->toBe(0)
+    expect($documento->errorDtes()->count())->toBe(0)
         ->and($documento->fresh()->condicion_documento)->toBe('EN PROCESO');
+});
+
+test('un rechazo histórico no bloquea la nota y una emisión incierta sí', function (): void {
+    $user = usuarioPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $documento = Document::query()->create([
+        'user_id' => $user->id, 'typedocument_id' => 2,
+        'estado_documento' => 'VIGENTE', 'condicion_documento' => 'EN PROCESO',
+    ]);
+    $documento->errorDtes()->create(['error' => json_encode(['error' => ['message' => 'Folios agotados']])]);
+    expect($documento->puedePagar())->toBeTrue();
+    $registro = $documento->errorDtes()->create(['error' => json_encode(['saf_emision' => 'ENVIANDO'])]);
+    expect($documento->puedePagar())->toBeFalse();
+    $registro->update(['error' => json_encode(['saf_emision' => 'RECHAZADA'])]);
+    expect($documento->puedePagar())->toBeTrue();
+    $registro->update(['error' => json_encode(['saf_emision' => 'INCIERTA'])]);
+    expect($documento->puedePagar())->toBeFalse();
 });
