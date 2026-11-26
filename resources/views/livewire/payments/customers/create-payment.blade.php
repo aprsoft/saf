@@ -9,7 +9,7 @@
         </select>
         @error('form.formaPago') <p role="alert" class="text-xs text-red-600">{{ $message }}</p> @enderror
     </div>
-    <div>
+    <div @class(['invisible' => $form->formaPago !== 'EFECTIVO'])>
         <div class="grid grid-cols-2 gap-1">
             <div class="relative min-w-0">
                 <label for="pago-recibido-{{ $this->getId() }}" class="pointer-events-none absolute left-2 top-1 text-[10px] leading-none text-gray-500">Recibido ($)</label>
