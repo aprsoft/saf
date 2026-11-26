@@ -171,7 +171,12 @@ final class SalesItemSelector extends Component
         $datos = $this->validate([
             'cantidad' => ['required', 'regex:/^\d{1,6}(?:\.\d{1,3})?$/', 'numeric', 'gt:0', 'max:999999'],
             'descuentoTipo' => ['required', 'in:porcentaje,monto'],
-            'descuentoValor' => ['required', 'integer', 'min:0', 'max:4294967295'],
+            'descuentoValor' => [
+                'required',
+                'integer',
+                'min:0',
+                $this->descuentoTipo === 'porcentaje' ? 'max:100' : 'max:4294967295',
+            ],
         ]);
 
         $id = DB::transaction(function () use ($datos): int {

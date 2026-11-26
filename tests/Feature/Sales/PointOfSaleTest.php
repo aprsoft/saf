@@ -124,6 +124,9 @@ test('el selector persiste y edita ítems de una nota interna', function (): voi
 });
 
 test('un descuento inválido no crea un documento', function (): void {
+    DB::table('typedocuments')->insertOrIgnore([
+        'id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO',
+    ]);
     $producto = productoPosPrueba();
     Livewire::actingAs(usuarioPosPrueba())->test(SalesItemSelector::class)
         ->call('abrirProducto', $producto->id)
