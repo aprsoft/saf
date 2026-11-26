@@ -173,3 +173,35 @@ test('caja muestra vuelto en efectivo y recalcula al aplicar descuento', functio
     expect($pago->instance()->vuelto())->toBe(0)
         ->and(Payment::query()->count())->toBe(0);
 });
+
+test('caja muestra el panel al seleccionar nota de crédito', function (): void {
+    $nota = nuevaNotaParaPruebaCaja(User::factory()->create());
+    $cajero = cajeroPrueba();
+    Livewire::actingAs($cajero)->test(CashPayment::class, ['documentoId' => $nota->id])
+        ->dispatch('cash-payment-method-changed', id: $nota->id, medio: 'NOTA DE CREDITO')
+        ->assertSet('mostrarNotaCredito', true)
+        ->dispatch('cash-payment-method-changed', id: $nota->id, medio: 'EFECTIVO')
+        ->assertSet('mostrarNotaCredito', false);
+    Livewire::actingAs($cajero)->test(CreatePayment::class, ['documentoId' => $nota->id])
+        ->set('form.formaPago', 'NOTA DE CREDITO')
+        ->assertDispatched('cash-payment-method-changed')
+        ->call('pagar')->assertHasErrors('form.formaPago');
+    expect(Payment::query()->count())->toBe(0);
+});
+
+test('busqueda de nota de crédito muestra cliente y no consume crédito', function (): void {
+    $venta = nuevaNotaParaPruebaCaja(User::factory()->create());
+    $tipo = \App\Models\Typedocument::query()->create(['name' => 'NC prueba', 'codigo' => 61]);
+    $cliente = Customer::query()->create(['rut' => '12345678-5', 'nombres' => 'Cliente devolución']);
+    $nc = Document::query()->create([
+        'typedocument_id' => $tipo->id, 'customer_id' => $cliente->id,
+        'folio' => 125, 'estado_documento' => 'VIGENTE', 'condicion_documento' => 'NO APLICADA',
+    ]);
+    Livewire::actingAs(cajeroPrueba())->test(\App\Livewire\Payments\Customers\CreditNotePayment::class, ['documentoId' => $venta->id])
+        ->set('folio', '125')->call('buscar')->assertHasNoErrors()
+        ->assertSet('notaCreditoId', $nc->id)->assertSee('Cliente devolución')
+        ->set('folio', '999')->assertSet('notaCreditoId', null)
+        ->call('buscar')->assertHasErrors('folio');
+    expect($nc->fresh()->condicion_documento)->toBe('NO APLICADA')
+        ->and(Payment::query()->count())->toBe(0);
+});

@@ -17,8 +17,13 @@
             </div>
         </section>
     </aside>
-    <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
-        <p class="mb-2 text-sm text-gray-500">Nota de venta N.º {{ $documento->id }} · Pendiente de cobro</p>
-        @include('livewire.cashs.customers.cash-payment-detail')
-    </section>
+    <div class="min-w-0 space-y-3">
+        <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+            <p class="mb-2 text-sm text-gray-500">Nota de venta N.º {{ $documento->id }} · Pendiente de cobro</p>
+            @include('livewire.cashs.customers.cash-payment-detail')
+        </section>
+        @if ($mostrarNotaCredito)
+            <livewire:payments.customers.credit-note-payment :documento-id="$documentoId" :key="'credit-note-payment-'.$documentoId" />
+        @endif
+    </div>
 </div>

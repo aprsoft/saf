@@ -4,7 +4,9 @@
         <select id="pago-medio-{{ $this->getId() }}" wire:model.live="form.formaPago" wire:loading.attr="disabled"
                 class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm dark:border-gray-600 dark:bg-gray-900">
             @foreach (\App\Livewire\Payments\Customers\CreatePayment::MEDIOS as $valor => $nombre)
-                <option value="{{ $valor }}">{{ $nombre }}</option>
+                @if (! $integrado || $valor !== 'NOTA DE CREDITO')
+                    <option value="{{ $valor }}">{{ $nombre }}</option>
+                @endif
             @endforeach
         </select>
         @error('form.formaPago') <p role="alert" class="text-xs text-red-600">{{ $message }}</p> @enderror
@@ -28,7 +30,7 @@
         @error('form.montoRecibido') <p role="alert" class="text-xs text-red-600">{{ $message }}</p> @enderror
     </div>
     <button type="button" wire:click="pagar" wire:loading.attr="disabled" wire:target="pagar,confirmarEmitirDte"
-            @disabled($documentoId === null || $this->intentoExistente)
+            @disabled($documentoId === null || $this->intentoExistente || $form->formaPago === 'NOTA DE CREDITO')
             class="h-10 w-full rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-40">
         <span wire:loading.remove wire:target="pagar,confirmarEmitirDte">Pagar</span>
         <span wire:loading wire:target="pagar,confirmarEmitirDte">Procesando…</span>

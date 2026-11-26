@@ -36,6 +36,7 @@ final class CreatePayment extends Component
         'TRANSFERENCIA BANCARIA' => 'Transferencia',
         'DEPOSITO BANCARIO' => 'Depósito bancario',
         'CHEQUE' => 'Cheque',
+        'NOTA DE CREDITO' => 'Nota de crédito',
     ];
 
     public PaymentForm $form;
@@ -127,9 +128,20 @@ final class CreatePayment extends Component
         }
     }
 
+    public function updatedFormFormaPago(): void
+    {
+        $this->revision = null;
+        if (! $this->integrado && $this->documentoId !== null) {
+            $this->dispatch('cash-payment-method-changed', id: $this->documentoId, medio: $this->form->formaPago);
+        }
+    }
+
     private function datosCobro(Document $nota): array
     {
         $datos = $this->form->validate();
+        if ($datos['formaPago'] === 'NOTA DE CREDITO') {
+            throw ValidationException::withMessages(['form.formaPago' => 'El cobro con nota de crédito aún no está habilitado.']);
+        }
         abort_unless(in_array($this->tipoDocumento, [15, 17], true), 422);
         $cliente = $nota->customer()->firstOrFail();
         $this->validarReceptor($cliente, $this->tipoDocumento);

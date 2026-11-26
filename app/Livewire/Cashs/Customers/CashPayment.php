@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 final class CashPayment extends Component
@@ -32,6 +33,18 @@ final class CashPayment extends Component
     public string $nombreReferencia = '';
 
     public bool $mostrarDetalle = true;
+
+    #[Locked]
+    public bool $mostrarNotaCredito = false;
+
+    #[On('cash-payment-method-changed')]
+    public function actualizarMedioPago(int $id, string $medio): void
+    {
+        $this->autorizar();
+        if ($id === $this->documentoId) {
+            $this->mostrarNotaCredito = $medio === 'NOTA DE CREDITO';
+        }
+    }
 
     public function mount(int $documentoId): void
     {
