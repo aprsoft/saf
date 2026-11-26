@@ -15,11 +15,6 @@
         <option value="15" @disabled($cliente === null)>
             Factura electrónica (33)
         </option>
-        @unless ($integrado)
-            <option value="18" @disabled($cliente === null)>
-                Guía de despacho (52)
-            </option>
-        @endunless
     </select>
     @error('form.tipoDocumento')
         <p id="caja-documento-error" role="alert"
@@ -28,7 +23,7 @@
         </p>
     @enderror
 </div>
-@include('livewire.payments.customer.create-payment-discount')
+@include('livewire.payments.customers.create-payment-discount')
 {{-- FORMA DE PAGO --}}
 <div>
     <label
@@ -120,10 +115,5 @@
 @if ($cliente === null)
     <p class="mt-2 text-sm text-gray-500">
         Cliente genérico: solo boleta electrónica.
-    </p>
-@elseif ((int) $form->tipoDocumento === 18)
-    <p class="mt-2 text-sm text-amber-600 dark:text-amber-400">
-        La guía de despacho tiene un flujo de traslado
-        y facturación propio.
     </p>
 @endif

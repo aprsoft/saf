@@ -323,6 +323,7 @@ test('el resumen no permite consultar documentos de otro usuario', function (): 
 });
 
 test('el panel de acciones cambia según tipo de documento', function (): void {
+    empresaPosPrueba('CAJA_INTEGRADA');
     $user = usuarioPosPrueba();
 
     Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
@@ -364,9 +365,9 @@ test('el procesador rechaza efectivo insuficiente sin reservar una emisión', fu
     Livewire::actingAs($user)->test(SalesItemSelector::class)
         ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
     $documento = Document::query()->sole();
-    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\PaymentProcessor::class, [
+    Livewire::actingAs($user)->test(\App\Livewire\Payments\Customers\CreatePayment::class, [
         'documentoId' => $documento->id, 'tipoDocumento' => 17,
-    ])->set('montoRecibido', '100')->call('pagar')->assertHasErrors(['montoRecibido']);
+    ])->set('form.montoRecibido', '100')->call('pagar')->assertHasErrors(['form.montoRecibido']);
     expect($documento->errorDtes()->count())->toBe(0)
         ->and($documento->fresh()->condicion_documento)->toBe('EN PROCESO');
 });

@@ -3,6 +3,8 @@
 namespace App\Livewire\SalesNotes\Customers;
 
 use App\Models\Document;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Number;
 use Livewire\Attributes\On;
@@ -90,15 +92,14 @@ final class CustomerSalesNotesTable extends PowerGridComponent
     #[On('restore-sales-note-pos')]
     public function edit(int $id): void
     {
-        $salesNote = Document::query()
-            ->where('typedocument_id', 2)
-            ->where('estado_documento', 'VIGENTE')
-            ->where('condicion_documento', 'FINALIZADO')
-            ->findOrFail($id);
-
-        $salesNote->update([
-            'condicion_documento' => 'EN PROCESO',
-        ]);
+        Gate::authorize('payments.customer.create');
+        DB::transaction(function () use ($id): void {
+            $salesNote = Document::query()->whereKey($id)
+                ->where('typedocument_id', 2)->where('estado_documento', 'VIGENTE')
+                ->where('condicion_documento', 'FINALIZADO')->lockForUpdate()->firstOrFail();
+            abort_unless($salesNote->puedePagar('FINALIZADO'), 409);
+            $salesNote->update(['condicion_documento' => 'EN PROCESO']);
+        });
     }
 
     public function actions($row): array

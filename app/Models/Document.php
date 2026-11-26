@@ -23,11 +23,12 @@ class Document extends Model
             ->exists();
     }
 
-    public function puedePagar(): bool
+    public function puedePagar(string $condicion = 'EN PROCESO'): bool
     {
         return (int) $this->typedocument_id === 2
             && $this->estado_documento === 'VIGENTE'
-            && $this->condicion_documento === 'EN PROCESO'
+            && in_array($condicion, ['EN PROCESO', 'FINALIZADO'], true)
+            && $this->condicion_documento === $condicion
             && $this->folio === null
             && ! DB::table('document_payment')->where('document_id', $this->id)->exists()
             && ! $this->emisionPendienteDeConciliar();

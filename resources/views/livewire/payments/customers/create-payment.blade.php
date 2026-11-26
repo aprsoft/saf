@@ -43,20 +43,20 @@
 
     <div class="grid min-w-0 grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <div class="min-w-0 space-y-4">
-            @include('livewire.payments.customer.create-payment-customer')
+            @include('livewire.payments.customers.create-payment-customer')
 
             <section class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <h2 class="font-semibold">Documento y cobro</h2>
-                @include('livewire.payments.customer.create-payment-payment')
+                @include('livewire.payments.customers.create-payment-payment')
             </section>
         </div>
 
         <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            @include('livewire.payments.customer.create-payment-detail')
-            @include('livewire.payments.customer.create-payment-totals')
-            @include('livewire.payments.customer.create-payment-actions')
+            @include('livewire.payments.customers.create-payment-detail')
+            @include('livewire.payments.customers.create-payment-totals')
+            @include('livewire.payments.customers.create-payment-actions')
         </section>
     </div>
 
-    @include('livewire.payments.customer.create-payment-customer-selector')
+    @include('livewire.payments.customers.create-payment-customer-selector')
 </div>

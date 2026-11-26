@@ -3,7 +3,7 @@
     <h2 class="mb-2 font-semibold">Acciones · {{ $this->esCotizacion ? 'Cotización' : ($type === 'CAJA_INTEGRADA' ? 'Documento tributario' : 'Nota de venta') }}</h2>
     <div class="grid grid-cols-2 gap-2 text-sm">
         @if ($this->permitePago)
-            <livewire:point-of-sale.payment-processor :documento-id="$documentoId" :tipo-documento="$tipoDocumento" />
+            <livewire:payments.customers.create-payment :documento-id="$documentoId" :tipo-documento="$tipoDocumento" />
         @endif
         <button type="button" wire:click="abrirRecuperar" @disabled($documentoId !== null) class="rounded-lg border px-3 py-2 disabled:opacity-40">Recuperar</button>
         <button type="button" wire:click="dejarEnEspera" @disabled($documentoId === null) class="rounded-lg border px-3 py-2 disabled:opacity-40">Dejar en espera</button>

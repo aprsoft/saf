@@ -15,23 +15,15 @@
     @endif
     <button
         type="button"
-        wire:click="solicitarEmitirDte"
+        wire:click="solicitarEmitirDte" @disabled($this->intentoExistente)
         wire:loading.attr="disabled"
-        wire:target="solicitarEmitirDte,confirmarEmitirDte,confirmarPagoIntegrado"
+        wire:target="solicitarEmitirDte,confirmarEmitirDte"
         class="rounded-lg bg-blue-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
     >
-        <span wire:loading.remove wire:target="solicitarEmitirDte,confirmarEmitirDte,confirmarPagoIntegrado">{{ $integrado ? 'Revisar pago' : 'Pagar' }}</span>
-        <span wire:loading wire:target="solicitarEmitirDte,confirmarEmitirDte,confirmarPagoIntegrado" role="status">Procesando…</span>
+        <span wire:loading.remove wire:target="solicitarEmitirDte,confirmarEmitirDte">{{ $integrado ? 'Revisar pago' : 'Pagar' }}</span>
+        <span wire:loading wire:target="solicitarEmitirDte,confirmarEmitirDte" role="status">Procesando…</span>
     </button>
 </div>
-@if ($integrado && $mostrarConfirmacion)
-    <div role="status" class="mt-3 rounded-lg border border-blue-300 p-3 text-sm dark:border-blue-700">
-        <p class="mb-2">Confirme el DTE seleccionado y el cobro por <strong>{{ $dinero($total) }}</strong>.</p>
-        <button type="button" wire:click="confirmarPagoIntegrado"
-                wire:loading.attr="disabled" wire:target="confirmarPagoIntegrado"
-                class="min-h-11 w-full rounded-lg bg-green-700 px-3 py-2 font-semibold text-white disabled:opacity-50">
-            <span wire:loading.remove wire:target="confirmarPagoIntegrado">Confirmar pago y emitir DTE</span>
-            <span wire:loading wire:target="confirmarPagoIntegrado" role="status">Procesando…</span>
-        </button>
-    </div>
+@if ($this->intentoExistente)
+    <p role="alert" class="text-sm text-amber-700">Existe una emisión sin confirmar. Concilie antes de reemitir.</p>
 @endif

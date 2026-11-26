@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:payments.customer.create-payment :document="$document" />
+        <livewire:payments.customers.create-payment :documento-id="$document->id" />
     
     </div>
 @endsection

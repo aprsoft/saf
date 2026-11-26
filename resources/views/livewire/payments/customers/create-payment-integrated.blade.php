@@ -2,18 +2,18 @@
     <div class="col-span-2 grid grid-cols-2 gap-2">
         <div>
             <label for="pos-medio-pago" class="mb-1 block text-xs font-medium">Medio de pago</label>
-            <select id="pos-medio-pago" wire:model.live="formaPago" wire:loading.attr="disabled" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-900">
-                @foreach (\App\Livewire\PointOfSale\PaymentProcessor::MEDIOS as $valor => $nombre)
+            <select id="pos-medio-pago" wire:model.live="form.formaPago" wire:loading.attr="disabled" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-900">
+                @foreach (\App\Livewire\Payments\Customers\CreatePayment::MEDIOS as $valor => $nombre)
                     <option value="{{ $valor }}">{{ $nombre }}</option>
                 @endforeach
             </select>
-            @error('formaPago') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+            @error('form.formaPago') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
-        @if ($formaPago === 'EFECTIVO')
+        @if ($form->formaPago === 'EFECTIVO')
             <div>
                 <label for="pos-monto-recibido" class="mb-1 block text-xs font-medium">Recibido ($)</label>
-                <input id="pos-monto-recibido" type="number" min="0" step="1" wire:model="montoRecibido" wire:loading.attr="disabled" placeholder="Vacío: importe exacto" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-900">
-                @error('montoRecibido') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                <input id="pos-monto-recibido" type="number" min="0" step="1" wire:model="form.montoRecibido" wire:loading.attr="disabled" placeholder="Vacío: importe exacto" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:bg-gray-900">
+                @error('form.montoRecibido') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
             </div>
         @endif
     </div>

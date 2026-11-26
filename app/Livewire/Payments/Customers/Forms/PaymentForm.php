@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\Payments\Customers\Forms;
 
 use App\Models\Document;
-use App\Services\Sales\GlobalDiscountService;
 use Livewire\Form;
 
 final class PaymentForm extends Form
@@ -14,7 +13,7 @@ final class PaymentForm extends Form
 
     public string $formaPago = 'EFECTIVO';
 
-    public string $montoRecibido = '0';
+    public string $montoRecibido = '';
 
     public string $descuentoTipo = 'porcentaje';
 
@@ -28,14 +27,22 @@ final class PaymentForm extends Form
         $this->descuentoValor = (string) ($documento->descuento_global_valor ?? 0);
         $this->montoRecibido = $montoRecibido !== ''
             ? $montoRecibido
-            : (string) app(GlobalDiscountService::class)->paraDocumento($documento)['monto_total'];
+            : (string) $documento->calcularTotales()['monto_total'];
+    }
+
+    public function validateOnlyPayment(): array
+    {
+        return $this->validate([
+            'formaPago' => $this->rules()['formaPago'],
+            'montoRecibido' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
+        ]);
     }
 
     public function rules(): array
     {
         return [
             'tipoDocumento' => [
-                'required', 'integer', 'in:17,15,18',
+                'required', 'integer', 'in:17,15',
             ],
 
             'formaPago' => [
@@ -44,8 +51,8 @@ final class PaymentForm extends Form
             ],
 
             'montoRecibido' => $this->formaPago === 'EFECTIVO'
-                ? ['required', 'integer', 'min:0']
-                : ['nullable', 'integer', 'min:0'],
+                ? ['required', 'integer', 'min:0', 'max:4294967295']
+                : ['nullable', 'integer', 'min:0', 'max:4294967295'],
 
             'descuentoTipo' => [
                 'required', 'in:porcentaje,monto',

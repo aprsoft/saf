@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Document;
 use App\Models\Payment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class PaymentController extends Controller
 {
@@ -48,6 +49,7 @@ class PaymentController extends Controller
      
     public function create(Request $request)
     {
+        Gate::authorize('payments.customer.create');
         // El cobro separado de notas finalizadas corresponde solo a caja central.
         abort_if(Company::query()->first()?->cajaIntegrada(), 404);
 
@@ -63,7 +65,7 @@ class PaymentController extends Controller
             ->where('condicion_documento', 'FINALIZADO')
             ->firstOrFail();
 
-        return view('payments.customer.create', compact('document'));
+        return view('payments.customers.create', compact('document'));
     }
 
 

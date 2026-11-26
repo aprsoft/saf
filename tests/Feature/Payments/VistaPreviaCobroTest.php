@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Livewire\Payments\Customer\CreatePayment;
+use App\Livewire\Payments\Customers\CreatePayment;
 use App\Models\Customer;
 use App\Models\Detail;
 use App\Models\Document;
@@ -13,6 +13,14 @@ use Livewire\Livewire;
 
 function nuevaNotaParaPruebaCaja(User $vendedor): Document
 {
+    \App\Models\Company::query()->create([
+        'rut_emisor' => '76795561-8', 'razon_social' => 'Empresa de prueba',
+        'giro_emisor' => 'Comercio', 'direccion_origen' => 'Calle Uno',
+        'acteco' => '479100', 'apikey' => 'clave-falsa-sin-uso',
+        'url' => 'https://example.test/dte', 'url_document_received' => 'https://example.test/dte',
+        'url_document' => 'https://example.test/dte', 'codigo_sii_sucursal' => '1',
+        'comuna_origen' => 'Santiago', 'modo_cobro' => 'CAJA_CENTRAL',
+    ]);
     // Insertar la clave primaria sin pasar por la asignación masiva de Eloquent.
     // Typedocument protege el campo id mediante $guarded = ['id'].
     DB::table('typedocuments')->insertOrIgnore([
@@ -52,10 +60,11 @@ function nuevaNotaParaPruebaCaja(User $vendedor): Document
 
 test('previsualizar un cobro no altera la nota ni crea pagos', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->call('revisar')
         ->assertHasNoErrors()
         ->assertSet('mostrarConfirmacion', true);
@@ -67,10 +76,11 @@ test('previsualizar un cobro no altera la nota ni crea pagos', function (): void
 
 test('caja previsualiza el total con descuento global sin emitir un DTE', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->set('form.descuentoTipo', 'porcentaje')
         ->set('form.descuentoValor', '50')
         ->assertSee('$1.075')
@@ -85,10 +95,11 @@ test('caja previsualiza el total con descuento global sin emitir un DTE', functi
 
 test('caja no confirma efectivo inferior al total con descuento', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->set('form.descuentoValor', '50')
         ->set('form.montoRecibido', '1000')
         ->call('revisar')
@@ -100,10 +111,11 @@ test('caja no confirma efectivo inferior al total con descuento', function (): v
 
 test('caja rechaza descuento porcentual de 100 antes de confirmar el cobro', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->set('form.descuentoTipo', 'porcentaje')
         ->set('form.descuentoValor', '100')
         ->call('revisar')
@@ -115,10 +127,11 @@ test('caja rechaza descuento porcentual de 100 antes de confirmar el cobro', fun
 
 test('caja permite descuento porcentual de 99 sin registrar un cobro durante la vista previa', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->set('form.descuentoTipo', 'porcentaje')
         ->set('form.descuentoValor', '99')
         ->call('revisar')
@@ -131,10 +144,11 @@ test('caja permite descuento porcentual de 99 sin registrar un cobro durante la 
 
 test('caja impide facturar al receptor genérico', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->set('form.tipoDocumento', 15)
         ->call('revisar')
         ->assertHasErrors(['cliente']);
@@ -145,6 +159,7 @@ test('caja impide facturar al receptor genérico', function (): void {
 
 test('caja exige giro dirección y comuna antes de emitir una factura', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
     $cliente = Customer::query()->create([
         'nombres' => 'Cliente Empresa',
@@ -152,7 +167,7 @@ test('caja exige giro dirección y comuna antes de emitir una factura', function
     ]);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->call('abrirSelectorClientes')
         ->call('seleccionarCliente', $cliente->id)
         ->set('form.tipoDocumento', 15)
@@ -164,6 +179,7 @@ test('caja exige giro dirección y comuna antes de emitir una factura', function
 
 test('seleccionar receptor válido no cambia la nota hasta confirmar emisión', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
     $clienteOriginal = $nota->customer_id;
 
@@ -176,7 +192,7 @@ test('seleccionar receptor válido no cambia la nota hasta confirmar emisión', 
     ]);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->call('abrirSelectorClientes')
         ->call('seleccionarCliente', $cliente->id)
         ->set('form.tipoDocumento', 15)
@@ -191,11 +207,12 @@ test('seleccionar receptor válido no cambia la nota hasta confirmar emisión', 
 
 test('caja inicializa el formulario con el descuento heredado y el total a recibir', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
     $nota->update(['descuento_global_tipo' => 'porcentaje', 'descuento_global_valor' => 50]);
 
     Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->assertSet('form.descuentoTipo', 'porcentaje')
         ->assertSet('form.descuentoValor', '50')
         ->assertSet('form.montoRecibido', '1075')
@@ -205,6 +222,7 @@ test('caja inicializa el formulario con el descuento heredado y el total a recib
 
 test('confirmar vuelve a validar el receptor y cierra la revisión si sus datos cambiaron', function (): void {
     $vendedor = User::factory()->create();
+    $vendedor->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
     $nota = nuevaNotaParaPruebaCaja($vendedor);
     $cliente = Customer::query()->create([
         'nombres' => 'Cliente Empresa',
@@ -214,7 +232,7 @@ test('confirmar vuelve a validar el receptor y cierra la revisión si sus datos 
         'comuna' => 'Santiago',
     ]);
     $componente = Livewire::actingAs($vendedor)
-        ->test(CreatePayment::class, ['document' => $nota])
+        ->test(CreatePayment::class, ['documentoId' => $nota->id])
         ->call('abrirSelectorClientes')
         ->call('seleccionarCliente', $cliente->id)
         ->set('form.tipoDocumento', 15)
@@ -229,5 +247,15 @@ test('confirmar vuelve a validar el receptor y cierra la revisión si sus datos 
 
     expect($nota->fresh()->typedocument_id)->toBe(2)
         ->and(Payment::query()->count())->toBe(0);
-    $this->assertDatabaseCount('dte_emission_attempts', 0);
+    expect($nota->errorDtes()->count())->toBe(0);
+});
+
+test('cajero autorizado puede revisar una nota de otro vendedor', function (): void {
+    $nota = nuevaNotaParaPruebaCaja(User::factory()->create());
+    $cajero = User::factory()->create();
+    $cajero->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('payments.customer.create', 'web'));
+    Livewire::actingAs($cajero)->test(CreatePayment::class, ['documentoId' => $nota->id])
+        ->call('revisar')->assertHasNoErrors();
+    Livewire::actingAs(User::factory()->create())->test(CreatePayment::class, ['documentoId' => $nota->id])
+        ->assertForbidden();
 });
