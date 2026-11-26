@@ -11,6 +11,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -217,6 +218,12 @@ final class PointOfSale extends Component
             ['rut' => '66666666-6'],
             ['nombres' => 'CLIENTE GENERICO'],
         )->id;
+    }
+
+    #[Computed]
+    public function permitePago(): bool
+    {
+        return $this->type === 'CAJA_INTEGRADA' && in_array($this->tipoDocumento, [15, 17], true);
     }
 
     public function render(): View

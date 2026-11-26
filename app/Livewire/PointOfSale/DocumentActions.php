@@ -39,12 +39,6 @@ final class DocumentActions extends Component
     }
 
     #[Computed]
-    public function permitePago(): bool
-    {
-        return $this->type === 'CAJA_INTEGRADA' && in_array($this->tipoDocumento, [15, 17], true);
-    }
-
-    #[Computed]
     public function recuperables()
     {
         return Document::query()->where('user_id', auth()->id())

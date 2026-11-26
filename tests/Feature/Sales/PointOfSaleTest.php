@@ -322,21 +322,34 @@ test('el resumen no permite consultar documentos de otro usuario', function (): 
         ->assertStatus(404);
 });
 
-test('el panel de acciones cambia según tipo de documento', function (): void {
+test('el POS compone las acciones y el pago como componentes independientes', function (): void {
     empresaPosPrueba('CAJA_INTEGRADA');
     $user = usuarioPosPrueba();
 
-    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
+    $pos = Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_INTEGRADA'])
+        ->assertSee('Medio de pago')->assertSee('Pagar')->assertDontSee('Enviar a caja');
+
+    expect($pos->instance()->permitePago())->toBeTrue();
+
+    $pos->call('seleccionarTipo', 15)->assertHasNoErrors()->assertSee('Medio de pago');
+    $pos->call('seleccionarTipo', 19)->assertHasNoErrors()->assertSee('Guardar cotización')->assertDontSee('Medio de pago');
+    expect($pos->instance()->permitePago())->toBeFalse();
+
+    $pos->call('seleccionarTipo', 18)->assertHasNoErrors()->assertSee('La guía requiere el flujo de despacho.')->assertDontSee('Medio de pago');
+});
+
+test('las acciones comerciales no renderizan el procesador de pago', function (): void {
+    empresaPosPrueba('CAJA_INTEGRADA');
+    Livewire::actingAs(usuarioPosPrueba())->test(\App\Livewire\PointOfSale\DocumentActions::class, [
         'type' => 'CAJA_INTEGRADA', 'tipoDocumento' => 17,
-    ])->assertSee('Medio de pago')->assertSee('Pagar')->assertDontSee('Enviar a caja');
+    ])->assertSee('Recuperar')->assertSee('Dejar en espera')->assertSee('Anular')
+        ->assertDontSee('Medio de pago')->assertDontSee('Pagar');
+});
 
-    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
-        'type' => 'CAJA_CENTRAL', 'tipoDocumento' => 2,
-    ])->assertSee('Enviar a caja')->assertDontSee('Medio de pago');
-
-    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
-        'type' => 'CAJA_INTEGRADA', 'tipoDocumento' => 19,
-    ])->assertSee('Guardar cotización')->assertDontSee('Medio de pago');
+test('el POS con caja central muestra enviar a caja y no el cobro', function (): void {
+    empresaPosPrueba('CAJA_CENTRAL');
+    Livewire::actingAs(usuarioPosPrueba())->test(PointOfSale::class, ['type' => 'CAJA_CENTRAL'])
+        ->assertSee('Enviar a caja')->assertDontSee('Medio de pago');
 });
 
 test('una operación en espera se puede recuperar conservando los detalles', function (): void {
