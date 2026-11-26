@@ -1,4 +1,7 @@
 <div class="min-w-0 space-y-3 text-gray-900 dark:text-gray-100">
+    @error('descuentoGlobal')
+        <p role="alert" class="text-sm text-red-600">{{ $message }}</p>
+    @enderror
     <section class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         <h2 class="mb-3 font-semibold">Catálogo de productos y servicios</h2>
         <input type="search" wire:model.live.debounce.300ms="busqueda" placeholder="Buscar por código, descripción o ID"

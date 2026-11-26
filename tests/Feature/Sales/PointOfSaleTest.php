@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\PointOfSale\SalesItemSelector;
+use App\Livewire\PointOfSale\DocumentSummary;
 use App\Livewire\PointOfSale\PointOfSale;
 use App\Livewire\PointOfSale\DocumentTypeSelector;
 use App\Models\Company;
@@ -268,4 +269,39 @@ test('convertir una nota a cotización conserva cliente y detalles', function ()
     $documento->update(['folio' => 123]);
     $pos->call('seleccionarTipo', 19)->assertStatus(409);
     expect((int) $documento->fresh()->typedocument_id)->toBe(2);
+});
+
+test('el resumen aplica descuentos globales sin cambiar los detalles', function (): void {
+    $user = usuarioPosPrueba();
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $items = Livewire::actingAs($user)->test(SalesItemSelector::class)
+        ->call('abrirProducto', $producto->id)->set('cantidad', '2')->call('guardarItem')->assertHasNoErrors();
+    $documento = Document::query()->sole();
+    $detalle = $documento->details()->sole();
+    $resumen = Livewire::actingAs($user)->test(DocumentSummary::class, ['documentoId' => $documento->id])
+        ->set('descuentoValor', '10')->call('aplicarDescuento')->assertHasNoErrors()
+        ->assertDispatched('pos-summary-changed');
+    expect($documento->fresh()->total)->toBe(2142)
+        ->and((int) $detalle->fresh()->MontoItem)->toBe(2380);
+    $items->call('editarItem', $detalle->id)->set('cantidad', '1')->call('guardarItem')->assertHasNoErrors();
+    $resumen->dispatch('pos-items-changed', id: $documento->id);
+    expect($resumen->instance()->totales()['monto_total'])->toBe(1071);
+    $resumen->set('descuentoTipo', 'monto')->set('descuentoValor', '1000')
+        ->call('aplicarDescuento')->assertHasNoErrors();
+    $items->call('eliminarItem', $detalle->id)->assertHasErrors(['descuentoGlobal']);
+    expect($documento->details()->count())->toBe(1);
+    $resumen->set('descuentoValor', '0')->call('aplicarDescuento')->assertHasNoErrors();
+    $items->call('eliminarItem', $detalle->id)->assertHasNoErrors();
+    expect($documento->fresh()->total)->toBe(0);
+});
+
+test('el resumen no permite consultar documentos de otro usuario', function (): void {
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $documento = Document::query()->create([
+        'user_id' => usuarioPosPrueba()->id, 'typedocument_id' => 2,
+        'estado_documento' => 'VIGENTE', 'condicion_documento' => 'EN PROCESO',
+    ]);
+    Livewire::actingAs(usuarioPosPrueba())->test(DocumentSummary::class, ['documentoId' => $documento->id])
+        ->assertStatus(404);
 });

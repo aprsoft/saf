@@ -7,6 +7,7 @@
     <aside class="space-y-3">
         <livewire:point-of-sale.document-type-selector :type="$type" :tipo-documento="$tipoDocumento" />
         <livewire:point-of-sale.customer-selector :cliente-id="$clienteId" :nombre-referencia="$nombreReferencia" />
+        <livewire:point-of-sale.document-summary :documento-id="$documentoId" :key="'pos-summary-'.($documentoId ?? 'nuevo')" />
         @if ($advertencia !== '')
             <p role="alert" class="text-sm text-amber-600">{{ $advertencia }}</p>
         @endif

@@ -7,6 +7,7 @@ namespace App\Livewire\PointOfSale;
 use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ProductService;
+use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -118,7 +119,6 @@ final class SalesItemSelector extends Component
         $documento = ($bloquear ? $query->lockForUpdate() : $query)->firstOrFail();
 
         abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
-        abort_if((int) $documento->descuento_global_valor !== 0, 409);
 
         return $documento;
     }
@@ -206,6 +206,8 @@ final class SalesItemSelector extends Component
                 'estado_detalle' => 'VIGENTE',
             ])->save();
 
+            $this->validarDescuentoGlobal($documento);
+
             return (int) $documento->id;
         });
 
@@ -271,10 +273,23 @@ final class SalesItemSelector extends Component
         ];
     }
 
+    private function validarDescuentoGlobal(Document $documento): void
+    {
+        try {
+            app(GlobalDiscountService::class)->paraDocumento($documento);
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages([
+                'descuentoGlobal' => $exception->validator->errors()->first().' Ajuste el descuento global antes de modificar los ítems.',
+            ]);
+        }
+    }
+
     public function eliminarItem(int $id): void
     {
         DB::transaction(function () use ($id): void {
-            $this->documentoEditable(true)->details()->vigente()->findOrFail($id)->delete();
+            $documento = $this->documentoEditable(true);
+            $documento->details()->vigente()->findOrFail($id)->delete();
+            $this->validarDescuentoGlobal($documento);
         });
 
         $this->cerrarProducto();

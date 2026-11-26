@@ -20,7 +20,23 @@ final class GlobalDiscountService
             ]);
         }
 
-        $base = app(DocumentItemService::class)->totalizarDetalles($detalles);
+        $base = [
+            'monto_neto' => 0,
+            'monto_iva' => 0,
+            'monto_exento' => 0,
+            'monto_total' => 0,
+        ];
+
+        foreach ($detalles as $detalle) {
+            if ($detalle->estado_detalle !== 'VIGENTE') {
+                continue;
+            }
+
+            $base['monto_neto'] += (int) $detalle->MontoNetoItem;
+            $base['monto_iva'] += (int) $detalle->ivaItem;
+            $base['monto_exento'] += (int) $detalle->MontoExeItem;
+            $base['monto_total'] += (int) $detalle->MontoItem;
+        }
         $afecto = $base['monto_neto'] + $base['monto_iva'];
         $exento = $base['monto_exento'];
         $subtotal = $afecto + $exento;
