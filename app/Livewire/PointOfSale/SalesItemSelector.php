@@ -22,6 +22,15 @@ final class SalesItemSelector extends Component
     public string $busqueda = '';
 
     #[Locked]
+    public int $tipoPersistido = 2;
+
+    public function mount(int $tipoPersistido = 2): void
+    {
+        abort_unless(in_array($tipoPersistido, [2, 19], true), 422);
+        $this->tipoPersistido = $tipoPersistido;
+    }
+
+    #[Locked]
     public ?int $documentoId = null;
 
     #[Locked]
@@ -102,7 +111,7 @@ final class SalesItemSelector extends Component
         abort_unless($this->documentoId !== null, 409);
         $query = Document::query()->whereKey($this->documentoId)
             ->where('user_id', auth()->id())
-            ->where('typedocument_id', 2)
+            ->where('typedocument_id', $this->tipoPersistido)
             ->where('estado_documento', 'VIGENTE')
             ->where('condicion_documento', 'EN PROCESO');
         $documento = ($bloquear ? $query->lockForUpdate() : $query)->firstOrFail();
@@ -171,7 +180,6 @@ final class SalesItemSelector extends Component
                 throw ValidationException::withMessages(['cantidad' => 'Producto sin precio público válido.']);
             }
 
-            $linea = $this->calcularItem($precio, $datos, (bool) $producto->afecto_iva);
             $documento = $this->documentoId === null
                 ? $this->crearDocumento()
                 : $this->documentoEditable(true);
@@ -187,6 +195,10 @@ final class SalesItemSelector extends Component
             $detalle = $this->detalleId === null
                 ? $documento->details()->make()
                 : $documento->details()->vigente()->where('product_service_id', $producto->id)->findOrFail($this->detalleId);
+            if ($this->tipoPersistido === 19 && $this->detalleId !== null) {
+                $precio = (int) $detalle->PrcItem;
+            }
+            $linea = $this->calcularItem($precio, $datos, (bool) $producto->afecto_iva);
             $detalle->fill($linea + [
                 'product_service_id' => $producto->id,
                 'user_id' => auth()->id(),
@@ -212,7 +224,8 @@ final class SalesItemSelector extends Component
         return Document::query()->create([
             'customer_id' => $cliente->id,
             'user_id' => auth()->id(),
-            'typedocument_id' => 2,
+            'typedocument_id' => $this->tipoPersistido,
+            'fecha_vencimiento' => $this->tipoPersistido === 19 ? today('America/Santiago')->addDays(15)->toDateString() : null,
             'fecha' => today('America/Santiago')->toDateString(),
             'estado_documento' => 'VIGENTE',
             'condicion_documento' => 'EN PROCESO',

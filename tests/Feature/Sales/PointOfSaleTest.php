@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Livewire\PointOfSale\SalesItemSelector;
+use App\Livewire\PointOfSale\PointOfSale;
+use App\Livewire\PointOfSale\DocumentTypeSelector;
 use App\Models\Company;
 use App\Models\Detail;
 use App\Models\Document;
@@ -58,6 +60,17 @@ test('el punto de venta y su selector requieren el permiso propio', function ():
 });
 
 test('la modalidad procede de la empresa', function (string $modo, string $titulo): void {
+    empresaPosPrueba($modo);
+    $this->withoutVite()->actingAs(usuarioPosPrueba())
+        ->get(route('point-of-sale.show'))->assertOk()
+        ->assertViewHas('type', $modo)->assertSee($titulo);
+})->with([
+    ['CAJA_CENTRAL', 'Caja central'],
+    ['CAJA_INTEGRADA', 'Caja integrada'],
+]);
+
+function empresaPosPrueba(string $modo): void
+{
     Company::query()->create([
         'rut_emisor' => '76795561-8',
         'razon_social' => 'Empresa de prueba',
@@ -72,13 +85,7 @@ test('la modalidad procede de la empresa', function (string $modo, string $titul
         'comuna_origen' => 'Santiago',
         'modo_cobro' => $modo,
     ]);
-    $this->withoutVite()->actingAs(usuarioPosPrueba())
-        ->get(route('point-of-sale.show'))->assertOk()
-        ->assertViewHas('type', $modo)->assertSee($titulo);
-})->with([
-    ['CAJA_CENTRAL', 'Caja central'],
-    ['CAJA_INTEGRADA', 'Caja integrada'],
-]);
+}
 
 test('el selector persiste y edita ítems de una nota interna', function (): void {
     DB::table('typedocuments')->insertOrIgnore([
@@ -120,4 +127,50 @@ test('un descuento inválido no crea un documento', function (): void {
         ->set('descuentoValor', '101')->call('guardarItem')
         ->assertHasErrors(['descuentoValor']);
     expect(Document::query()->count())->toBe(0);
+});
+
+test('el selector muestra únicamente los documentos de la modalidad', function (string $modo, int $tipo): void {
+    $selector = Livewire::actingAs(usuarioPosPrueba())->test(DocumentTypeSelector::class, [
+        'type' => $modo, 'tipoDocumento' => $tipo,
+    ])->assertSee('Cotización');
+
+    if ($modo === 'CAJA_CENTRAL') {
+        $selector->assertSee('Nota de venta')->assertDontSee('Factura electrónica');
+    } else {
+        $selector->assertSee('Boleta electrónica')->assertSee('Factura electrónica')->assertSee('Guía de despacho')->assertDontSee('Nota de venta');
+    }
+})->with([['CAJA_CENTRAL', 2], ['CAJA_INTEGRADA', 17]]);
+
+test('el padre valida las transiciones y la familia del documento activo', function (): void {
+    empresaPosPrueba('CAJA_INTEGRADA');
+    $user = usuarioPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $pos = Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_INTEGRADA'])
+        ->assertSet('tipoDocumento', 17)
+        ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 19)
+        ->call('seleccionarTipo', 17)->assertSet('tipoDocumento', 17);
+    $documento = Document::query()->create([
+        'user_id' => $user->id, 'typedocument_id' => 2,
+        'estado_documento' => 'VIGENTE', 'condicion_documento' => 'EN PROCESO',
+    ]);
+    $pos->dispatch('pos-items-changed', id: $documento->id)
+        ->assertSet('documentoId', $documento->id)
+        ->call('seleccionarTipo', 15)->assertSet('tipoDocumento', 15)
+        ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 15)
+        ->assertSee('Finalice o descarte')
+        ->call('seleccionarTipo', 2)->assertStatus(422);
+});
+
+test('el primer ítem de una cotización persiste el tipo 19 y su vigencia', function (): void {
+    DB::table('typedocuments')->insertOrIgnore(['id' => 19, 'name' => 'COTIZACION', 'transacciontype' => 'NO APLICA']);
+    $producto = productoPosPrueba();
+    $selector = Livewire::actingAs(usuarioPosPrueba())->test(SalesItemSelector::class, ['tipoPersistido' => 19])
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    $documento = Document::query()->sole();
+    expect((int) $documento->typedocument_id)->toBe(19)
+        ->and($documento->fecha_vencimiento)->toBe(today('America/Santiago')->addDays(15)->toDateString());
+    $detalle = $documento->details()->sole();
+    ProductPrice::query()->where('product_service_id', $producto->id)->update(['precio' => 2000]);
+    $selector->call('editarItem', $detalle->id)->set('cantidad', '2')->call('guardarItem')->assertHasNoErrors();
+    expect((int) $detalle->fresh()->PrcItem)->toBe(1190);
 });
