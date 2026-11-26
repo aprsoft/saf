@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Detail;
 use App\Models\Document;
-use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -23,7 +22,7 @@ function detalleDescuentoGlobal(int $neto, int $iva, int $exento = 0, ?int $indE
 }
 
 test('sin descuento global conserva los totales de los detalles', function (): void {
-    $totales = app(GlobalDiscountService::class)->calcular([
+    $totales = Document::calcularDescuentoGlobal([
         detalleDescuentoGlobal(1807, 343),
     ]);
 
@@ -38,7 +37,7 @@ test('sin descuento global conserva los totales de los detalles', function (): v
 });
 
 test('descuento global de 50 por ciento sobre un producto afecto', function (): void {
-    $totales = app(GlobalDiscountService::class)->calcular(
+    $totales = Document::calcularDescuentoGlobal(
         [detalleDescuentoGlobal(1807, 343)],
         'porcentaje',
         50
@@ -56,7 +55,7 @@ test('descuento global de 50 por ciento sobre un producto afecto', function (): 
 });
 
 test('descuento global porcentual distribuye correctamente afectos y exentos', function (): void {
-    $totales = app(GlobalDiscountService::class)->calcular([
+    $totales = Document::calcularDescuentoGlobal([
         detalleDescuentoGlobal(1000, 190),
         detalleDescuentoGlobal(0, 0, 800, 1),
     ], 'porcentaje', 10);
@@ -74,7 +73,7 @@ test('descuento global porcentual distribuye correctamente afectos y exentos', f
 });
 
 test('descuento global de monto fijo distribuye afectos y exentos', function (): void {
-    $totales = app(GlobalDiscountService::class)->calcular([
+    $totales = Document::calcularDescuentoGlobal([
         detalleDescuentoGlobal(1000, 190),
         detalleDescuentoGlobal(0, 0, 810, 1),
     ], 'monto', 500);
@@ -93,7 +92,7 @@ test('descuento global de monto fijo distribuye afectos y exentos', function ():
 
 test('descuento global se aplica después del descuento por ítem', function (): void {
     // Línea con descuento individual previo de 10%: 2380 -> 2142.
-    $totales = app(GlobalDiscountService::class)->calcular([
+    $totales = Document::calcularDescuentoGlobal([
         detalleDescuentoGlobal(1800, 342),
     ], 'porcentaje', 10);
 
@@ -107,7 +106,7 @@ test('descuento global se aplica después del descuento por ítem', function ():
 });
 
 test('no permite un descuento global del 100 por ciento', function (): void {
-    app(GlobalDiscountService::class)->calcular(
+    Document::calcularDescuentoGlobal(
         [detalleDescuentoGlobal(1807, 343)],
         'porcentaje',
         100
@@ -115,7 +114,7 @@ test('no permite un descuento global del 100 por ciento', function (): void {
 })->throws(ValidationException::class);
 
 test('no permite descontar un monto igual al subtotal', function (): void {
-    app(GlobalDiscountService::class)->calcular(
+    Document::calcularDescuentoGlobal(
         [detalleDescuentoGlobal(1807, 343)],
         'monto',
         2150
@@ -123,7 +122,7 @@ test('no permite descontar un monto igual al subtotal', function (): void {
 })->throws(ValidationException::class);
 
 test('no aplica descuento global sobre conceptos no facturables', function (): void {
-    app(GlobalDiscountService::class)->calcular(
+    Document::calcularDescuentoGlobal(
         [detalleDescuentoGlobal(0, 0, 1000, 2)],
         'porcentaje',
         10
@@ -136,13 +135,12 @@ test('construye las líneas DscRcgGlobal para un documento mixto', function (): 
         'descuento_global_valor' => 10,
     ]);
 
-    $servicio = app(GlobalDiscountService::class);
-    $totales = $servicio->calcular([
+    $totales = Document::calcularDescuentoGlobal([
         detalleDescuentoGlobal(1000, 190),
         detalleDescuentoGlobal(0, 0, 800, 1),
     ], 'porcentaje', 10);
 
-    expect($servicio->lineasDte($documento, $totales))->toBe([
+    expect($documento->lineasDescuentoDte($totales))->toBe([
         [
             'NroLinDR' => 1,
             'TpoMov' => 'D',

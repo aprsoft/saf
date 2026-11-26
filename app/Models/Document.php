@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Services\Sales\DocumentItemService;
-use App\Services\Sales\GlobalDiscountService;
+use DomainException;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -166,29 +166,157 @@ class Document extends Model
                 );
         }
 
-        /**
-         * Obtiene los importes desde los servicios existentes.
-         *
-         * Ventas: considera descuentos individuales y globales.
-         * Compras: suma los importes persistidos en details.
-         */
-        
-        public function calcularTotales(): array
-        {
-            if (
-                $this->supplier_id !== null
-                && $this->customer_id === null
-            ) {
-                return app(DocumentItemService::class)
-                    ->totalizarDetalles(
-                        $this->details()->vigente()->get()
-                    );
-            }
+    /**
+     * Ventas: importes con descuentos por línea y globales.
+     * Compras: suma los importes persistidos en los detalles.
+     */
+    public function calcularTotales(): array
+    {
+        $detalles = $this->details()->vigente()->get();
 
-            return app(GlobalDiscountService::class)
-                ->paraDocumento($this);
+        if ($this->supplier_id !== null && $this->customer_id === null) {
+            return self::totalizarDetalles($detalles);
         }
 
- 
+        return self::calcularDescuentoGlobal(
+            $detalles,
+            $this->descuento_global_tipo ?? 'porcentaje',
+            (int) ($this->descuento_global_valor ?? 0),
+        );
+    }
 
+    public static function totalizarDetalles(iterable $detalles): array
+    {
+        $totales = [
+            'monto_neto' => 0,
+            'monto_iva' => 0,
+            'monto_exento' => 0,
+            'monto_total' => 0,
+        ];
+
+        foreach ($detalles as $detalle) {
+            if ($detalle->estado_detalle !== 'VIGENTE') {
+                continue;
+            }
+
+            $totales['monto_neto'] += (int) $detalle->MontoNetoItem;
+            $totales['monto_iva'] += (int) $detalle->ivaItem;
+            $totales['monto_exento'] += (int) $detalle->MontoExeItem;
+            $totales['monto_total'] += (int) $detalle->MontoItem;
+        }
+
+        return $totales;
+    }
+
+    public static function calcularDescuentoGlobal(iterable $detalles, string $tipo = 'porcentaje', int $valor = 0): array
+    {
+        if (! in_array($tipo, ['porcentaje', 'monto'], true) || $valor < 0 ||
+            ($tipo === 'porcentaje' && $valor > 100)) {
+            throw ValidationException::withMessages([
+                'form.descuentoValor' => 'Tipo o valor de descuento inválido.',
+            ]);
+        }
+
+        $base = self::totalizarDetalles($detalles);
+        $afecto = $base['monto_neto'] + $base['monto_iva'];
+        $exento = $base['monto_exento'];
+        $subtotal = $afecto + $exento;
+
+        if ($subtotal !== $base['monto_total']) {
+            throw new DomainException('Los detalles no cuadran entre neto, IVA, exento y total.');
+        }
+
+        if ($valor === 0) {
+            return $base + [
+                'subtotal' => $subtotal,
+                'descuento_global' => 0,
+                'descuento_afecto' => 0,
+                'descuento_exento' => 0,
+            ];
+        }
+
+        foreach ($detalles as $detalle) {
+            if (in_array((int) $detalle->IndExe, [2, 6], true)) {
+                throw ValidationException::withMessages([
+                    'form.descuentoValor' => 'El descuento sobre conceptos no facturables requiere un tratamiento independiente.',
+                ]);
+            }
+        }
+
+        if ($subtotal <= 0 || ($tipo === 'monto' && $valor >= $subtotal)) {
+            throw ValidationException::withMessages([
+                'form.descuentoValor' => 'El descuento debe ser menor que el total de la nota.',
+            ]);
+        }
+
+        if ($tipo === 'porcentaje') {
+            $descuentoAfecto = intdiv($afecto * $valor + 50, 100);
+            $descuentoExento = intdiv($exento * $valor + 50, 100);
+        } else {
+            $descuentoAfecto = min($afecto, intdiv($valor * $afecto + intdiv($subtotal, 2), $subtotal));
+            $descuentoExento = $valor - $descuentoAfecto;
+            if ($descuentoExento > $exento) {
+                $descuentoExento = $exento;
+                $descuentoAfecto = $valor - $descuentoExento;
+            }
+        }
+
+        $descuento = $descuentoAfecto + $descuentoExento;
+        if ($descuento >= $subtotal) {
+            throw ValidationException::withMessages([
+                'form.descuentoValor' => 'El descuento no puede dejar el documento en cero.',
+            ]);
+        }
+
+        $afectoFinal = $afecto - $descuentoAfecto;
+        $neto = intdiv($afectoFinal * 100 + 59, 119);
+
+        return [
+            'monto_neto' => $neto,
+            'monto_iva' => $afectoFinal - $neto,
+            'monto_exento' => $exento - $descuentoExento,
+            'monto_total' => $subtotal - $descuento,
+            'subtotal' => $subtotal,
+            'descuento_global' => $descuento,
+            'descuento_afecto' => $descuentoAfecto,
+            'descuento_exento' => $descuentoExento,
+        ];
+    }
+
+    /** DscRcgGlobal: una línea por tratamiento de IVA, según SII. */
+    public function lineasDescuentoDte(array $totales): array
+    {
+        if ($totales['descuento_global'] === 0) {
+            return [];
+        }
+
+        $tipo = $this->descuento_global_tipo;
+        $porcentaje = $tipo === 'porcentaje';
+        $lineas = [];
+
+        foreach ([
+            ['monto' => 'descuento_afecto', 'glosa' => 'DESCUENTO GLOBAL AFECTO', 'ind_exe' => null],
+            ['monto' => 'descuento_exento', 'glosa' => 'DESCUENTO GLOBAL EXENTO', 'ind_exe' => 1],
+        ] as $grupo) {
+            if ($totales[$grupo['monto']] === 0) {
+                continue;
+            }
+
+            $linea = [
+                'NroLinDR' => count($lineas) + 1,
+                'TpoMov' => 'D',
+                'GlosaDR' => $grupo['glosa'],
+                'TpoValor' => $porcentaje ? '%' : '$',
+                'ValorDR' => $porcentaje
+                    ? (int) $this->descuento_global_valor
+                    : $totales[$grupo['monto']],
+            ];
+            if ($grupo['ind_exe'] !== null) {
+                $linea['IndExeDR'] = $grupo['ind_exe'];
+            }
+            $lineas[] = $linea;
+        }
+
+        return $lineas;
+    }
 }

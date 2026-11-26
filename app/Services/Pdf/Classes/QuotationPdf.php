@@ -9,8 +9,6 @@ use App\Models\Customer;
 use App\Models\Document;
 use App\Models\User;
 use App\Services\Pdf\Classes\Contracts\PdfDocument;
-use App\Services\Sales\DocumentItemService;
-use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Support\Facades\Gate;
 
 final class QuotationPdf implements PdfDocument
@@ -21,7 +19,7 @@ final class QuotationPdf implements PdfDocument
 
         $cotizacion = Document::query()
             ->whereKey($recordId)
-            ->where('typedocument_id', DocumentItemService::COTIZACION)
+            ->where('typedocument_id', 19)
             ->where('estado_documento', 'VIGENTE')
             ->whereIn('condicion_documento', ['EN PROCESO', 'PENDIENTE'])
             ->firstOrFail();
@@ -52,7 +50,7 @@ final class QuotationPdf implements PdfDocument
     {
         $cotizacion = Document::query()
             ->whereKey($recordId)
-            ->where('typedocument_id', DocumentItemService::COTIZACION)
+            ->where('typedocument_id', 19)
             ->where('estado_documento', 'VIGENTE')
             ->whereIn('condicion_documento', ['EN PROCESO', 'PENDIENTE'])
             ->with(['customer', 'details.productService'])
@@ -61,7 +59,7 @@ final class QuotationPdf implements PdfDocument
         return [
             'document' => $cotizacion,
             'company' => Company::query()->first(),
-            'totals' => app(GlobalDiscountService::class)->paraDocumento($cotizacion),
+            'totals' => $cotizacion->calcularTotales(),
         ];
     }
 
@@ -111,7 +109,7 @@ final class QuotationPdf implements PdfDocument
     {
         $document = Document::query()
             ->whereKey($recordId)
-            ->where('typedocument_id', DocumentItemService::COTIZACION)
+            ->where('typedocument_id', 19)
             ->where('estado_documento', 'VIGENTE')
             ->where('condicion_documento', 'PENDIENTE')
             ->with('customer')

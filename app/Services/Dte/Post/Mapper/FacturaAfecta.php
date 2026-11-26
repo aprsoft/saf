@@ -6,7 +6,6 @@ namespace App\Services\Dte\Post\Mapper;
 
 use App\Models\Company;
 use App\Models\Document;
-use App\Services\Sales\GlobalDiscountService;
 use DomainException;
 use LogicException;
 
@@ -23,8 +22,7 @@ final class FacturaAfecta
         $customer = $this->document->customer
             ?? throw new DomainException('El documento no tiene receptor.');
         $company = Company::query()->firstOrFail();
-        $servicio = app(GlobalDiscountService::class);
-        $totales = $servicio->paraDocumento($this->document);
+        $totales = $this->document->calcularTotales();
 
         if ($totales['monto_neto'] <= 0) {
             throw new DomainException('La factura afecta requiere un monto neto positivo.');
@@ -83,7 +81,7 @@ final class FacturaAfecta
             'Detalle' => $this->mapDetails(),
         ];
 
-        $descuentos = $servicio->lineasDte($this->document, $totales);
+        $descuentos = $this->document->lineasDescuentoDte($totales);
         if ($descuentos !== []) {
             $dte['DscRcgGlobal'] = $descuentos;
         }

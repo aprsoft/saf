@@ -283,25 +283,7 @@ final class DocumentItemService
      */
     public function totalizarDetalles(iterable $detalles): array
     {
-        $totales = [
-            'monto_neto' => 0,
-            'monto_iva' => 0,
-            'monto_exento' => 0,
-            'monto_total' => 0,
-        ];
-
-        foreach ($detalles as $detalle) {
-            if ($detalle->estado_detalle !== 'VIGENTE') {
-                continue;
-            }
-
-            $totales['monto_neto'] += (int) $detalle->MontoNetoItem;
-            $totales['monto_iva'] += (int) $detalle->ivaItem;
-            $totales['monto_exento'] += (int) $detalle->MontoExeItem;
-            $totales['monto_total'] += (int) $detalle->MontoItem;
-        }
-
-        return $totales;
+        return Document::totalizarDetalles($detalles);
     }
 
     /**
