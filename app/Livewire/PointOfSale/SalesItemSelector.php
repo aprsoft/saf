@@ -46,6 +46,14 @@ final class SalesItemSelector extends Component
 
     public string $descuentoValor = '0';
 
+    public function mount(?int $documentoId = null): void
+    {
+        $this->documentoId = $documentoId;
+        if ($documentoId !== null) {
+            $this->documentoEditable();
+        }
+    }
+
     public function boot(): void
     {
         Gate::authorize('point-of-sale.show');
@@ -107,7 +115,7 @@ final class SalesItemSelector extends Component
         return $bruto <= 4294967295 ? $bruto : null;
     }
 
-    private function documentoEditable(bool $bloquear = false): Document
+    private function documentoEditable(bool $bloquear = false, bool $soloLectura = false): Document
     {
         abort_unless($this->documentoId !== null, 409);
         $query = Document::query()->whereKey($this->documentoId)
@@ -117,7 +125,9 @@ final class SalesItemSelector extends Component
             ->where('condicion_documento', 'EN PROCESO');
         $documento = ($bloquear ? $query->lockForUpdate() : $query)->firstOrFail();
 
-        abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
+        if (! $soloLectura) {
+            abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
+        }
 
         return $documento;
     }
@@ -127,7 +137,7 @@ final class SalesItemSelector extends Component
     {
         return $this->documentoId === null
             ? new Collection()
-            : $this->documentoEditable()->details()->vigente()->with('productService')->orderBy('id')->get();
+            : $this->documentoEditable(soloLectura: true)->details()->vigente()->with('productService')->orderBy('id')->get();
     }
 
     #[Computed]

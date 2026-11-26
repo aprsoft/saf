@@ -34,6 +34,48 @@ final class PointOfSale extends Component
 
     public string $advertencia = '';
 
+    #[Locked]
+    public int $operacion = 0;
+
+    #[On('pos-operation-completed')]
+    public function finalizarOperacion(int $id): void
+    {
+        Gate::authorize('point-of-sale.show');
+        abort_unless($id === $this->documentoId, 409);
+        Document::query()->whereKey($id)->where('user_id', auth()->id())
+            ->whereIn('condicion_documento', ['PAGADO', 'PENDIENTE', 'FINALIZADO', 'ANULADO'])->firstOrFail();
+
+        $this->documentoId = null;
+        $this->nombreReferencia = '';
+        $this->advertencia = '';
+        $this->tipoDocumento = array_key_first(self::documentosPermitidos($this->type));
+        $this->clienteId = (int) Customer::query()->where('rut', '66666666-6')->firstOrFail()->id;
+        $this->operacion++;
+    }
+
+    #[On('pos-recover-document')]
+    public function recuperarDocumento(int $id): void
+    {
+        Gate::authorize('point-of-sale.show');
+        abort_unless($this->documentoId === null && Company::query()->firstOrFail()->modo_cobro === $this->type, 409);
+        $documento = DB::transaction(function () use ($id): Document {
+            $documento = Document::query()->whereKey($id)->where('user_id', auth()->id())
+                ->where('typedocument_id', $this->tipoDocumento === 19 ? 19 : 2)
+                ->where('estado_documento', 'VIGENTE')->whereIn('condicion_documento', ['PENDIENTE', 'EN PROCESO'])
+                ->lockForUpdate()->firstOrFail();
+            abort_if($documento->folio !== null
+                || DB::table('document_payment')->where('document_id', $id)->exists()
+                || DB::table('dte_emission_attempts')->where('document_id', $id)->exists(), 409);
+            $documento->update(['condicion_documento' => 'EN PROCESO']);
+
+            return $documento;
+        });
+        $this->documentoId = $id;
+        $this->clienteId = (int) $documento->customer_id;
+        $this->nombreReferencia = (string) $documento->nombre_referencia;
+        $this->operacion++;
+    }
+
     public function seleccionarCliente(int $id): void
     {
         Gate::authorize('point-of-sale.show');

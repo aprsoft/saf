@@ -3,18 +3,15 @@
         :cliente-id="$clienteId"
         :nombre-referencia="$nombreReferencia"
         :tipo-persistido="$tipoDocumento === 19 ? 19 : 2"
-        :key="'pos-items'" />
+        :documento-id="$documentoId"
+        :key="'pos-items-'.$operacion" />
     <aside class="space-y-3">
         <livewire:point-of-sale.document-type-selector :type="$type" :tipo-documento="$tipoDocumento" />
-        <livewire:point-of-sale.customer-selector :cliente-id="$clienteId" :nombre-referencia="$nombreReferencia" />
+        <livewire:point-of-sale.customer-selector :cliente-id="$clienteId" :nombre-referencia="$nombreReferencia" :key="'pos-customer-'.$operacion" />
         <livewire:point-of-sale.document-summary :documento-id="$documentoId" :key="'pos-summary-'.($documentoId ?? 'nuevo')" />
         @if ($advertencia !== '')
             <p role="alert" class="text-sm text-amber-600">{{ $advertencia }}</p>
         @endif
-        <section class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-            <h2 class="font-semibold">{{ $type === 'CAJA_INTEGRADA' ? 'Caja integrada' : 'Caja central' }}</h2>
-            <p class="mt-2 text-sm text-gray-500">Documento {{ $documentoId ?? 'nuevo' }}</p>
-            <p class="mt-2 text-sm text-gray-500">Las acciones se incorporarán en las siguientes etapas.</p>
-        </section>
+        <livewire:point-of-sale.document-actions :type="$type" :tipo-documento="$tipoDocumento" :documento-id="$documentoId" :key="'pos-actions-'.$operacion" />
     </aside>
 </div>

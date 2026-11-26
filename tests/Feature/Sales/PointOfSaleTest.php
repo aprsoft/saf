@@ -321,3 +321,52 @@ test('el resumen no permite consultar documentos de otro usuario', function (): 
     Livewire::actingAs(usuarioPosPrueba())->test(DocumentSummary::class, ['documentoId' => $documento->id])
         ->assertStatus(404);
 });
+
+test('el panel de acciones cambia según tipo de documento', function (): void {
+    $user = usuarioPosPrueba();
+
+    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
+        'type' => 'CAJA_INTEGRADA', 'tipoDocumento' => 17,
+    ])->assertSee('Medio de pago')->assertSee('Pagar')->assertDontSee('Enviar a caja');
+
+    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
+        'type' => 'CAJA_CENTRAL', 'tipoDocumento' => 2,
+    ])->assertSee('Enviar a caja')->assertDontSee('Medio de pago');
+
+    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
+        'type' => 'CAJA_INTEGRADA', 'tipoDocumento' => 19,
+    ])->assertSee('Guardar cotización')->assertDontSee('Medio de pago');
+});
+
+test('una operación en espera se puede recuperar conservando los detalles', function (): void {
+    empresaPosPrueba('CAJA_CENTRAL');
+    $user = usuarioPosPrueba();
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    Livewire::actingAs($user)->test(SalesItemSelector::class)
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    $documento = Document::query()->sole();
+    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\DocumentActions::class, [
+        'type' => 'CAJA_CENTRAL', 'tipoDocumento' => 2, 'documentoId' => $documento->id,
+    ])->call('dejarEnEspera')->assertDispatched('pos-operation-completed');
+    expect($documento->fresh()->condicion_documento)->toBe('PENDIENTE');
+    Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_CENTRAL'])
+        ->call('recuperarDocumento', $documento->id)->assertSet('documentoId', $documento->id);
+    expect($documento->fresh()->condicion_documento)->toBe('EN PROCESO')
+        ->and($documento->details()->count())->toBe(1);
+});
+
+test('el procesador rechaza efectivo insuficiente sin reservar una emisión', function (): void {
+    empresaPosPrueba('CAJA_INTEGRADA');
+    $user = usuarioPosPrueba();
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    Livewire::actingAs($user)->test(SalesItemSelector::class)
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    $documento = Document::query()->sole();
+    Livewire::actingAs($user)->test(\App\Livewire\PointOfSale\PaymentProcessor::class, [
+        'documentoId' => $documento->id, 'tipoDocumento' => 17,
+    ])->set('montoRecibido', '100')->call('pagar')->assertHasErrors(['montoRecibido']);
+    expect(DB::table('dte_emission_attempts')->count())->toBe(0)
+        ->and($documento->fresh()->condicion_documento)->toBe('EN PROCESO');
+});
