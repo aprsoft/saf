@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 final class SalesItemSelector extends Component
@@ -23,6 +24,12 @@ final class SalesItemSelector extends Component
 
     #[Locked]
     public int $tipoPersistido = 2;
+
+    #[Reactive]
+    public ?int $clienteId = null;
+
+    #[Reactive]
+    public string $nombreReferencia = '';
 
     public function mount(int $tipoPersistido = 2): void
     {
@@ -216,13 +223,15 @@ final class SalesItemSelector extends Component
 
     private function crearDocumento(): Document
     {
-        $cliente = Customer::query()->firstOrCreate(
-            ['rut' => '66666666-6'],
-            ['nombres' => 'CLIENTE GENERICO']
-        );
+        $cliente = $this->clienteId === null
+            ? Customer::query()->firstOrCreate(['rut' => '66666666-6'], ['nombres' => 'CLIENTE GENERICO'])
+            : Customer::query()->findOrFail($this->clienteId);
+        $referencia = $cliente->rut === '66666666-6' ? trim($this->nombreReferencia) : '';
+        abort_unless(mb_strlen($referencia) <= 191, 422);
 
         return Document::query()->create([
             'customer_id' => $cliente->id,
+            'nombre_referencia' => $referencia !== '' ? $referencia : null,
             'user_id' => auth()->id(),
             'typedocument_id' => $this->tipoPersistido,
             'fecha_vencimiento' => $this->tipoPersistido === 19 ? today('America/Santiago')->addDays(15)->toDateString() : null,

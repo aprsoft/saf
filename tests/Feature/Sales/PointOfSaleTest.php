@@ -6,6 +6,8 @@ use App\Livewire\PointOfSale\SalesItemSelector;
 use App\Livewire\PointOfSale\PointOfSale;
 use App\Livewire\PointOfSale\DocumentTypeSelector;
 use App\Models\Company;
+use App\Models\Customer;
+use App\Livewire\PointOfSale\CustomerSelector;
 use App\Models\Detail;
 use App\Models\Document;
 use App\Models\PriceList;
@@ -199,4 +201,42 @@ test('las opciones respetan el flujo activo sin duplicar reglas en Blade', funct
         ->and($opciones[15]['deshabilitado'])->toBeFalse()
         ->and($opciones[18]['deshabilitado'])->toBeFalse()
         ->and($opciones[19]['deshabilitado'])->toBeTrue();
+});
+
+test('el buscador encuentra clientes por nombre y rut', function (): void {
+    $cliente = Customer::query()->create(['rut' => '12345678-5', 'nombres' => 'Ana', 'apellido_paterno' => 'Pérez']);
+    Livewire::actingAs(usuarioPosPrueba())->test(CustomerSelector::class)
+        ->call('abrirBusqueda')->set('busqueda', 'Ana Pérez')->assertSee('Ana Pérez')
+        ->set('busqueda', '12.345.678')->assertSee($cliente->rut);
+});
+
+test('el padre conserva el cliente y actualiza la cabecera activa', function (): void {
+    empresaPosPrueba('CAJA_CENTRAL');
+    $user = usuarioPosPrueba();
+    $cliente = Customer::query()->create(['rut' => '12345678-5', 'nombres' => 'Ana']);
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $pos = Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_CENTRAL']);
+    $generico = Customer::query()->where('rut', '66666666-6')->sole();
+    $pos->assertSet('clienteId', $generico->id)->call('actualizarReferencia', 'Pedido uno')
+        ->assertSet('nombreReferencia', 'Pedido uno')
+        ->call('seleccionarCliente', $cliente->id)->assertSet('clienteId', $cliente->id)
+        ->assertSet('nombreReferencia', '');
+    $documento = Document::query()->create([
+        'user_id' => $user->id, 'typedocument_id' => 2, 'customer_id' => $cliente->id,
+        'estado_documento' => 'VIGENTE', 'condicion_documento' => 'EN PROCESO',
+    ]);
+    $pos->dispatch('pos-items-changed', id: $documento->id)
+        ->call('seleccionarCliente', $generico->id)->call('actualizarReferencia', 'Pedido dos');
+    expect((int) $documento->fresh()->customer_id)->toBe($generico->id)
+        ->and($documento->fresh()->nombre_referencia)->toBe('Pedido dos');
+});
+
+test('el primer ítem conserva el cliente seleccionado', function (): void {
+    $user = usuarioPosPrueba();
+    $cliente = Customer::query()->create(['rut' => '12345678-5', 'nombres' => 'Ana']);
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    Livewire::actingAs($user)->test(SalesItemSelector::class, ['clienteId' => $cliente->id])
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    expect((int) Document::query()->sole()->customer_id)->toBe($cliente->id);
 });

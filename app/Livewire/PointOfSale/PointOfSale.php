@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Livewire\PointOfSale;
 
 use App\Models\Company;
+use App\Models\Customer;
 use App\Models\Document;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -23,7 +26,57 @@ final class PointOfSale extends Component
     #[Locked]
     public int $tipoDocumento;
 
+    #[Locked]
+    public ?int $clienteId = null;
+
+    #[Locked]
+    public string $nombreReferencia = '';
+
     public string $advertencia = '';
+
+    public function seleccionarCliente(int $id): void
+    {
+        Gate::authorize('point-of-sale.show');
+        $cliente = Customer::query()->findOrFail($id);
+        $this->guardarCliente((int) $cliente->id, '');
+        $this->dispatch('pos-customer-selected')->to(CustomerSelector::class);
+    }
+
+    public function actualizarReferencia(string $referencia): void
+    {
+        Gate::authorize('point-of-sale.show');
+        $cliente = Customer::query()->findOrFail($this->clienteId);
+        abort_unless($cliente->rut === '66666666-6', 422);
+        $referencia = trim($referencia);
+        if (mb_strlen($referencia) > 191) {
+            throw ValidationException::withMessages(['nombreReferencia' => 'Máximo 191 caracteres.']);
+        }
+
+        $this->guardarCliente((int) $cliente->id, $referencia);
+    }
+
+    private function guardarCliente(int $id, string $referencia): void
+    {
+        if ($this->documentoId !== null) {
+            DB::transaction(function () use ($id, $referencia): void {
+                $documento = Document::query()->whereKey($this->documentoId)
+                    ->where('user_id', auth()->id())
+                    ->where('typedocument_id', $this->tipoDocumento === 19 ? 19 : 2)
+                    ->where('estado_documento', 'VIGENTE')
+                    ->where('condicion_documento', 'EN PROCESO')
+                    ->lockForUpdate()->firstOrFail();
+
+                abort_if(DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists(), 409);
+                $documento->update([
+                    'customer_id' => $id,
+                    'nombre_referencia' => $referencia !== '' ? $referencia : null,
+                ]);
+            });
+        }
+
+        $this->clienteId = $id;
+        $this->nombreReferencia = $referencia;
+    }
 
     private const DOCUMENTOS = [
         'CAJA_CENTRAL' => [
@@ -73,7 +126,7 @@ final class PointOfSale extends Component
     {
         Gate::authorize('point-of-sale.show');
 
-        Document::query()->whereKey($id)
+        $documento = Document::query()->whereKey($id)
             ->where('user_id', auth()->id())
             ->where('typedocument_id', $this->tipoDocumento === 19 ? 19 : 2)
             ->where('estado_documento', 'VIGENTE')
@@ -81,6 +134,11 @@ final class PointOfSale extends Component
             ->firstOrFail();
         abort_unless($this->documentoId === null || $this->documentoId === $id, 409);
         $this->documentoId = $id;
+        // Reconcilia la cabecera si el primer ítem se guardó con un contexto anterior.
+        if ($this->clienteId !== null && ((int) $documento->customer_id !== $this->clienteId
+            || (string) $documento->nombre_referencia !== $this->nombreReferencia)) {
+            $this->guardarCliente($this->clienteId, $this->nombreReferencia);
+        }
     }
 
     public function mount(string $type): void
@@ -92,6 +150,10 @@ final class PointOfSale extends Component
         abort_unless(Company::query()->firstOrFail()->modo_cobro === $type, 409);
         $this->type = $type;
         $this->tipoDocumento = array_key_first(self::documentosPermitidos($type));
+        $this->clienteId = (int) Customer::query()->firstOrCreate(
+            ['rut' => '66666666-6'],
+            ['nombres' => 'CLIENTE GENERICO'],
+        )->id;
     }
 
     public function render(): View
