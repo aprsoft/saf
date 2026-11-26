@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Livewire\PointOfSale;
 
 use App\Models\Document;
-use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -56,11 +55,16 @@ final class DocumentSummary extends Component
     #[Computed]
     public function totales(): array
     {
-        $calculadora = app(GlobalDiscountService::class);
-
-        return $this->documento === null
-            ? $calculadora->calcular([])
-            : $calculadora->paraDocumento($this->documento);
+        return $this->documento?->calcularTotales() ?? [
+            'monto_neto' => 0,
+            'monto_iva' => 0,
+            'monto_exento' => 0,
+            'monto_total' => 0,
+            'subtotal' => 0,
+            'descuento_global' => 0,
+            'descuento_afecto' => 0,
+            'descuento_exento' => 0,
+        ];
     }
 
     #[Computed]
@@ -105,24 +109,20 @@ final class DocumentSummary extends Component
                 || DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists()
                 || Document::query()->where('parent_id', $documento->id)->exists(), 409);
 
-            $valor = (int) $datos['descuentoValor'];
+            $documento->fill([
+                'descuento_global_tipo' => $datos['descuentoTipo'],
+                'descuento_global_valor' => (int) $datos['descuentoValor'],
+            ]);
 
             try {
-                app(GlobalDiscountService::class)->calcular(
-                    $documento->details()->vigente()->get(),
-                    $datos['descuentoTipo'],
-                    $valor,
-                );
+                $documento->calcularTotales();
             } catch (ValidationException $exception) {
                 throw ValidationException::withMessages([
                     'descuentoValor' => $exception->validator->errors()->first(),
                 ]);
             }
 
-            $documento->update([
-                'descuento_global_tipo' => $datos['descuentoTipo'],
-                'descuento_global_valor' => $valor,
-            ]);
+            $documento->save();
         });
 
         $this->cargarDescuento();

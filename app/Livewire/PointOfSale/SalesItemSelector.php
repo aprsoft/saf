@@ -7,7 +7,6 @@ namespace App\Livewire\PointOfSale;
 use App\Models\Customer;
 use App\Models\Document;
 use App\Models\ProductService;
-use App\Services\Sales\GlobalDiscountService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -281,7 +280,7 @@ final class SalesItemSelector extends Component
     private function validarDescuentoGlobal(Document $documento): void
     {
         try {
-            app(GlobalDiscountService::class)->paraDocumento($documento);
+            $documento->calcularTotales();
         } catch (ValidationException $exception) {
             throw ValidationException::withMessages([
                 'descuentoGlobal' => $exception->validator->errors()->first().' Ajuste el descuento global antes de modificar los ítems.',

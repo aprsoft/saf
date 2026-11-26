@@ -151,7 +151,7 @@ class Document extends Model
          * Compras: suma los importes persistidos en details.
          */
         
-        private function calcularTotales(): array
+        public function calcularTotales(): array
         {
             if (
                 $this->supplier_id !== null

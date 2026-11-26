@@ -285,13 +285,26 @@ test('el resumen aplica descuentos globales sin cambiar los detalles', function 
     $resumen = Livewire::actingAs($user)->test(DocumentSummary::class, ['documentoId' => $documento->id])
         ->set('descuentoValor', '10')->call('aplicarDescuento')->assertHasNoErrors()
         ->assertDispatched('pos-summary-changed');
-    expect($documento->fresh()->total)->toBe(2142)
+    $documento = $documento->fresh();
+    $totales = $resumen->instance()->totales();
+
+    expect($totales)->toBe($documento->calcularTotales())
+        ->and($totales['subtotal'])->toBe(2380)
+        ->and($totales['descuento_global'])->toBe(238)
+        ->and($totales['monto_neto'])->toBe($documento->neto)
+        ->and($totales['monto_iva'])->toBe($documento->iva)
+        ->and($totales['monto_exento'])->toBe($documento->exento)
+        ->and($documento->total)->toBe(2142)
         ->and((int) $detalle->fresh()->MontoItem)->toBe(2380);
     $items->call('editarItem', $detalle->id)->set('cantidad', '1')->call('guardarItem')->assertHasNoErrors();
     $resumen->dispatch('pos-items-changed', id: $documento->id);
     expect($resumen->instance()->totales()['monto_total'])->toBe(1071);
     $resumen->set('descuentoTipo', 'monto')->set('descuentoValor', '1000')
         ->call('aplicarDescuento')->assertHasNoErrors();
+    $resumen->set('descuentoValor', '1190')
+        ->call('aplicarDescuento')->assertHasErrors(['descuentoValor']);
+    expect((int) $documento->fresh()->descuento_global_valor)->toBe(1000);
+
     $items->call('eliminarItem', $detalle->id)->assertHasErrors(['descuentoGlobal']);
     expect($documento->details()->count())->toBe(1);
     $resumen->set('descuentoValor', '0')->call('aplicarDescuento')->assertHasNoErrors();
