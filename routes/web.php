@@ -13,7 +13,6 @@ use App\Http\Controllers\PdfController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Printing\QzController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SalesCounterController;
 use App\Http\Controllers\SalesNoteController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnpaidController;
