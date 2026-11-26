@@ -10,11 +10,21 @@
         @error('form.formaPago') <p role="alert" class="text-xs text-red-600">{{ $message }}</p> @enderror
     </div>
     <div>
-        <label for="pago-recibido-{{ $this->getId() }}" class="sr-only">Recibido ($)</label>
-        <input id="pago-recibido-{{ $this->getId() }}" type="number" min="0" step="1"
-               wire:model="form.montoRecibido" wire:loading.attr="disabled" @disabled($form->formaPago !== 'EFECTIVO')
-               placeholder="{{ $form->formaPago === 'EFECTIVO' ? 'Recibido ($) · Importe exacto si vacío' : 'No aplica' }}"
-               class="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900">
+        <div class="grid grid-cols-2 gap-1">
+            <div class="relative min-w-0">
+                <label for="pago-recibido-{{ $this->getId() }}" class="pointer-events-none absolute left-2 top-1 text-[10px] leading-none text-gray-500">Recibido ($)</label>
+                <input id="pago-recibido-{{ $this->getId() }}" type="number" min="0" step="1" max="4294967295"
+                       wire:model.live.debounce.250ms="form.montoRecibido" @disabled($form->formaPago !== 'EFECTIVO')
+                       placeholder="{{ $form->formaPago === 'EFECTIVO' ? 'Exacto' : 'No aplica' }}"
+                       class="h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-2 pb-1 pt-4 text-xs tabular-nums disabled:opacity-50 dark:border-gray-600 dark:bg-gray-900">
+            </div>
+            <div class="flex h-10 min-w-0 flex-col justify-center rounded-lg border border-gray-300 bg-gray-50 px-2 dark:border-gray-600 dark:bg-gray-900">
+                <span class="text-[10px] leading-none text-gray-500">Vuelto ($)</span>
+                <output aria-live="polite" class="truncate text-xs font-semibold tabular-nums {{ $this->vuelto > 0 ? 'text-green-700 dark:text-green-400' : '' }}">
+                    {{ $form->formaPago === 'EFECTIVO' ? '$'.number_format($this->vuelto, 0, ',', '.') : '—' }}
+                </output>
+            </div>
+        </div>
         @error('form.montoRecibido') <p role="alert" class="text-xs text-red-600">{{ $message }}</p> @enderror
     </div>
     <button type="button" wire:click="pagar" wire:loading.attr="disabled" wire:target="pagar,confirmarEmitirDte"

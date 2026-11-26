@@ -401,3 +401,17 @@ test('un rechazo histórico no bloquea la nota y una emisión incierta sí', fun
     $registro->update(['error' => json_encode(['saf_emision' => 'INCIERTA'])]);
     expect($documento->puedePagar())->toBeFalse();
 });
+
+test('el vuelto del POS se actualiza al modificar los items', function (): void {
+    empresaPosPrueba('CAJA_INTEGRADA');
+    $user = usuarioPosPrueba();
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    $items = Livewire::actingAs($user)->test(SalesItemSelector::class)
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    $nota = Document::query()->sole();
+    $pago = Livewire::actingAs($user)->test(\App\Livewire\Payments\Customers\CreatePayment::class, ['documentoId' => $nota->id])
+        ->set('form.montoRecibido', '5000')->assertSee('$3.810');
+    $items->call('editarItem', $nota->details()->sole()->id)->set('cantidad', '2')->call('guardarItem')->assertHasNoErrors();
+    $pago->dispatch('pos-items-changed', id: $nota->id)->assertSee('$2.620');
+});

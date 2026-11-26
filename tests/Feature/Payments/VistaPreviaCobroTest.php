@@ -153,3 +153,23 @@ test('caja no devuelve una nota con emisión incierta', function (): void {
         ->call('devolverAlMeson')->assertStatus(409);
     expect($nota->fresh()->condicion_documento)->toBe('FINALIZADO');
 });
+
+test('caja muestra vuelto en efectivo y recalcula al aplicar descuento', function (): void {
+    $nota = nuevaNotaParaPruebaCaja(User::factory()->create());
+    $cajero = cajeroPrueba();
+    $pago = Livewire::actingAs($cajero)->test(CreatePayment::class, ['documentoId' => $nota->id])
+        ->assertSee('Vuelto ($)')
+        ->set('form.montoRecibido', '5000')->assertSee('$2.850');
+    expect($pago->instance()->vuelto())->toBe(2850);
+
+    Livewire::actingAs($cajero)->test(DocumentSummary::class, ['documentoId' => $nota->id, 'cajaCentral' => true])
+        ->set('descuentoValor', '50')->call('aplicarDescuento')->assertHasNoErrors();
+    $pago->dispatch('pos-summary-changed', id: $nota->id)->assertSee('$3.925');
+    $pago->set('form.montoRecibido', '1000');
+    expect($pago->instance()->vuelto())->toBe(0);
+    $pago->set('form.montoRecibido', '');
+    expect($pago->instance()->vuelto())->toBe(0);
+    $pago->set('form.montoRecibido', '5000')->set('form.formaPago', 'TARJETA DEBITO');
+    expect($pago->instance()->vuelto())->toBe(0)
+        ->and(Payment::query()->count())->toBe(0);
+});

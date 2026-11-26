@@ -96,6 +96,37 @@ final class CreatePayment extends Component
             && ($this->consultaNota()->first()?->emisionPendienteDeConciliar() ?? false);
     }
 
+    #[Computed]
+    public function total(): int
+    {
+        return $this->documentoId === null
+            ? 0
+            : ($this->consultaNota()->first()?->calcularTotales()['monto_total'] ?? 0);
+    }
+
+    #[Computed]
+    public function vuelto(): int
+    {
+        if ($this->documentoId === null || $this->form->formaPago !== 'EFECTIVO') {
+            return 0;
+        }
+
+        $recibido = filter_var($this->form->montoRecibido, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 0, 'max_range' => 4294967295],
+        ]);
+
+        return $recibido === false ? 0 : max(0, $recibido - $this->total);
+    }
+
+    #[On('pos-items-changed')]
+    #[On('pos-summary-changed')]
+    public function actualizarImportes(int $id): void
+    {
+        if ($id === $this->documentoId) {
+            unset($this->total, $this->vuelto);
+        }
+    }
+
     private function datosCobro(Document $nota): array
     {
         $datos = $this->form->validate();
