@@ -53,19 +53,20 @@ final class SalesItemSelector extends Component
     public function productosServicios(): Collection
     {
         $busqueda = mb_substr(trim($this->busqueda), 0, 100);
+        $query = $this->catalogo();
 
-        return $this->catalogo()
-            ->when($busqueda !== '', function (Builder $query) use ($busqueda): void {
-                $query->where(function (Builder $query) use ($busqueda): void {
-                    $query->where('nombre', 'like', '%'.$busqueda.'%')
-                        ->orWhere('codigo', 'like', '%'.$busqueda.'%');
+        if ($busqueda !== '') {
+            $query->where(function (Builder $filtro) use ($busqueda): void {
+                $filtro->where('nombre', 'like', '%'.$busqueda.'%')
+                    ->orWhere('codigo', 'like', '%'.$busqueda.'%');
 
-                    if (ctype_digit($busqueda)) {
-                        $query->orWhere('id', (int) $busqueda);
-                    }
-                });
-            })
-            ->orderBy('nombre')->orderBy('id')->limit(40)->get();
+                if (ctype_digit($busqueda)) {
+                    $filtro->orWhere('id', (int) $busqueda);
+                }
+            });
+        }
+
+        return $query->orderBy('nombre')->orderBy('id')->limit(40)->get();
     }
 
     public function precioPublico(ProductService $producto): ?int
