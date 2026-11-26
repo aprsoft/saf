@@ -174,3 +174,29 @@ test('el primer ítem de una cotización persiste el tipo 19 y su vigencia', fun
     $selector->call('editarItem', $detalle->id)->set('cantidad', '2')->call('guardarItem')->assertHasNoErrors();
     expect((int) $detalle->fresh()->PrcItem)->toBe(1190);
 });
+
+test('el documento inicial depende de la modalidad configurada', function (string $modo, int $tipo): void {
+    empresaPosPrueba($modo);
+
+    Livewire::actingAs(usuarioPosPrueba())
+        ->test(PointOfSale::class, ['type' => $modo])
+        ->assertSet('tipoDocumento', $tipo);
+})->with([
+    ['CAJA_CENTRAL', 2],
+    ['CAJA_INTEGRADA', 17],
+]);
+
+test('las opciones respetan el flujo activo sin duplicar reglas en Blade', function (): void {
+    $selector = Livewire::actingAs(usuarioPosPrueba())->test(DocumentTypeSelector::class, [
+        'type' => 'CAJA_INTEGRADA',
+        'tipoDocumento' => 17,
+        'documentoActivo' => true,
+    ]);
+
+    $opciones = collect($selector->instance()->opciones())->keyBy('id');
+
+    expect($opciones[17]['seleccionado'])->toBeTrue()
+        ->and($opciones[15]['deshabilitado'])->toBeFalse()
+        ->and($opciones[18]['deshabilitado'])->toBeFalse()
+        ->and($opciones[19]['deshabilitado'])->toBeTrue();
+});

@@ -21,20 +21,44 @@ final class PointOfSale extends Component
     public ?int $documentoId = null;
 
     #[Locked]
-    public int $tipoDocumento = 2;
+    public int $tipoDocumento;
 
     public string $advertencia = '';
+
+    private const DOCUMENTOS = [
+        'CAJA_CENTRAL' => [
+            2 => 'Nota de venta',
+            19 => 'Cotización',
+        ],
+        'CAJA_INTEGRADA' => [
+            17 => 'Boleta electrónica',
+            15 => 'Factura electrónica',
+            18 => 'Guía de despacho',
+            19 => 'Cotización',
+        ],
+    ];
+
+    public static function documentosPermitidos(string $type): array
+    {
+        abort_unless(isset(self::DOCUMENTOS[$type]), 404);
+
+        return self::DOCUMENTOS[$type];
+    }
+
+    public static function cambioPermitido(int $actual, int $nuevo, bool $activo): bool
+    {
+        return ! $activo || ($actual === 19) === ($nuevo === 19);
+    }
 
     public function seleccionarTipo(int|string $tipo): void
     {
         Gate::authorize('point-of-sale.show');
         abort_unless(is_int($tipo) || ctype_digit($tipo), 422);
         $tipo = (int) $tipo;
-        $permitidos = $this->type === 'CAJA_INTEGRADA' ? [17, 15, 18, 19] : [2, 19];
-        abort_unless(in_array($tipo, $permitidos, true), 422);
+        abort_unless(array_key_exists($tipo, self::documentosPermitidos($this->type)), 422);
         abort_unless(Company::query()->firstOrFail()->modo_cobro === $this->type, 409);
 
-        if ($this->documentoId !== null && ($tipo === 19) !== ($this->tipoDocumento === 19)) {
+        if (! self::cambioPermitido($this->tipoDocumento, $tipo, $this->documentoId !== null)) {
             $this->advertencia = 'Finalice o descarte el documento antes de cambiar entre venta y cotización.';
 
             return;
@@ -62,12 +86,12 @@ final class PointOfSale extends Component
     public function mount(string $type): void
     {
         Gate::authorize('point-of-sale.show');
-        
+ 
         abort_unless(in_array($type, ['CAJA_CENTRAL', 'CAJA_INTEGRADA'], true), 404);
 
         abort_unless(Company::query()->firstOrFail()->modo_cobro === $type, 409);
         $this->type = $type;
-        $this->tipoDocumento = $type === 'CAJA_INTEGRADA' ? 17 : 2;
+        $this->tipoDocumento = array_key_first(self::documentosPermitidos($type));
     }
 
     public function render(): View
