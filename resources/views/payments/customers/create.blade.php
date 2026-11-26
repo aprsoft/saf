@@ -5,7 +5,7 @@
 
     <div class="space-y-6">
         
-        <livewire:payments.customers.cash-payment :documento-id="$document->id" />
+        <livewire:cashs.customers.cash-payment :documento-id="$document->id" />
     
     </div>
 @endsection

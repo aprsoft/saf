@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\Payments\Customers;
+namespace App\Livewire\Cashs\Customers;
 
 use App\Livewire\PointOfSale\CustomerSelector;
 use App\Models\Company;
@@ -115,6 +115,6 @@ final class CashPayment extends Component
     public function render(): View
     {
         $this->autorizar();
-        return view('livewire.payments.customers.cash-payment');
+        return view('livewire.cashs.customers.cash-payment');
     }
 }

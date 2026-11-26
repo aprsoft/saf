@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\Payments\Customers\CreatePayment;
-use App\Livewire\Payments\Customers\CashPayment;
+use App\Livewire\Cashs\Customers\CashPayment;
 use App\Livewire\Documents\DocumentSummary;
 use App\Models\Customer;
 use App\Models\Detail;

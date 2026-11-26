@@ -3,7 +3,7 @@
     @php($dinero = static fn (int|float $monto) => '$'.number_format((int) round($monto), 0, ',', '.'))
     <section class="min-w-0 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
         <p class="mb-2 text-sm text-gray-500">Nota de venta N.º {{ $documento->id }} · Pendiente de cobro</p>
-        @include('livewire.payments.customers.create-payment-detail')
+        @include('livewire.cashs.customers.cash-payment-detail')
     </section>
     <aside class="space-y-3">
         <livewire:point-of-sale.document-type-selector type="CAJA_CENTRAL" :caja-central="true" :tipo-documento="$tipoDocumento" />

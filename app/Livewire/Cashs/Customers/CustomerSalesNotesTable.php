@@ -110,11 +110,6 @@ final class CustomerSalesNotesTable extends PowerGridComponent
                 ->class('px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex items-center justify-center')
                 ->route('payments.customer.create', ['document' => $row->id]), 
 
-             Button::add('show')
-                ->icon('default-eye')               
-                ->class('px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center justify-center')
-                ->route('payments.customer.create', ['document' => $row->id]), 
-
            Button::add('edit')
                 // ->slot('Edit: '.$row->id)
                 ->id()
