@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire\PointOfSale;
 
+use App\Models\Company;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
@@ -14,14 +15,25 @@ use Livewire\Component;
 final class DocumentTypeSelector extends Component
 {
     #[Locked]
+    public bool $cajaCentral = false;
+
+    #[Locked]
     public string $type;
 
     #[Reactive]
     public int $tipoDocumento;
 
-    public function boot(): void
+    public function mount(): void
     {
-        Gate::authorize('point-of-sale.show');
+        Gate::authorize($this->cajaCentral ? 'payments.customer.create' : 'point-of-sale.show');
+        if ($this->cajaCentral) {
+            abort_unless(Company::query()->firstOrFail()->modo_cobro === 'CAJA_CENTRAL', 403);
+        }
+    }
+
+    public function hydrate(): void
+    {
+        $this->mount();
     }
 
     #[Computed]
@@ -29,7 +41,7 @@ final class DocumentTypeSelector extends Component
     {
         $opciones = [];
 
-        foreach (PointOfSale::documentosPermitidos($this->type) as $id => $nombre) {
+        foreach (($this->cajaCentral ? [17 => 'Boleta electrónica', 15 => 'Factura electrónica'] : PointOfSale::documentosPermitidos($this->type)) as $id => $nombre) {
             $opciones[] = [
                 'id' => $id,
                 'nombre' => $nombre,

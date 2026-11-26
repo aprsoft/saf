@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\PointOfSale\SalesItemSelector;
-use App\Livewire\PointOfSale\DocumentSummary;
+use App\Livewire\Documents\DocumentSummary;
 use App\Livewire\PointOfSale\PointOfSale;
 use App\Livewire\PointOfSale\DocumentTypeSelector;
 use App\Models\Company;

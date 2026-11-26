@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Livewire\PointOfSale;
 
 use App\Models\Customer;
+use App\Models\Company;
+use Livewire\Attributes\Locked;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +18,9 @@ use Livewire\Component;
 
 final class CustomerSelector extends Component
 {
+    #[Locked]
+    public bool $cajaCentral = false;
+
     #[Reactive]
     public ?int $clienteId = null;
 
@@ -26,9 +31,17 @@ final class CustomerSelector extends Component
 
     public bool $buscando = false;
 
-    public function boot(): void
+    public function mount(): void
     {
-        Gate::authorize('point-of-sale.show');
+        Gate::authorize($this->cajaCentral ? 'payments.customer.create' : 'point-of-sale.show');
+        if ($this->cajaCentral) {
+            abort_unless(Company::query()->firstOrFail()->modo_cobro === 'CAJA_CENTRAL', 403);
+        }
+    }
+
+    public function hydrate(): void
+    {
+        $this->mount();
     }
 
     #[Computed]

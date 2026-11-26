@@ -21,7 +21,6 @@ use RuntimeException;
 use Throwable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -51,40 +50,17 @@ final class CreatePayment extends Component
     public ?int $documentoId = null;
 
     #[Locked]
-    public ?int $clienteId = null;
+    public ?string $revision = null;
 
-    public string $modoCliente = 'generico';
-
-    public string $busquedaCliente = '';
-
-    public bool $mostrarSelectorClientes = false;
-
-    public bool $mostrarDetalle = true;
-
-    public bool $mostrarConfirmacion = false;
-
-    public function mount(?int $documentoId = null, int $tipoDocumento = 17): void
+    public function mount(): void
     {
-        $this->documentoId = $documentoId;
-        $this->tipoDocumento = $tipoDocumento;
         $this->integrado = Company::query()->firstOrFail()->cajaIntegrada();
         $this->autorizarCobro();
-        if ($this->integrado) {
-            abort_unless(in_array($tipoDocumento, [15, 17], true), 422);
-            if ($this->documentoId !== null) {
-                $this->consultaNota()->firstOrFail();
-            }
-
-            return;
+        if ($this->documentoId !== null) {
+            $this->consultaNota()->firstOrFail();
+        } else {
+            abort_unless($this->integrado, 404);
         }
-
-        $documento = $this->consultaNota()->firstOrFail();
-        $cliente = $documento->customer;
-        if ($cliente !== null && $cliente->rut !== '66666666-6') {
-            $this->clienteId = (int) $cliente->id;
-            $this->modoCliente = 'registrado';
-        }
-        $this->form->inicializar($documento, 17, 'EFECTIVO', '');
     }
 
     public function hydrate(): void
@@ -120,312 +96,68 @@ final class CreatePayment extends Component
             && ($this->consultaNota()->first()?->emisionPendienteDeConciliar() ?? false);
     }
 
-    #[Computed]
-    public function documento(): Document
+    private function datosCobro(Document $nota): array
     {
-        return $this->consultaNota()
-            ->with([
-                'customer',
-                'details' => fn ($query) => $query
-                    ->vigente()
-                    ->with('productService')
-                    ->orderBy('id'),
-            ])
-            ->firstOrFail();
+        $datos = $this->form->validate();
+        abort_unless(in_array($this->tipoDocumento, [15, 17], true), 422);
+        $cliente = $nota->customer()->firstOrFail();
+        $this->validarReceptor($cliente, $this->tipoDocumento);
+        $total = $nota->calcularTotales()['monto_total'];
+        $recibido = $datos['formaPago'] === 'EFECTIVO' && filled($datos['montoRecibido'])
+            ? (int) $datos['montoRecibido'] : $total;
+        $this->validarImporteCobro($total, $nota->details()->vigente()->exists(), $datos['formaPago'], $recibido);
+
+        return ['cliente' => $cliente, 'total' => $total, 'recibido' => $recibido, 'forma' => $datos['formaPago']];
     }
 
-    #[Computed]
-    public function totales(): array
+    private function firmaRevision(Document $nota, array $datos): string
     {
-        $detalles = $this->documento->details;
-        $tipo = $this->form->descuentoTipo;
-        $valor = filter_var($this->form->descuentoValor, FILTER_VALIDATE_INT);
-        if ($this->integrado) {
-            return $this->documento->calcularTotales();
-        }
-
-        $subtotal = Document::totalizarDetalles($detalles)['monto_total'];
-
-        // Evita interrumpir la vista mientras se edita un valor incompleto.
-        // La validacion definitiva se realiza en revisar() y emitirDte().
-        if (
-            ! in_array($tipo, ['porcentaje', 'monto'], true)
-            || $valor === false
-            || $valor < 0
-            || ($tipo === 'porcentaje' && $valor >= 100)
-            || ($tipo === 'monto' && $valor >= $subtotal && $valor > 0)
-        ) {
-            return Document::calcularDescuentoGlobal($detalles);
-        }
-
-        return Document::calcularDescuentoGlobal($detalles, $tipo, $valor);
-    }
-
-    #[Computed]
-    public function clienteSeleccionado(): ?Customer
-    {
-        if ($this->modoCliente !== 'registrado' || $this->clienteId === null) {
-            return null;
-        }
-
-        return Customer::query()
-            ->whereKey($this->clienteId)
-            ->where(function (Builder $query): void {
-                $query->whereNull('rut')
-                    ->orWhere('rut', '!=', '66666666-6');
-            })
-            ->first();
-    }
-
-    #[Computed]
-    public function clientes(): Collection
-    {
-        $busqueda = trim($this->busquedaCliente);
-
-        if (! $this->mostrarSelectorClientes || mb_strlen($busqueda) < 2) {
-            return new Collection;
-        }
-
-        return Customer::query()
-            ->select([
-                'id', 'rut', 'nombres', 'apellido_paterno', 'apellido_materno',
-                'giro', 'direccion_cliente', 'comuna', 'condicion_cliente',
-            ])
-            ->where(function (Builder $query): void {
-                $query->whereNull('rut')
-                    ->orWhere('rut', '!=', '66666666-6');
-            })
-            ->where(function (Builder $query) use ($busqueda): void {
-                $query->where('rut', 'like', "%{$busqueda}%")
-                    ->orWhereRaw(
-                        "CONCAT_WS(' ', nombres, apellido_paterno, apellido_materno) LIKE CONCAT('%', REPLACE(?, ' ', '%'), '%')",
-                        [$busqueda]
-                    );
-            })
-            ->orderBy('nombres')
-            ->limit(20)
-            ->get();
-    }
-
-    #[Computed]
-    public function vuelto(): int
-    {
-        return max(0, (int) $this->form->montoRecibido - $this->totales['monto_total']);
-    }
-
-    public function cambiarModoCliente(string $modo): void
-    {
-        abort_if($this->integrado, 403);
-        abort_unless(in_array($modo, ['generico', 'registrado'], true), 422);
-
-        if ($modo === 'registrado') {
-            $this->abrirSelectorClientes();
-
-            return;
-        }
-
-        $this->modoCliente = 'generico';
-        $this->clienteId = null;
-        $this->form->tipoDocumento = 17;
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation();
-        unset($this->clienteSeleccionado);
-    }
-
-    public function abrirSelectorClientes(): void
-    {
-        abort_if($this->integrado, 403);
-        $this->mostrarSelectorClientes = true;
-        $this->busquedaCliente = '';
-        unset($this->clientes);
-    }
-
-    public function cerrarSelectorClientes(): void
-    {
-        abort_if($this->integrado, 403);
-        $this->mostrarSelectorClientes = false;
-        $this->busquedaCliente = '';
-        unset($this->clientes);
-    }
-
-    public function seleccionarCliente(int $id): void
-    {
-        abort_if($this->integrado, 403);
-        abort_unless($this->mostrarSelectorClientes, 409);
-
-        $cliente = Customer::query()
-            ->whereKey($id)
-            ->where(function (Builder $query): void {
-                $query->whereNull('rut')
-                    ->orWhere('rut', '!=', '66666666-6');
-            })
-            ->firstOrFail();
-
-        $this->clienteId = (int) $cliente->id;
-        $this->modoCliente = 'registrado';
-        $this->mostrarConfirmacion = false;
-        $this->cerrarSelectorClientes();
-        $this->resetValidation();
-        unset($this->clienteSeleccionado);
-    }
-
-    public function updatedFormTipoDocumento(): void
-    {
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation();
-    }
-
-    public function updatedFormFormaPago(): void
-    {
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation();
-    }
-
-    public function updatedFormMontoRecibido(): void
-    {
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation('form.montoRecibido');
-        unset($this->vuelto);
-    }
-
-    public function updatedFormDescuentoTipo(): void
-    {
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation('form.descuentoTipo');
-        $this->resetValidation('form.descuentoValor');
-        unset($this->totales, $this->vuelto);
-    }
-
-    public function updatedFormDescuentoValor(): void
-    {
-        $this->mostrarConfirmacion = false;
-        $this->resetValidation('form.descuentoValor');
-        unset($this->totales, $this->vuelto);
-    }
-
-    /**
-     * Obtiene el receptor actual desde la base de datos, sin confiar en el
-     * customer_id original de la nota ni en la relacion ya cargada.
-     */
-    private function resolverReceptor(int $tipoDocumento): Customer
-    {
-        if (! in_array($this->modoCliente, ['generico', 'registrado'], true)) {
-            throw ValidationException::withMessages([
-                'cliente' => 'Modo de cliente invalido.',
-            ]);
-        }
-
-        if ($this->modoCliente === 'registrado') {
-            $cliente = $this->clienteId === null
-                ? null
-                : Customer::query()
-                    ->whereKey($this->clienteId)
-                    ->where(function (Builder $query): void {
-                        $query->whereNull('rut')
-                            ->orWhere('rut', '!=', '66666666-6');
-                    })
-                    ->first();
-        } else {
-            $cliente = Customer::query()
-                ->where('rut', '66666666-6')
-                ->first();
-        }
-
-        if ($cliente === null) {
-            throw ValidationException::withMessages([
-                'cliente' => 'Seleccione un cliente valido para el documento.',
-            ]);
-        }
-
-        $this->validarReceptor($cliente, $tipoDocumento);
-
-        return $cliente;
+        return hash('sha256', json_encode([
+            $nota->id, $this->tipoDocumento, $datos['cliente']->id,
+            $datos['total'], $datos['recibido'], $datos['forma'],
+            $nota->descuento_global_tipo, $nota->descuento_global_valor,
+        ], JSON_THROW_ON_ERROR));
     }
 
     public function revisar(): void
     {
-        abort_if($this->integrado, 403);
-        $this->mostrarConfirmacion = false;
-        $this->validarCobro();
-        $this->mostrarConfirmacion = true;
+        $this->revision = null;
+        $nota = $this->consultaNota()->firstOrFail();
+        abort_unless($nota->puedePagar($this->condicionInicial()), 409);
+        $datos = $this->datosCobro($nota);
+        $this->revision = $this->firmaRevision($nota, $datos);
     }
 
-    /**
-     * @return array{datos: array{tipoDocumento: int, formaPago: string, montoRecibido: string, descuentoTipo: string, descuentoValor: string}, cliente: Customer}
-     */
-    private function validarCobro(): array
+    public function pagar(): void
     {
         $this->autorizarCobro();
-        abort_unless($this->documentoId !== null, 422);
-        $documento = $this->documento;
-        $datos = $this->integrado
-            ? $this->form->validateOnlyPayment()
-            : $this->form->validate();
-
         if ($this->integrado) {
-            $datos['tipoDocumento'] = $this->tipoDocumento;
-            $datos['descuentoTipo'] = $documento->descuento_global_tipo ?? 'porcentaje';
-            $datos['descuentoValor'] = (string) ($documento->descuento_global_valor ?? 0);
+            $this->emitirDte();
+            return;
         }
 
-        abort_unless(in_array((int) $datos['tipoDocumento'], [15, 17], true), 422);
-        $totales = Document::calcularDescuentoGlobal(
-            $documento->details, $datos['descuentoTipo'], (int) $datos['descuentoValor']
-        );
-        $recibido = $datos['formaPago'] === 'EFECTIVO' && filled($datos['montoRecibido'])
-            ? (int) $datos['montoRecibido'] : $totales['monto_total'];
-        $this->validarImporteCobro($totales['monto_total'], $documento->details->isNotEmpty(), $datos['formaPago'], $recibido);
-
-        $cliente = $this->integrado ? $documento->customer()->firstOrFail()
-            : $this->resolverReceptor((int) $datos['tipoDocumento']);
-        $this->validarReceptor($cliente, (int) $datos['tipoDocumento']);
-
-        return ['datos' => $datos, 'cliente' => $cliente];
-    }
-
-    public function cerrarRevision(): void
-    {
-        $this->mostrarConfirmacion = false;
-    }
-
-    public function solicitarEmitirDte(): void
-    {
-        abort_if($this->integrado, 403);
         $this->revisar();
-
-        $tipoDte = match ((int) $this->form->tipoDocumento) {
-            15 => 'FACTURA ELECTRONICA',
-            17 => 'BOLETA ELECTRONICA',
-        };
-
-        $this->dispatch(
-            'open-confirm-modal',
+        $nota = $this->consultaNota()->firstOrFail();
+        $tipo = $this->tipoDocumento === 15 ? 'Factura electrónica' : 'Boleta electrónica';
+        $this->dispatch('open-confirm-modal',
             id: $this->documentoId,
             name: 'Nota de venta N.º '.$this->documentoId,
             confirmEvent: 'confirm-payment-emit-dte',
-            title: 'Confirmar cobro y emision',
-            message: '¿Esta seguro de cobrar $'
-                .number_format($this->totales['monto_total'], 0, ',', '.')
-                .' y emitir el documento tributario?',
-            warning: 'Se emitira una '.$tipoDte.'.',
-            confirmLabel: 'Cobrar y emitir'
-        );
+            title: 'Confirmar cobro y emisión',
+            message: '¿Confirma el cobro de $'.number_format($nota->calcularTotales()['monto_total'], 0, ',', '.').'?',
+            warning: 'Se emitirá una '.$tipo.'.',
+            confirmLabel: 'Cobrar y emitir');
     }
 
     #[On('confirm-payment-emit-dte')]
     public function confirmarEmitirDte(int $id): void
     {
-        abort_unless(! $this->integrado && $this->mostrarConfirmacion && $id === $this->documentoId, 409);
-
-        $this->mostrarConfirmacion = false;
-        $this->emitirDte();
-    }
-
-    public function pagar(): void
-    {
-        abort_unless($this->integrado, 403);
-        $this->mostrarConfirmacion = false;
-        $this->emitirDte();
+        abort_unless(! $this->integrado && $id === $this->documentoId && $this->revision !== null, 409);
+        try {
+            $this->emitirDte();
+        } finally {
+            $this->revision = null;
+        }
     }
 
     private function emitirDte(): void
@@ -439,7 +171,6 @@ final class CreatePayment extends Component
         }
 
         try {
-            unset($this->documento, $this->totales);
             $this->procesarPago();
         } finally {
             $lock->release();
@@ -514,20 +245,16 @@ final class CreatePayment extends Component
                 throw ValidationException::withMessages(['documento' => 'Existe un pago o intento previo. Concilie antes de continuar.']);
             }
 
-            unset($this->documento);
-            ['datos' => $datos, 'cliente' => $cliente] = $this->validarCobro();
-            $tipoDocumento = (int) $datos['tipoDocumento'];
+            $datos = $this->datosCobro($nota);
+            if (! $this->integrado && $this->revision !== $this->firmaRevision($nota, $datos)) {
+                throw ValidationException::withMessages(['documento' => 'El cobro cambió desde la revisión. Revise nuevamente.']);
+            }
+            $cliente = $datos['cliente'];
+            $tipoDocumento = $this->tipoDocumento;
+            $total = $datos['total'];
+            $recibido = $datos['recibido'];
             $dte = clone $nota;
-            $dte->fill([
-                'customer_id' => $cliente->id,
-                'descuento_global_tipo' => $datos['descuentoTipo'],
-                'descuento_global_valor' => (int) $datos['descuentoValor'],
-            ]);
-            $total = $dte->calcularTotales()['monto_total'];
-            $recibido = $datos['formaPago'] === 'EFECTIVO' && filled($datos['montoRecibido'])
-                ? (int) $datos['montoRecibido'] : $total;
-            $this->validarImporteCobro($total, $nota->details()->vigente()->exists(), $datos['formaPago'], $recibido);
-            $medio = match ($datos['formaPago']) {
+            $medio = match ($datos['forma']) {
                 'EFECTIVO' => '',
                 'TARJETA DEBITO', 'TARJETA CREDITO' => '2',
                 'TRANSFERENCIA BANCARIA', 'DEPOSITO BANCARIO' => '3',
@@ -543,7 +270,7 @@ final class CreatePayment extends Component
 
             $contexto = [
                 'idempotency_key' => 'saf-dte-'.$nota->id,
-                'forma_pago' => $datos['formaPago'],
+                'forma_pago' => $datos['forma'],
                 'monto' => $total,
                 'monto_recibido' => $recibido,
                 'tipo_documento_id' => $tipoDocumento,
@@ -555,7 +282,7 @@ final class CreatePayment extends Component
                 'error' => json_encode($contexto + ['saf_emision' => 'ENVIANDO'], JSON_THROW_ON_ERROR),
             ]);
 
-            return ['dte' => $dte, 'total' => $total, 'forma' => $datos['formaPago'],
+            return ['dte' => $dte, 'total' => $total, 'forma' => $datos['forma'],
                 'registro' => $registro, 'contexto' => $contexto];
         }, 1);
     }
@@ -624,7 +351,7 @@ final class CreatePayment extends Component
     {
         if ($tipoDocumento !== 17 && ($cliente->rut === '66666666-6' || blank($cliente->rut))) {
             throw ValidationException::withMessages([
-                'cliente' => 'La factura y la guia requieren el RUT del receptor.',
+                'cliente' => 'La factura requiere el RUT del receptor.',
             ]);
         }
 
@@ -653,8 +380,6 @@ final class CreatePayment extends Component
     {
         $this->autorizarCobro();
 
-        return view($this->integrado
-            ? 'livewire.payments.customers.create-payment-integrated'
-            : 'livewire.payments.customers.create-payment');
+        return view('livewire.payments.customers.create-payment');
     }
 }

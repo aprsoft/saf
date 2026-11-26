@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Livewire\PointOfSale;
+namespace App\Livewire\Documents;
 
 use App\Models\Document;
+use App\Models\Company;
+use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\Locked;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -16,6 +19,9 @@ use Livewire\Component;
 
 final class DocumentSummary extends Component
 {
+    #[Locked]
+    public bool $cajaCentral = false;
+
     #[Reactive]
     public ?int $documentoId = null;
 
@@ -23,14 +29,23 @@ final class DocumentSummary extends Component
 
     public string $descuentoValor = '0';
 
-    public function boot(): void
+    private function autorizar(): void
     {
-        Gate::authorize('point-of-sale.show');
+        Gate::authorize($this->cajaCentral ? 'payments.customer.create' : 'point-of-sale.show');
+        if ($this->cajaCentral) {
+            abort_unless(Company::query()->firstOrFail()->modo_cobro === 'CAJA_CENTRAL', 403);
+        }
     }
 
     public function mount(): void
     {
+        $this->autorizar();
         $this->cargarDescuento();
+    }
+
+    public function hydrate(): void
+    {
+        $this->autorizar();
     }
 
     private function consultarDocumento(bool $bloquear = false): Document
@@ -38,10 +53,10 @@ final class DocumentSummary extends Component
         abort_unless($this->documentoId !== null, 409);
 
         $query = Document::query()->whereKey($this->documentoId)
-            ->where('user_id', auth()->id())
-            ->whereIn('typedocument_id', [2, 19])
+            ->when(! $this->cajaCentral, fn (Builder $query) => $query->where('user_id', auth()->id()))
+            ->whereIn('typedocument_id', $this->cajaCentral ? [2] : [2, 19])
             ->where('estado_documento', 'VIGENTE')
-            ->where('condicion_documento', 'EN PROCESO');
+            ->where('condicion_documento', $this->cajaCentral ? 'FINALIZADO' : 'EN PROCESO');
 
         return ($bloquear ? $query->lockForUpdate() : $query)->firstOrFail();
     }
@@ -96,7 +111,10 @@ final class DocumentSummary extends Component
 
     public function aplicarDescuento(): void
     {
-        Gate::authorize('point-of-sale.show');
+        Gate::authorize($this->cajaCentral ? 'payments.customer.create' : 'point-of-sale.show');
+        if ($this->cajaCentral) {
+            abort_unless(Company::query()->firstOrFail()->modo_cobro === 'CAJA_CENTRAL', 403);
+        }
         $datos = $this->validate([
             'descuentoTipo' => ['required', 'in:porcentaje,monto'],
             'descuentoValor' => ['required', 'integer', 'min:0', 'max:'.($this->descuentoTipo === 'porcentaje' ? 99 : 4294967295)],
@@ -132,6 +150,6 @@ final class DocumentSummary extends Component
 
     public function render(): View
     {
-        return view('livewire.point-of-sale.document-summary');
+        return view('livewire.documents.document-summary');
     }
 }
