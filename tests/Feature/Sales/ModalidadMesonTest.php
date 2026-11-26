@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Helpers\MenuHelper;
-use App\Livewire\Payments\Customer\CreatePayment;
+use App\Livewire\Payments\Customers\CreatePayment;
 use App\Livewire\SalesCounters\Notes\CreateSalesNote;
 use App\Livewire\SalesCounters\SalesCounter;
 use App\Models\Company;

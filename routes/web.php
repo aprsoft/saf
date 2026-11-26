@@ -189,11 +189,7 @@ Route::middleware('auth')->group(function () {
     | Meson de Ventas
     |----------------------------------------------------------------------
     */
-    Route::prefix('sales-counters')->name('sales-counters.')->controller(SalesCounterController::class)->group(function () {
-
-        Route::get('/', 'show')->name('show');
-
-    });
+    
 
     Route::prefix('point-of-sale')->name('point-of-sale.')->controller(PointOfSaleController::class)->group(function () {
         Route::get('/', 'show')->middleware('can:point-of-sale.show')->name('show');

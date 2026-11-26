@@ -61,26 +61,6 @@ class MenuHelper
                     ],
                 ],
             ],
-
-            [
-                'icon' => 'file',
-                'name' => 'Ventas',
-                'subItems' => [
-                    [
-                        'name' => $cajaIntegrada ? 'Punto de venta' : 'Mesón de ventas',
-                        'path' => route('sales-counters.show', absolute: false),
-                        'permission' => 'sales-counters.show',
-                        'pro' => false,
-                    ],
-                    [
-                        'name' => 'Listado de Ventas',
-                        'path' => route('dtes.customers.index', absolute: false),
-                        'permission' => 'dtes.customers.index',
-                        'pro' => false,
-                    ],
-
-                ],
-            ],
             [
                 'icon' => 'file',
                 'name' => 'Punto de venta (POS)',
