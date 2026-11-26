@@ -112,6 +112,13 @@ final class CashPayment extends Component
         unset($this->documento);
     }
 
+    public function devolverAlMeson(): void
+    {
+        $this->autorizar();
+        $this->consultaNota()->firstOrFail()->devolverAlMeson();
+        $this->redirectRoute('cashs.customers.sales-note.index');
+    }
+
     public function render(): View
     {
         $this->autorizar();

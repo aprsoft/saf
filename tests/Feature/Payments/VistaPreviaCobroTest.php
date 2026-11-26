@@ -132,3 +132,24 @@ test('cajero autorizado puede revisar una nota de otro vendedor', function (): v
     Livewire::actingAs(cajeroPrueba())->test(CreatePayment::class, ['documentoId' => $nota->id])->call('revisar')->assertHasNoErrors();
     Livewire::actingAs(User::factory()->create())->test(CreatePayment::class, ['documentoId' => $nota->id])->assertForbidden();
 });
+
+test('caja devuelve la nota al mesón conservando sus detalles y vendedor', function (): void {
+    $vendedor = User::factory()->create();
+    $nota = nuevaNotaParaPruebaCaja($vendedor);
+    $detalle = $nota->details()->sole();
+    Livewire::actingAs(cajeroPrueba())->test(CashPayment::class, ['documentoId' => $nota->id])
+        ->assertSee('Devolver al mesón')
+        ->call('devolverAlMeson')->assertRedirect(route('cashs.customers.sales-note.index'));
+    expect($nota->fresh()->condicion_documento)->toBe('EN PROCESO')
+        ->and((int) $nota->fresh()->user_id)->toBe($vendedor->id)
+        ->and($nota->details()->sole()->id)->toBe($detalle->id)
+        ->and(Payment::query()->count())->toBe(0);
+});
+
+test('caja no devuelve una nota con emisión incierta', function (): void {
+    $nota = nuevaNotaParaPruebaCaja(User::factory()->create());
+    $nota->errorDtes()->create(['error' => json_encode(['saf_emision' => 'INCIERTA'])]);
+    Livewire::actingAs(cajeroPrueba())->test(CashPayment::class, ['documentoId' => $nota->id])
+        ->call('devolverAlMeson')->assertStatus(409);
+    expect($nota->fresh()->condicion_documento)->toBe('FINALIZADO');
+});

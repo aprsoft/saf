@@ -41,11 +41,12 @@ final class DocumentTypeSelector extends Component
     {
         $opciones = [];
 
-        foreach (($this->cajaCentral ? [17 => 'Boleta electrónica', 15 => 'Factura electrónica'] : PointOfSale::documentosPermitidos($this->type)) as $id => $nombre) {
+        foreach (($this->cajaCentral ? [17 => 'Boleta electrónica', 15 => 'Factura electrónica', 18 => 'Guía de despacho (pendiente de habilitar)'] : PointOfSale::documentosPermitidos($this->type)) as $id => $nombre) {
             $opciones[] = [
                 'id' => $id,
                 'nombre' => $nombre,
                 'seleccionado' => $this->tipoDocumento === $id,
+                'deshabilitado' => $this->cajaCentral && $id === 18,
             ];
         }
 

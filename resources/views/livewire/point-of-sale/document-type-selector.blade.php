@@ -6,7 +6,7 @@
             class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
         @foreach ($this->opciones as $opcion)
             <option value="{{ $opcion['id'] }}"
-                    @selected($opcion['seleccionado'])>
+                    @selected($opcion['seleccionado']) @disabled($opcion['deshabilitado'] ?? false)>
                 {{ $opcion['nombre'] }}
             </option>
         @endforeach

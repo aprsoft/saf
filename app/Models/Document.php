@@ -35,6 +35,17 @@ class Document extends Model
     }
 
     
+    public function devolverAlMeson(): void
+    {
+        DB::transaction(function (): void {
+            $nota = self::query()->whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            abort_unless($nota->puedePagar('FINALIZADO'), 409);
+            $nota->update(['condicion_documento' => 'EN PROCESO']);
+        });
+
+        $this->refresh();
+    }
+
     public function getExentoAttribute(): int
     {
         return $this->calcularTotales()['monto_exento'];
