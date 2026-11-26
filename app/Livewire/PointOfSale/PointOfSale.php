@@ -98,11 +98,6 @@ final class PointOfSale extends Component
         return self::DOCUMENTOS[$type];
     }
 
-    public static function cambioPermitido(int $actual, int $nuevo, bool $activo): bool
-    {
-        return ! $activo || ($actual === 19) === ($nuevo === 19);
-    }
-
     public function seleccionarTipo(int|string $tipo): void
     {
         Gate::authorize('point-of-sale.show');
@@ -111,10 +106,36 @@ final class PointOfSale extends Component
         abort_unless(array_key_exists($tipo, self::documentosPermitidos($this->type)), 422);
         abort_unless(Company::query()->firstOrFail()->modo_cobro === $this->type, 409);
 
-        if (! self::cambioPermitido($this->tipoDocumento, $tipo, $this->documentoId !== null)) {
-            $this->advertencia = 'Finalice o descarte el documento antes de cambiar entre venta y cotización.';
-
+        if ($tipo === $this->tipoDocumento) {
             return;
+        }
+
+        if ($this->documentoId !== null) {
+            DB::transaction(function () use ($tipo): void {
+                $documento = Document::query()->whereKey($this->documentoId)
+                    ->where('user_id', auth()->id())
+                    ->where('typedocument_id', $this->tipoDocumento === 19 ? 19 : 2)
+                    ->where('estado_documento', 'VIGENTE')
+                    ->where('condicion_documento', 'EN PROCESO')
+                    ->lockForUpdate()->firstOrFail();
+
+                abort_if($documento->folio !== null
+                    || DB::table('document_payment')->where('document_id', $documento->id)->exists()
+                    || DB::table('dte_emission_attempts')->where('document_id', $documento->id)->exists()
+                    || Document::query()->where('parent_id', $documento->id)->exists(), 409,
+                    'El documento tiene operaciones asociadas y no puede cambiar de tipo.');
+
+                $tipoPersistido = $tipo === 19 ? 19 : 2;
+
+                if ((int) $documento->typedocument_id !== $tipoPersistido) {
+                    $documento->update([
+                        'typedocument_id' => $tipoPersistido,
+                        'fecha_vencimiento' => $tipoPersistido === 19
+                            ? today('America/Santiago')->addDays(15)->toDateString()
+                            : null,
+                    ]);
+                }
+            });
         }
 
         $this->tipoDocumento = $tipo;

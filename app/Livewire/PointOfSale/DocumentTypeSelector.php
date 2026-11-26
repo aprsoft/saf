@@ -19,9 +19,6 @@ final class DocumentTypeSelector extends Component
     #[Reactive]
     public int $tipoDocumento;
 
-    #[Reactive]
-    public bool $documentoActivo = false;
-
     public function boot(): void
     {
         Gate::authorize('point-of-sale.show');
@@ -37,11 +34,6 @@ final class DocumentTypeSelector extends Component
                 'id' => $id,
                 'nombre' => $nombre,
                 'seleccionado' => $this->tipoDocumento === $id,
-                'deshabilitado' => ! PointOfSale::cambioPermitido(
-                    $this->tipoDocumento,
-                    $id,
-                    $this->documentoActivo,
-                ),
             ];
         }
 

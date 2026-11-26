@@ -3,9 +3,9 @@
         :cliente-id="$clienteId"
         :nombre-referencia="$nombreReferencia"
         :tipo-persistido="$tipoDocumento === 19 ? 19 : 2"
-        :key="'pos-items-'.($tipoDocumento === 19 ? 19 : 2)" />
+        :key="'pos-items'" />
     <aside class="space-y-3">
-        <livewire:point-of-sale.document-type-selector :type="$type" :tipo-documento="$tipoDocumento" :documento-activo="$documentoId !== null" />
+        <livewire:point-of-sale.document-type-selector :type="$type" :tipo-documento="$tipoDocumento" />
         <livewire:point-of-sale.customer-selector :cliente-id="$clienteId" :nombre-referencia="$nombreReferencia" />
         @if ($advertencia !== '')
             <p role="alert" class="text-sm text-amber-600">{{ $advertencia }}</p>

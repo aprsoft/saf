@@ -22,7 +22,7 @@ final class SalesItemSelector extends Component
 {
     public string $busqueda = '';
 
-    #[Locked]
+    #[Reactive]
     public int $tipoPersistido = 2;
 
     #[Reactive]
@@ -30,12 +30,6 @@ final class SalesItemSelector extends Component
 
     #[Reactive]
     public string $nombreReferencia = '';
-
-    public function mount(int $tipoPersistido = 2): void
-    {
-        abort_unless(in_array($tipoPersistido, [2, 19], true), 422);
-        $this->tipoPersistido = $tipoPersistido;
-    }
 
     #[Locked]
     public ?int $documentoId = null;
@@ -223,6 +217,7 @@ final class SalesItemSelector extends Component
 
     private function crearDocumento(): Document
     {
+        abort_unless(in_array($this->tipoPersistido, [2, 19], true), 422);
         $cliente = $this->clienteId === null
             ? Customer::query()->firstOrCreate(['rut' => '66666666-6'], ['nombres' => 'CLIENTE GENERICO'])
             : Customer::query()->findOrFail($this->clienteId);

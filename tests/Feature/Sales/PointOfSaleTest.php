@@ -143,10 +143,11 @@ test('el selector muestra únicamente los documentos de la modalidad', function 
     }
 })->with([['CAJA_CENTRAL', 2], ['CAJA_INTEGRADA', 17]]);
 
-test('el padre valida las transiciones y la familia del documento activo', function (): void {
+test('el padre cambia el tipo conservando el documento activo', function (): void {
     empresaPosPrueba('CAJA_INTEGRADA');
     $user = usuarioPosPrueba();
     DB::table('typedocuments')->insertOrIgnore(['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO']);
+    DB::table('typedocuments')->insertOrIgnore(['id' => 19, 'name' => 'COTIZACION', 'transacciontype' => 'NO APLICA']);
     $pos = Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_INTEGRADA'])
         ->assertSet('tipoDocumento', 17)
         ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 19)
@@ -158,9 +159,14 @@ test('el padre valida las transiciones y la familia del documento activo', funct
     $pos->dispatch('pos-items-changed', id: $documento->id)
         ->assertSet('documentoId', $documento->id)
         ->call('seleccionarTipo', 15)->assertSet('tipoDocumento', 15)
-        ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 15)
-        ->assertSee('Finalice o descarte')
-        ->call('seleccionarTipo', 2)->assertStatus(422);
+        ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 19)
+        ->assertSet('documentoId', $documento->id);
+    expect((int) $documento->fresh()->typedocument_id)->toBe(19)
+        ->and($documento->fresh()->fecha_vencimiento)->toBe(today('America/Santiago')->addDays(15)->toDateString());
+    $pos->call('seleccionarTipo', 17)->assertSet('tipoDocumento', 17);
+    expect((int) $documento->fresh()->typedocument_id)->toBe(2)
+        ->and($documento->fresh()->fecha_vencimiento)->toBeNull();
+    $pos->call('seleccionarTipo', 2)->assertStatus(422);
 });
 
 test('el primer ítem de una cotización persiste el tipo 19 y su vigencia', function (): void {
@@ -192,15 +198,12 @@ test('las opciones respetan el flujo activo sin duplicar reglas en Blade', funct
     $selector = Livewire::actingAs(usuarioPosPrueba())->test(DocumentTypeSelector::class, [
         'type' => 'CAJA_INTEGRADA',
         'tipoDocumento' => 17,
-        'documentoActivo' => true,
     ]);
 
     $opciones = collect($selector->instance()->opciones())->keyBy('id');
 
     expect($opciones[17]['seleccionado'])->toBeTrue()
-        ->and($opciones[15]['deshabilitado'])->toBeFalse()
-        ->and($opciones[18]['deshabilitado'])->toBeFalse()
-        ->and($opciones[19]['deshabilitado'])->toBeTrue();
+        ->and($opciones->keys()->all())->toBe([17, 15, 18, 19]);
 });
 
 test('el buscador encuentra clientes por nombre y rut', function (): void {
@@ -239,4 +242,30 @@ test('el primer ítem conserva el cliente seleccionado', function (): void {
     Livewire::actingAs($user)->test(SalesItemSelector::class, ['clienteId' => $cliente->id])
         ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
     expect((int) Document::query()->sole()->customer_id)->toBe($cliente->id);
+});
+
+test('convertir una nota a cotización conserva cliente y detalles', function (): void {
+    empresaPosPrueba('CAJA_CENTRAL');
+    $user = usuarioPosPrueba();
+    $producto = productoPosPrueba();
+    DB::table('typedocuments')->insertOrIgnore([
+        ['id' => 2, 'name' => 'NOTA DE VENTA', 'transacciontype' => 'INGRESO'],
+        ['id' => 19, 'name' => 'COTIZACION', 'transacciontype' => 'NO APLICA'],
+    ]);
+    $pos = Livewire::actingAs($user)->test(PointOfSale::class, ['type' => 'CAJA_CENTRAL']);
+    $clienteId = $pos->get('clienteId');
+    Livewire::actingAs($user)->test(SalesItemSelector::class, ['clienteId' => $clienteId])
+        ->call('abrirProducto', $producto->id)->call('guardarItem')->assertHasNoErrors();
+    $documento = Document::query()->sole();
+    $detalle = $documento->details()->sole()->getAttributes();
+    $pos->dispatch('pos-items-changed', id: $documento->id)
+        ->call('seleccionarTipo', 19)->assertSet('tipoDocumento', 19)
+        ->assertSet('documentoId', $documento->id)
+        ->call('seleccionarTipo', 2)->assertSet('tipoDocumento', 2);
+    expect(Document::query()->count())->toBe(1)
+        ->and((int) $documento->fresh()->customer_id)->toBe($clienteId)
+        ->and($documento->details()->sole()->getAttributes())->toBe($detalle);
+    $documento->update(['folio' => 123]);
+    $pos->call('seleccionarTipo', 19)->assertStatus(409);
+    expect((int) $documento->fresh()->typedocument_id)->toBe(2);
 });

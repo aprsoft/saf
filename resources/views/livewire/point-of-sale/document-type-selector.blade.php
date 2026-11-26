@@ -6,13 +6,9 @@
             class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900">
         @foreach ($this->opciones as $opcion)
             <option value="{{ $opcion['id'] }}"
-                    @selected($opcion['seleccionado'])
-                    @disabled($opcion['deshabilitado'])>
+                    @selected($opcion['seleccionado'])>
                 {{ $opcion['nombre'] }}
             </option>
         @endforeach
     </select>
-    @if ($documentoActivo)
-        <p class="mt-1 text-xs text-gray-500">Finalice o descarte el documento para cambiar de flujo.</p>
-    @endif
 </section>
