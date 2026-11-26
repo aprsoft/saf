@@ -23,6 +23,7 @@ final class PointOfSale extends Component
     public function actualizarDocumento(int $id): void
     {
         Gate::authorize('point-of-sale.show');
+
         Document::query()->whereKey($id)
             ->where('user_id', auth()->id())
             ->where('typedocument_id', 2)
@@ -35,6 +36,7 @@ final class PointOfSale extends Component
     public function mount(string $type): void
     {
         Gate::authorize('point-of-sale.show');
+        
         abort_unless(in_array($type, ['CAJA_CENTRAL', 'CAJA_INTEGRADA'], true), 404);
 
         $this->type = $type;
