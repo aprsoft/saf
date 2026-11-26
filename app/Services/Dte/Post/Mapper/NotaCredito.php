@@ -29,25 +29,21 @@ class NotaCredito
         $customer = $this->document->customer;
        
         $parent = $this->document->parent;
-        if ($customer === null || $parent?->typedocument === null || $parent->folio === null) {
+        if ($customer === null || blank($customer->rut) || $customer->rut === '66666666-6' || blank(trim($customer->fullName)) || $parent?->typedocument === null || $parent->folio === null) {
             throw new DomainException('La nota requiere receptor y documento de referencia con folio.');
         }
         // CodRef existe físicamente en documents. No asumir que toda nota anula.
         if (! in_array((int) $this->document->CodRef, [1, 2, 3], true)) {
             throw new DomainException('La nota no tiene un CodRef válido.');
         }
-        // El mapper original no soporta descuentos globales en notas;
-        // impedir pérdida silenciosa de ese dato.
-        if ($this->document->details()->vigente()->descuento()->exists()) {
-            throw new DomainException('No se admite emitir una nota con descuentos globales sin definir su mapeo.');
-        }
-
+        $totales = $this->document->calcularTotales();
         $referencia = [[
             'NroLinRef' => 1,
             'TpoDocRef' => (int) $parent->typedocument->codigo,
             'FolioRef'  => (int) $parent->folio,
             'FchRef'    => $parent->fecha,
             'CodRef'    => (int) $this->document->CodRef,
+            'RazonRef' => match ((int) $this->document->CodRef) { 1 => 'Anula documento de referencia', 2 => 'Corrige texto', 3 => 'Corrige montos' },
         ]];
 
         $dte = [
@@ -74,7 +70,8 @@ class NotaCredito
                     'CmnaRecep'   => $customer->comuna,
                 ],
                 'Totales' => [
-                    'MntNeto'  => $this->document->neto,
+                    'MntNeto'  => $totales['monto_neto'],
+                    'MntExe' => $totales['monto_exento'],
                     'TasaIVA'  => 19,
                     'IVA'      => $this->document->iva,
                     'MntTotal' => $this->document->total,
@@ -84,65 +81,48 @@ class NotaCredito
             'Referencia' => $referencia,
         ];
 
-        $subtotals = $this->mapInformativeSubtotals();
-        if ($subtotals !== []) {
-            $dte['SubTotInfo'] = $subtotals;
+        $descuentos = $this->document->lineasDescuentoDte($totales);
+        if ($descuentos !== []) {
+            $dte['DscRcgGlobal'] = $descuentos;
         }
 
         return json_encode(
-            ['response' => ['TIMBRE', 'FOLIO','PDF'], 'dte' => $dte],
+            ['response' => ['TIMBRE', 'FOLIO', 'XML', 'PDF'], 'dte' => $dte],
             JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
         );
     }
 
 
-    protected function mapDetails(): array
+    private function mapDetails(): array
     {
-        $details = $this->document->details()
-            ->vigente()
-            ->servicios()
-            // El service_id 10 es descuento; no debe duplicarse como ítem.
-            ->where('service_id', '!=', 10)
-            ->get();
-
-        if ($details->isEmpty()) {
+        $detalles = $this->document->details()
+            ->vigente()->with('productService')->orderBy('id')->get();
+        if ($detalles->isEmpty()) {
             throw new DomainException('El documento no tiene ítems vigentes para el DTE.');
         }
 
-        return $details->values()->map(function ($detail, int $index): array {
-            if ($detail->QtyItem === null || $detail->PrcItem === null || $detail->MontoItem === null) {
-                throw new DomainException('Faltan cantidad, precio o monto en un detalle.');
+        return $detalles->values()->map(static function ($detalle, int $index): array {
+            if ($detalle->QtyItem === null || $detalle->PrcItem === null || $detalle->MontoItem === null) {
+                throw new DomainException('El detalle tiene cantidad, precio o monto incompletos.');
             }
-
-            $line = [
-                'NroLinDet'     => $index + 1,
-                'NmbItem'       => $detail->detalle,
-                'QtyItem'       => (int) $detail->QtyItem,
-                'PrcItem'       => (int) $detail->PrcItem,
-                'MontoItem'     => (int) $detail->MontoItem,
+            $linea = [
+                'NroLinDet' => $index + 1,
+                'NmbItem' => $detalle->productService?->nombre ?? $detalle->detalle ?? 'PRODUCTO',
+                'QtyItem' => (float) $detalle->QtyItem,
+                'PrcItem' => (int) $detalle->PrcItem,
+                'MontoItem' => (int) $detalle->MontoItem,
             ];
-            if ($detail->IndExe !== null && (int) $detail->IndExe > 0) {
-                $line['IndExe'] = (int) $detail->IndExe;
+            if ($detalle->IndExe !== null) {
+                $linea['IndExe'] = (int) $detalle->IndExe;
+            }
+            if ((int) $detalle->DescuentoMonto > 0) {
+                if ($detalle->DescuentoPct !== null) {
+                    $linea['DescuentoPct'] = (int) $detalle->DescuentoPct;
+                }
+                $linea['DescuentoMonto'] = (int) $detalle->DescuentoMonto;
             }
 
-            return $line;
+            return $linea;
         })->all();
     }
-
-    protected function mapInformativeSubtotals(): array
-    {
-        return $this->document->details()->vigente()->informativo()->get()
-            ->values()->map(function ($detail, int $index): array {
-                if ($detail->MontoItem === null) {
-                    throw new DomainException('Falta MontoItem en un subtotal informativo.');
-                }
-
-                return [
-                    'NroSTI'       => $index + 1,
-                    'GlosaSTI'     => $detail->detalle,
-                    'SubTotExeSTI' => abs((int) $detail->MontoItem),
-                ];
-            })->all();
-    }
-
 }
